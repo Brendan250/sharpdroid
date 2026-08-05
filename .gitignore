@@ -1,0 +1,23 @@
+# all local output: the native build, the APK, packaged builds, soak logs, screenshots.
+/build/
+
+# toolchains fetched by tools/fetch-toolchain.ps1. the declaration is toolchain.json, which IS
+# committed; this is where it gets materialised. same relationship as package.json to node_modules.
+/toolchain/
+
+# the staged x86-64 guest libraries. these are Debian glibc, libstdc++ and openssl binaries and
+# are LGPL; guest-libs/fetch-guest-libs.ps1 fetches them, and they are not redistributed here.
+/guest-libs/x86_64/
+/guest-libs/bin/
+
+# a throwaway debug signing key. app/build-app.ps1 generates one on demand, so there is no reason
+# to publish one.
+/app/debug.keystore
+
+# editors and platform junk
+.vs/
+.idea/
+*.user
+*.swp
+Thumbs.db
+.DS_Store

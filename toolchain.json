@@ -1,0 +1,15 @@
+{
+  "ndk": "29.0.14206865",
+  "ndkMinRevision": 29,
+  "cmake": "3.22.1",
+  "buildTools": "35.0.0",
+  "platform": "android-35",
+  "jdk": 21,
+  "dotnetSdk": "10.0.103",
+
+  "sources": {
+    "cmdlineTools": "https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip",
+    "jdk": "https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jdk/hotspot/normal/eclipse",
+    "dotnetInstall": "https://dot.net/v1/dotnet-install.ps1"
+  }
+}

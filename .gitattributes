@@ -1,0 +1,6 @@
+# every file in this tree is LF, and that is load-bearing rather than tidy: host/regression.sh and
+# scripts/device/*.sh are pushed to an android device and run by /system/bin/sh, where a CR is a
+# syntax error rather than whitespace. git for windows ships with core.autocrlf = true in its system
+# config, so without this a clone on windows would rewrite them on checkout and the failure would
+# land on the device.
+* text=auto eol=lf

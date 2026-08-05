@@ -1,0 +1,22 @@
+version = 1
+
+# the whole tree is ours and is GPL-2.0-or-later, declared once here rather than as a header on every
+# file.
+#
+# **per-file headers are not a licence condition.** the GPL's "attach them to the start of each
+# source file" language lives in its *How to Apply These Terms to Your New Programs* appendix, which
+# is advice; what the licence itself requires is a notice on each copy of the program, and that is the
+# root LICENSE. one declaration keeps the licensing machine-readable for a scanner and costs nothing
+# to keep true as files come and go.
+#
+# **the SharpEmu fork is the exception, and it is not ours to change.** that repository follows REUSE
+# strictly and its CI rejects a new file without an SPDX header. anything written here that later
+# moves across into the fork gains a header at the moment it crosses.
+#
+# precedence is "aggregate", so a file that does carry its own header still wins.
+
+[[annotations]]
+path = ["**", "*"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "sharpemu-android contributors"
+SPDX-License-Identifier = "GPL-2.0-or-later"

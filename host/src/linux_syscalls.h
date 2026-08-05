@@ -1,0 +1,88 @@
+// sharpemu-android host layer — guest linux x86-64 syscalls onto bionic/android.
+//
+// FEX's JIT hands us the guest's RAX/RDI/RSI/RDX/R10/R8/R9 in SyscallArguments::Argument[0..6]
+// and puts our return value back in guest RAX. everything else is ours to do.
+//
+// the two translations that matter, and are easy to get wrong by assuming they are no-ops:
+//   - *values*, where a guest constant differs from the arm64 one. PROT_*, MAP_* and errno are
+//     identical across both architectures; O_* and `struct stat` are not.
+//   - *structures*, where a guest layout differs from the host's. `struct stat` again.
+// anything not translated is passed through to bionic, which issues the arm64 syscall.
+
+#pragma once
+
+#include "audio_thunk.h"
+#include "guest_procfs.h"
+#include "guest_signals.h"
+#include "vma_tracker.h"
+#include "vulkan_thunk.h"
+
+#include <FEXCore/Core/CodeCache.h>
+#include <FEXCore/HLE/SyscallHandler.h>
+
+#include <atomic>
+#include <cstdint>
+#include <mutex>
+
+namespace HostLayer {
+
+class LinuxSyscallHandler final : public FEXCore::HLE::SyscallHandler {
+public:
+  LinuxSyscallHandler();
+
+  void SetSignals(GuestSignals* Signals) {
+    Guest = Signals;
+  }
+  // where the guest heap begins: the first page past the loaded image.
+  void SetBrkBase(uint64_t Base);
+  GuestProcFS& ProcFS() {
+    return Proc;
+  }
+  void SetTrace(bool Enabled) {
+    Trace = Enabled;
+  }
+
+  uint64_t UnhandledCount() const {
+    return Unhandled.load(std::memory_order_relaxed);
+  }
+  uint64_t LastUnhandledNumber() const {
+    return LastUnhandled.load(std::memory_order_relaxed);
+  }
+
+  uint64_t HandleSyscall(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArguments* Args) override;
+
+  // the three halves of the contract with FEXCore's SMC tracking. all of them are backed by
+  // vma_tracker.{h,cpp}, which is where the reasoning lives.
+  FEXCore::HLE::ExecutableRangeInfo QueryGuestExecutableRange(FEXCore::Core::InternalThreadState*, uint64_t Address) override;
+  void MarkGuestExecutableRange(FEXCore::Core::InternalThreadState*, uint64_t Start, uint64_t Length) override;
+  void InvalidateGuestCodeRange(FEXCore::Core::InternalThreadState*, uint64_t Start, uint64_t Length) override;
+
+  std::optional<FEXCore::ExecutableFileSectionInfo> LookupExecutableFileSection(FEXCore::Core::InternalThreadState*, uint64_t) override {
+    return std::nullopt;
+  }
+
+private:
+  ///< the syscall table proper. HandleSyscall is a wrapper around it that turns the return into a
+  ///< delivery point for asynchronous signals — see guest_threads.h.
+  uint64_t Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArguments* Args);
+
+  uint64_t HandleBrk(uint64_t NewBreak);
+
+  GuestSignals* Guest {};
+  GuestProcFS Proc {};
+  bool Trace {};
+
+  // the break is process-wide and every guest thread's malloc can move it. glibc serialises brk
+  // behind its own arena lock, so this is belt and braces — but the arena lock is the guest's, and
+  // a host layer that assumes the guest is well-behaved about its own locking is one bug away from
+  // handing two threads the same pages.
+  std::mutex BrkLock;
+  uint64_t BrkBase {};
+  uint64_t BrkCurrent {};
+  uint64_t BrkArenaEnd {};
+
+  std::atomic<uint64_t> Unhandled {};
+  std::atomic<uint64_t> LastUnhandled {};
+};
+
+} // namespace HostLayer

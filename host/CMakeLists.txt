@@ -1,0 +1,212 @@
+# builds FEXCore for android/bionic arm64.
+#
+# FEX's own top-level CMakeLists refuses to configure for android:
+#   "Unsupported system type Android. FEX only supports Linux and Windows."
+# but that guard lives only in the top level. FEXCore/ is a standalone project() with its
+# own architecture detection and no references to parent targets, so we can assemble the
+# dependency graph ourselves and add FEXCore directly.
+#
+# doing it this way keeps every line of our build glue in our tree and leaves the FEX
+# checkout pristine — which matters, because FEX bans AI-generated contributions, so any
+# patch we made to it could never go upstream and would be a permanent private delta.
+
+cmake_minimum_required(VERSION 3.22)
+project(fexcore-android CXX C ASM)
+
+# the submodule is the intended source. the sibling checkout beside the repository is a fallback so
+# a workspace that predates the submodule still builds; both are the same pristine FEX-2607.
+set(FEX_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../external/FEX" CACHE PATH "Path to the FEX checkout")
+get_filename_component(FEX_ROOT "${FEX_ROOT}" ABSOLUTE)
+if (NOT EXISTS "${FEX_ROOT}/FEXCore/CMakeLists.txt")
+  get_filename_component(FEX_FALLBACK "${CMAKE_CURRENT_SOURCE_DIR}/../../FEX" ABSOLUTE)
+  if (EXISTS "${FEX_FALLBACK}/FEXCore/CMakeLists.txt")
+    set(FEX_ROOT "${FEX_FALLBACK}")
+    message(STATUS "FEX: using the workspace checkout at ${FEX_ROOT}")
+  endif()
+endif()
+
+if (NOT EXISTS "${FEX_ROOT}/FEXCore/CMakeLists.txt")
+  message(FATAL_ERROR
+    "FEX not found at ${FEX_ROOT}. run:\n"
+    "  git submodule update --init --recursive")
+endif()
+if (NOT EXISTS "${FEX_ROOT}/External/vixl/CMakeLists.txt")
+  message(FATAL_ERROR
+    "FEX submodules are not populated. run:\n"
+    "  git -C ${FEX_ROOT} submodule update --init --recursive")
+endif()
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# FEXCore/Source calls helper macros that the top-level CMakeLists would normally have
+# defined for it. pull them in from the same place FEX does.
+list(APPEND CMAKE_MODULE_PATH "${FEX_ROOT}/Data/CMake/")
+include(LinkerGC)
+include(CheckIncludeFiles)
+include(CheckCXXCompilerFlag)
+include(CheckCXXSourceCompiles)
+
+# FEXCore keys off these rather than inspecting the toolchain itself.
+set(ARCHITECTURE_arm64 1)
+add_compile_definitions(ARCHITECTURE_arm64=1)
+add_compile_definitions(_M_ARM_64=1)
+
+# bionic gaps, patched in from our side rather than by editing FEX. see the header for why.
+#
+# the header is referenced by bare filename and found via the include path, deliberately: the
+# repo lives under "Y:\Local Projects\...", and an absolute path in -include arrives at the
+# compiler unquoted and splits at the space. -I directories are quoted by cmake for us.
+#
+# CXX only: the .c files in cephes/SoftFloat and the ASM sources neither need it nor would
+# tolerate a C++ header. SHELL: keeps "-include <file>" together as one option group so cmake
+# cannot split or de-duplicate the two halves.
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include bionic-compat.h>")
+
+# --- knobs the FEX subdirectories read ------------------------------------------------
+# glibc-specific allocator machinery: off. bionic's allocator is what we have.
+set(ENABLE_JEMALLOC_GLIBC_ALLOC FALSE CACHE BOOL "" FORCE)
+set(ENABLE_FEX_ALLOCATOR FALSE CACHE BOOL "" FORCE)
+set(ENABLE_OFFLINE_TELEMETRY FALSE CACHE BOOL "" FORCE)
+set(ENABLE_FEXCORE_PROFILER FALSE CACHE BOOL "" FORCE)
+set(ENABLE_GDB_SYMBOLS FALSE CACHE BOOL "" FORCE)
+set(ENABLE_VIXL_SIMULATOR FALSE CACHE BOOL "" FORCE)
+set(ENABLE_VIXL_DISASSEMBLER FALSE CACHE BOOL "" FORCE)
+set(ENABLE_ZYDIS FALSE CACHE BOOL "" FORCE)
+set(ENABLE_LTO FALSE CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(BUILD_STEAM_SUPPORT FALSE CACHE BOOL "" FORCE)
+set(OVERRIDE_VERSION "FEX-2607" CACHE STRING "" FORCE)
+set(OVERRIDE_HASH "sharpemu-android" CACHE STRING "" FORCE)
+
+# vixl: we only ever emit aarch64, and its tests/tools pull in host-only deps.
+set(VIXL_TARGET_AARCH64 ON CACHE BOOL "" FORCE)
+set(VIXL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(VIXL_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(VIXL_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+set(FMT_TEST OFF CACHE BOOL "" FORCE)
+set(FMT_DOC OFF CACHE BOOL "" FORCE)
+set(XXHASH_BUILD_XXHSUM OFF CACHE BOOL "" FORCE)
+
+# every dependency links statically into the one FEXCore shared object we ship. left on, fmt
+# builds itself as libfmt.so and fails to link against libc++, and we would be shipping a
+# pile of .so files into the APK for no reason.
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+# --- dependency graph, in the order the top-level FEX CMakeLists builds it -------------
+add_subdirectory("${FEX_ROOT}/External/unordered_dense"        External/unordered_dense)
+add_subdirectory("${FEX_ROOT}/External/vixl"                   External/vixl)
+add_subdirectory("${FEX_ROOT}/External/xxhash/cmake_unofficial" External/xxhash)
+add_subdirectory("${FEX_ROOT}/External/fmt"                    External/fmt)
+add_subdirectory("${FEX_ROOT}/External/range-v3"               External/range-v3)
+add_subdirectory("${FEX_ROOT}/External/tiny-json"              External/tiny-json)
+add_subdirectory("${FEX_ROOT}/External/SoftFloat-3e"           External/SoftFloat-3e)
+add_subdirectory("${FEX_ROOT}/External/cephes"                 External/cephes)
+add_subdirectory("${FEX_ROOT}/FEXHeaderUtils"                  FEXHeaderUtils)
+add_subdirectory("${FEX_ROOT}/CodeEmitter"                     CodeEmitter)
+add_subdirectory("${FEX_ROOT}/FEXCore"                         FEXCore)
+
+# --- what we actually want out of the above --------------------------------------------
+#
+# FEXCore/Source builds two libraries from the same objects: libFEXCore.a and libFEXCore.so.
+# neither links FEXCore_Base (the static half holding Config, LogMan, the allocator hooks and
+# SoftFloat) except under MinGW — on linux the .so is *meant* to ship with those symbols
+# undefined, and the final FEXInterpreter executable satisfies them at load time.
+#
+# android's linker does not allow that: the NDK passes -Wl,--no-undefined for shared
+# libraries, so libFEXCore.so cannot link and never will. that is fine, because route B wants
+# the static library regardless — FEXCore gets linked directly into the single bionic .so we
+# ship, together with our own frontend. so drop the .so from the default target.
+set_target_properties(FEXCore_shared PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# and make the static target self-describing, so whatever links FEXCore picks up FEXCore_Base
+# (and transitively fmt, vixl, xxhash, SoftFloat, cephes) without having to know it must.
+target_link_libraries(FEXCore INTERFACE FEXCore_Base)
+
+# --- our host layer ---------------------------------------------------------------------
+#
+# built twice, from one set of objects, because M5 needed the app without wanting to give up the
+# shell binary. everything the host layer does is in the static library; the two things on top of
+# it are entry points and nothing else:
+#
+#   sharpemu-host-layer         an executable. every measurement from M1a to M4 came through it,
+#                               regression.sh runs it, and it is a far better place to bisect a
+#                               JIT problem from than an activity is.
+#   libsharpemu-host-layer.so   the JNI surface the APK loads.
+#
+# the host layer itself never assumed it was a process, which is why this is a build change and
+# an entry file rather than a rewrite.
+add_library(host-layer-core STATIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/host_layer.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/audio_thunk.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/elf_loader.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/linux_syscalls.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_log.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_procfs.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_signals.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_threads.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/vma_tracker.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan_thunk.cpp")
+# --- libadrenotools ----------------------------------------------------------------------
+#
+# built separately by scripts\build-adrenotools.ps1 rather than added as a subdirectory here, and the
+# reason is the STL. the hook libraries are dlopened into an *isolated* linker namespace, so they
+# are built against c++_static and carry their own; this build uses c++_shared. one ANDROID_STL
+# setting cannot be two things, so the two builds stay two builds and only the static archives
+# cross over — which is safe, because an archive records no STL choice of its own.
+set(ADRENOTOOLS_BUILD "${CMAKE_CURRENT_SOURCE_DIR}/../build/adrenotools")
+
+# same submodule-first, workspace-fallback rule as FEX above.
+get_filename_component(ADRENOTOOLS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../external/libadrenotools/include" ABSOLUTE)
+if (NOT EXISTS "${ADRENOTOOLS_INCLUDE}")
+  get_filename_component(ADRENOTOOLS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../../libadrenotools/include" ABSOLUTE)
+endif()
+if (NOT EXISTS "${ADRENOTOOLS_INCLUDE}")
+  message(FATAL_ERROR
+    "libadrenotools headers not found. run:\n"
+    "  git submodule update --init --recursive")
+endif()
+if (NOT EXISTS "${ADRENOTOOLS_BUILD}/libadrenotools.a")
+  message(FATAL_ERROR
+    "libadrenotools is not built. run:\n"
+    "  .\\scripts\\build-adrenotools.ps1")
+endif()
+
+add_library(adrenotools STATIC IMPORTED)
+set_target_properties(adrenotools PROPERTIES
+  IMPORTED_LOCATION "${ADRENOTOOLS_BUILD}/libadrenotools.a"
+  INTERFACE_INCLUDE_DIRECTORIES "${ADRENOTOOLS_INCLUDE}")
+
+add_library(linkernsbypass STATIC IMPORTED)
+set_target_properties(linkernsbypass PROPERTIES
+  IMPORTED_LOCATION "${ADRENOTOOLS_BUILD}/lib/linkernsbypass/liblinkernsbypass.a")
+
+# PUBLIC, so both entry targets inherit them rather than repeating the list.
+target_link_libraries(host-layer-core PUBLIC FEXCore JemallocDummy android log adrenotools linkernsbypass)
+target_include_directories(host-layer-core PUBLIC
+  "${FEX_ROOT}/FEXCore/include"
+  "${CMAKE_BINARY_DIR}/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  # the generated half of the vulkan thunk. the guest half of the same generator output is
+  # assembled separately into libvulkan.so.1 by thunks/vulkan/build-guest-vulkan.ps1.
+  "${CMAKE_CURRENT_SOURCE_DIR}/thunks/vulkan/generated"
+  # and the same for audio, into libaaudio.so by thunks/audio/build-guest-aaudio.ps1. note that
+  # libaaudio is *not* linked: the host half dlsyms it, because eleven of its 72 entry points are
+  # __INTRODUCED_IN(29..36) and this builds at API 28.
+  "${CMAKE_CURRENT_SOURCE_DIR}/thunks/audio/generated")
+
+add_executable(sharpemu-host-layer "${CMAKE_CURRENT_SOURCE_DIR}/src/entry_exe.cpp")
+target_link_libraries(sharpemu-host-layer PRIVATE host-layer-core)
+
+add_library(sharpemu-host-layer-jni SHARED "${CMAKE_CURRENT_SOURCE_DIR}/src/entry_jni.cpp")
+target_link_libraries(sharpemu-host-layer-jni PRIVATE host-layer-core)
+# so the APK loads it as System.loadLibrary("sharpemu-host-layer"). the cmake target has to be
+# named differently from the executable's; the file on disk does not.
+set_target_properties(sharpemu-host-layer-jni PROPERTIES OUTPUT_NAME "sharpemu-host-layer")
+# the JNI entry point is reached by name from the java side, and nothing in the link graph refers
+# to it. without this the linker's --gc-sections drops both symbols and the app dies at
+# UnsatisfiedLinkError with the library sitting right there.
+target_link_options(sharpemu-host-layer-jni PRIVATE "-Wl,-u,Java_com_mircowuffwuff_sharpemu_HostLayer_nativeRun")

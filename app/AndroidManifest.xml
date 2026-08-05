@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the smallest APK that can hold a surface. this is not the frontend described in app/ui.md -
+  there is no game list, no settings, no picker and no overlay, and the game it runs is hardcoded.
+  its content is that the host layer is a library now and that a presented frame has somewhere to
+  go.
+
+  extractNativeLibs is on because the host layer is a 33 MB .so and leaving it compressed in the
+  zip is simpler than the uncompressed page-aligned layout the in-place loader wants. it costs
+  install time once, not launch time.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.mircowuffwuff.sharpemu">
+
+    <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="35" />
+
+    <application
+        android:label="SharpEmu"
+        android:debuggable="true"
+        android:extractNativeLibs="true"
+        android:hardwareAccelerated="true"
+        android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+
+        <!--
+          landscape and locked. the guest decides the presentation size once, at swapchain
+          creation, and a rotation would change the surface underneath it - which is a real
+          problem for a later milestone and not one worth inventing an answer to here.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|density|smallestScreenSize|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
