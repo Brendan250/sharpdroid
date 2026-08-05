@@ -253,6 +253,11 @@ uint64_t LiveCount();
 uint64_t CreatedCount();
 uint64_t UnalignedFixupCount();
 
+///< how many times a thread's call-return shadow stack pointer was reset after walking off one of
+///< its guard pages. FEX treats that fault as routine; the host layer did not handle it at all
+///< until 2026-08-05, and this number is what says whether that mattered on any given run.
+uint64_t CallRetResetCount();
+
 ///< what the asynchronous signal path did. Deferred is the number worth watching: it counts the
 ///< times a thread was interrupted somewhere it could not be redirected from, which is the one
 ///< case where delivery waits for the target's next syscall rather than happening at once.

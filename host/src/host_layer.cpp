@@ -183,6 +183,10 @@ void PrintRunSummary() {
     // frames-read figure goes in the summary rather than only in the periodic report.
     HostLayer::AudioThunk::ReportStreams();
   }
+  if (HostLayer::Threads::CallRetResetCount()) {
+    std::printf("[host-layer] %llu call-return shadow stack reset(s) after a guard-page fault\n",
+                static_cast<unsigned long long>(HostLayer::Threads::CallRetResetCount()));
+  }
   if (HostLayer::Threads::UnalignedFixupCount()) {
     std::printf("[host-layer] %llu unaligned access(es) backpatched\n",
                 static_cast<unsigned long long>(HostLayer::Threads::UnalignedFixupCount()));

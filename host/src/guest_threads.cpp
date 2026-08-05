@@ -50,6 +50,12 @@ thread_local GuestThread* CurrentGuestThread {};
 std::atomic<uint64_t> UnalignedFixups {};
 std::atomic<uint64_t> ThreadsCreated {};
 
+///< how often a guest thread's call-return shadow stack was reset after walking off a guard page.
+///< reported because the whole question about this mechanism is whether it happens at all: a run
+///< that reports zero says the gap it closes was theoretical, and a run that reports thousands says
+///< the host layer had been handing FEX's own bookkeeping faults to the guest as crashes.
+std::atomic<uint64_t> CallRetResets {};
+
 // one lock covering thread bookkeeping and the two handshakes that use it: a parent waiting for a
 // new child to publish its tid, and a thread waiting for every other thread to finish.
 std::mutex ThreadLock;
@@ -419,6 +425,42 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
       std::fflush(stdout);
     }
     EnterGuestHandler(*T, Pending);
+  }
+
+  // FEX's call-return shadow stack running off one of its own guard pages, which is **not an
+  // error**: it is the predictor being asked to pop more than it was given, and FEX's own
+  // `SyscallHandler::HandleSegfault` treats it as routine — *"Reset REG_CALLRET_SP to the default
+  // location to allow for underflows/overflows"*. the host layer had no such case until 2026-08-05:
+  // it reset the pointer at signal delivery and at re-entry, where the *contents* stop describing
+  // live frames, but nothing caught the pointer walking out of the mapping.
+  //
+  // this workload makes that walk likely rather than theoretical. SharpEmu resumes a cooperatively
+  // blocked guest thread by entering a trampoline that abandons the host stack and `ret`s into the
+  // continuation, so every resume returns from a call whose push happened in a frame that no longer
+  // exists — an unmatched pop, hundreds of times a second, all in the same direction. there is
+  // 3 MiB of room above the default and 1 MiB below, and the drift is one way.
+  //
+  // x25 is `REG_CALLRET_SP` on arm64 — see `Arm64Emitter.h`, where x17 is the ARM64EC variant and is
+  // not this build. the number is written out because that header is internal to FEXCore, which is
+  // why FEX's own frontend spells it 25 in exactly this place too.
+  if (Signal == SIGSEGV && T->CallRetAlloc) {
+    const uint64_t Fault = Untag(Info->si_addr);
+    const auto Base = reinterpret_cast<uint64_t>(T->CallRetAlloc);
+    if (Fault >= Base && Fault < Base + T->CallRetAllocSize) {
+      Context->uc_mcontext.regs[25] = T->CallRetDefault;
+      const uint64_t Nth = CallRetResets.fetch_add(1, std::memory_order_relaxed) + 1;
+      // the summary line at exit cannot answer "does this ever happen", because every measurement
+      // on this project is taken by killing the process after N seconds and the summary is never
+      // reached. so say it the first time and then logarithmically, which is a handful of lines in
+      // the worst case and one line in the case that matters.
+      if (Nth == 1 || (Nth & (Nth - 1)) == 0) {
+        std::printf("[host-layer] call-return shadow stack reset #%llu, tid %d, fault 0x%llx %s the stack\n",
+                    static_cast<unsigned long long>(Nth), T->TID, static_cast<unsigned long long>(Fault),
+                    Fault < reinterpret_cast<uint64_t>(T->Thread->CallRetStackBase) ? "below" : "above");
+        std::fflush(stdout);
+      }
+      return;
+    }
   }
 
   // deciding whether a fault belongs to the guest: a PC outside FEX's generated code is a genuine
@@ -1058,6 +1100,10 @@ uint64_t CreatedCount() {
 
 uint64_t UnalignedFixupCount() {
   return UnalignedFixups.load(std::memory_order_relaxed);
+}
+
+uint64_t CallRetResetCount() {
+  return CallRetResets.load(std::memory_order_relaxed);
 }
 
 AsyncSignalStats AsyncStats() {
