@@ -21,7 +21,7 @@
 # what is reported per run:
 #   payload   the size the host layer read off the file it loaded
 #   fps       steady state from frame 300, from the presented-frame log's own timestamps
-#   passes/f  vkCmdBeginRenderPass per frame, which is the acceptance test item 18 established.
+#   passes/f  vkCmdBeginRenderPass per frame, which is the acceptance test for render pass batching.
 #             fps is not: the batching attempt did not move fps and did not move this either, and
 #             it was this that caught it.
 #   env       what the build's own meta.json defaulted on, so a build is visibly what it claims

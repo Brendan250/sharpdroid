@@ -4,7 +4,7 @@
 #   .\scripts\stage-shell.ps1 -NoGuestLibs      # skip the 14 MB of glibc when only the host layer moved
 #
 # **the shell binary is not a legacy path.** the host layer builds twice from one set of objects: a
-# JNI library the APK loads, and `sharpemu-host-layer`, an executable. every milestone up to M4 was
+# JNI library the APK loads, and `sharpemu-host-layer`, an executable. every milestone before the app was
 # measured through the executable, regression.sh runs it, and it is a far better place to bisect a
 # JIT problem from than an activity is. this is what puts it on the device.
 #
@@ -71,7 +71,7 @@ if (-not $NoGuestLibs) {
     if (-not (Test-Path $libs)) { throw "no guest libs at $libs. run .\guest-libs\fetch-guest-libs.ps1 first." }
     $n = 0
     Get-ChildItem $libs -File | ForEach-Object { Push-One $_.FullName "$Dest/guest-libs/"; $n++ }
-    # regression.sh's M1d mode runs the staged `getent`, which lives beside the libraries.
+    # regression.sh's `getent` mode runs the staged binary, which lives beside the libraries.
     $bin = Join-Path $repoRoot "guest-libs\bin"
     if (Test-Path $bin) { Get-ChildItem $bin -File | ForEach-Object { Push-One $_.FullName "$Dest/"; $n++ } }
     Write-Host "guest libs: $n"

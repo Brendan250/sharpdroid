@@ -49,7 +49,7 @@
 // which is a mitigation and not a cure: **the bug is open**, and the mechanism was not identified
 // here — it turned out not to be in the audio path at all.
 //
-// the host half clamps the timeout regardless, as a net rather than a knob: M3d delivers
+// the host half clamps the timeout regardless, as a net rather than a knob: the host layer delivers
 // asynchronous signals at syscall exits only, and CoreCLR suspends every thread with SIGRTMIN to
 // collect, so a guest thread parked indefinitely in a write is one that cannot acknowledge a GC
 // suspension. see MaxWriteTimeoutNanos in the implementation. a payload that asks for a long
@@ -75,7 +75,8 @@ inline bool IsThunkCall(uint64_t SyscallNumber) {
 }
 
 // enabled by --audio. off by default, in the shape --vulkan has: with the thunk unavailable the
-// guest's AAudio calls fail the way they did before M7, so a run without the flag behaves exactly
+// guest's AAudio calls fail the way they did before the thunk existed, so a run without the flag
+// behaves exactly
 // as every run to date and no earlier measurement stops being comparable.
 void SetEnabled(bool Enabled);
 bool Enabled();
@@ -110,7 +111,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
 // nice-to-have: a stream that opens and plays nothing looks *exactly* like a stream that works.
 // AAudioStream_getFramesRead climbing at the stream's sample rate is the only thing that
 // distinguishes them, and a driver that silently did not load is precisely how turnip wasted a
-// session at item 1b.
+// session once already.
 void ReportStreams();
 
 // counters, for the run summary.

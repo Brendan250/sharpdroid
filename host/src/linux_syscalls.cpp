@@ -265,7 +265,7 @@ int TranslateOpenFlags(uint64_t GuestFlags) {
 // PROT_EXEC never reaches the host kernel — see VMA::HostProt, which is where the rule lives now.
 //
 // the guest cannot tell. it never reads back its own protections, mprotect reports success, and
-// as of M1g the VMA tracker remembers what was really asked for, so FEXCore is not fooled either.
+// the VMA tracker remembers what was really asked for, so FEXCore is not fooled either.
 int TranslateProt(uint64_t GuestProt) {
   return VMA::HostProt(static_cast<int>(GuestProt));
 }

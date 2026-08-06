@@ -1,6 +1,6 @@
 // sharpemu-android host layer — the entry point, as a call rather than as a process.
 //
-// M1a's build glue predicted this and M5 is where it happens: the host layer stops being an
+// the very first build glue predicted this, and the app is where it happens: the host layer stops being an
 // executable and becomes a library the app links. nothing inside it had to change to allow that,
 // because nothing in it ever assumed it was a process — the argument parsing in main.cpp is the
 // only thing that did, and it becomes this.
@@ -9,7 +9,7 @@
 //   entry_exe.cpp   main(), for the regression set and every measurement recorded so far
 //   entry_jni.cpp   the JNI surface the app calls, plus the ANativeWindow it hands down
 //
-// keeping the executable is not sentiment. every milestone from M1a to M4 was measured through it,
+// keeping the executable is not sentiment. every milestone before the app was measured through it,
 // regression.sh runs on it, and an app is a far worse place to bisect a JIT problem from.
 
 #pragma once

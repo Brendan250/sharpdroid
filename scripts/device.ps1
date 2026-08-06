@@ -317,7 +317,7 @@ function Resolve-StagedDriver([string]$Adb, [string]$Package, [string]$Source, [
 
     # **a driver is the one thing that may also be named rather than pathed**, and that is not an
     # exception to the rule so much as the rule's other half: what is on the device is selected by
-    # what it is called there. run.ps1 has read this way since M6. a name that is not there is an
+    # what it is called there. run.ps1 has always read it this way. a name that is not there is an
     # error and never a fallback to stock, because a comparison silently run against the platform
     # driver is the mrpurple-t29 trap.
     if (-not (Test-DevicePath $Adb "$files/gpu-drivers/$Source")) {

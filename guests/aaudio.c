@@ -1,4 +1,4 @@
-// M7a regression guest: guest x86-64 AAudio through the host layer's thunk onto the real device.
+// regression guest: guest x86-64 AAudio through the host layer's thunk onto the real device.
 //
 // this is vulkan.c's sibling and it is dynamic for the same reason — it links against nothing but
 // the generated libaaudio.so, so the whole chain is under test rather than just the marshaller:
@@ -313,7 +313,7 @@ void _start(void) {
 
   // 7. **the guest goes quiet, and audio has to survive it.**
   //
-  //    this is the M7 stall reproduced deliberately. a real guest is not punctual: a garbage
+  //    this is the audio stall reproduced deliberately. a real guest is not punctual: a garbage
   //    collection, a long frame or the scheduler can leave the audio thread not calling AAudio for
   //    a second or more. android's audio server pushes messages *up* to the client and the client
   //    only drains that queue from inside its own AAudio calls -- so a client that goes quiet gets

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  the smallest APK that can hold a surface. this is not the frontend described in app/ui.md -
+  the smallest APK that can hold a surface, and not the frontend this project is aiming at -
   there is no game list, no settings, no picker and no overlay, and the game it runs is hardcoded.
   its content is that the host layer is a library now and that a presented frame has somewhere to
   go.

@@ -468,14 +468,14 @@ bool Attach(uint64_t Base) {
 // vkQueuePresentKHR into whatever the host wants a present to mean: a frame counter, an optional
 // PPM, or a copy into a window buffer.
 //
-// M5 gave the host layer a window and the follow-up gave the swapchain back to the driver, so this
-// is no longer the path a game runs on. it is kept, selectable and covered by the regression set,
-// for two reasons: a shell binary still has no window and every pre-M5 measurement came through
-// here, and a graphics regression under a real swapchain — or under a driver that is not the one
+// the app gave the host layer a window and the follow-up gave the swapchain back to the driver, so
+// this is no longer the path a game runs on. it is kept, selectable and covered by the regression
+// set, for two reasons: a shell binary still has no window and every measurement taken before the
+// app existed came through here, and a graphics regression under a real swapchain — or under a driver that is not the one
 // this was proved against — needs something known-good to bisect against.
 //
 // the guest asks for this through `VK_EXT_headless_surface`, which is a real vulkan extension
-// meaning exactly "a surface with no window". that keeps the fork's side of M4c2 honest vulkan
+// meaning exactly "a surface with no window". that keeps the fork's side of it honest vulkan
 // rather than a bespoke entry point, and it is also what let the android path arrive without the
 // fork changing at all: the same request, a different surface behind it.
 
@@ -506,14 +506,13 @@ uint32_t SurfaceHeight = 1080;
 const char* DumpDirectory {};
 std::atomic<uint64_t> PresentedFrames {};
 
-// the app's surface. null in every pre-M5 configuration, including the whole regression set, which
+// the app's surface. null wherever there is no app — including the whole regression set, which
 // still runs as a shell binary with no window anywhere — so every branch on this is also the line
-// between "the milestone that proved WSI could be invented" and "the milestone that gave it
-// somewhere to go".
+// between "WSI can be invented" and "WSI has somewhere to go".
 std::atomic<::ANativeWindow*> AppWindow {};
 // set once a window has been seen. the *size* has to stop being overridable at that point, or a
 // --vulkan-size left on a command line would quietly contradict the buffer frames land in, which
-// is the failure M4c2a spent a milestone finding.
+// is the failure that cost a milestone to find.
 bool WindowOwnsSize {};
 
 WsiMode RequestedWsi {WsiMode::Auto};
@@ -815,8 +814,8 @@ void Transition(VkCommandBuffer Commands, VkImage Image, VkImageLayout From, VkI
           &Change);
 }
 
-// device-local presented image -> a linear image the CPU can read. this was M4's debug aid and it
-// is M5's present: the destination is the only difference between writing a PPM and putting the
+// device-local presented image -> a linear image the CPU can read. this began as a debug aid and
+// became the present path: the destination is the only difference between writing a PPM and putting the
 // frame on the panel, which is what "--vulkan-dump is the shape of the real present" meant.
 //
 // on success the caller gets a mapped, row-pitched view of the frame and **must** call
@@ -912,7 +911,7 @@ void DumpFrame(Swapchain* Chain, uint32_t Index, uint64_t Frame) {
   ReleaseFrame(Chain);
 }
 
-// the same capture, into the app's window instead of a file. this is M5.
+// the same capture, into the app's window instead of a file.
 //
 // the copy is on the CPU and it is not free — 8 MB a frame at 1080p, read back over PCIe-equivalent
 // and written again with a channel swap. it is the honest shape of "the host layer owns the
@@ -972,7 +971,7 @@ void PostFrame(Swapchain* Chain, uint32_t Index, ::ANativeWindow* Window) {
 // counted in both modes, because under android WSI the present itself is forwarded and there is
 // nothing else left that knows a frame happened. the run summary only prints on a clean exit and a
 // game run is killed by a timeout, so the log line is the frame counter as far as any real run is
-// concerned — that was the whole of M4c2b's third finding.
+// concerned — which is a finding in its own right and cost a run to notice.
 // the profile dump, as a delta since the last one rather than a running total. a total is
 // dominated by start-up forever — shader compilation and the first pipeline creations are seconds
 // of `vkCreateGraphicsPipelines` that never repeat — and would bury a steady-state stall under it.
@@ -1061,7 +1060,7 @@ uint64_t CountPresentedFrame() {
 
 // present is where back-pressure comes from. the guest's frame is not finished when it calls
 // this -- it is finished when the semaphores it is waiting on are signalled -- so waiting here
-// is what stops the render loop free-running. M3d measured that loop at 70,000 dispatches a
+// is what stops the render loop free-running. before this existed that loop measured 70,000 dispatches a
 // second with nothing to push back on it, which is the leading suspect for the device reboots.
 uint64_t Present(const VkPresentInfoKHR* Info) {
   auto Submit = Host<PFN_vkQueueSubmit>("vkQueueSubmit");
@@ -1130,7 +1129,7 @@ void SetWsiMode(WsiMode Mode) {
 void SetSurfaceSize(uint32_t Width, uint32_t Height) {
   // --vulkan-size, which exists for the windowless case and must not be able to contradict a real
   // window. saying so is cheaper than debugging it: a size the guest is told about that differs
-  // from the buffer its frames land in is M4c2a's silent infinite swapchain recreation.
+  // from the buffer its frames land in is the silent infinite swapchain recreation this once hit.
   if (WindowOwnsSize) {
     std::printf("[vulkan] ignoring --vulkan-size %ux%u: the window is %ux%u and it decides\n", Width, Height,
                 SurfaceWidth, SurfaceHeight);
@@ -1297,8 +1296,8 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
   // through to the marshaller at the bottom and become ordinary forwarded vulkan again.
   //
   // which ones those are is decided in exactly one place, ImplementedHere(), because the
-  // proc-address gate has to give the same answer — M4c2a is the record of what a disagreement
-  // between those two costs. dispatching on CommandCount matches no case and so lands on the
+  // proc-address gate has to give the same answer — a disagreement between those two has cost a
+  // whole milestone before. dispatching on CommandCount matches no case and so lands on the
   // default, which is the forward.
   const bool AlwaysOurs = Id == Id_vkCreateInstance || Id == Id_vkEnumerateInstanceExtensionProperties ||
                           Id == Id_vkEnumerateDeviceExtensionProperties;
@@ -1722,7 +1721,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
   // and present as VK_SUBOPTIMAL_KHR, because from its point of view the client could have saved
   // it a rotation and did not. a well-behaved client treats suboptimal as "recreate the
   // swapchain", so VulkanVideoPresenter did: **a new swapchain every 26 ms, forever, rendering
-  // nothing.** that is M4c2a's failure exactly, reached by a completely different route, and it is
+  // nothing.** that is the silent-swapchain failure exactly, reached by a completely different route, and it is
   // the second time this project has watched a swapchain recreate itself to death without one call
   // returning an error.
   //

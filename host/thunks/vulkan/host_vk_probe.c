@@ -1,6 +1,6 @@
 // what does vulkan look like from a bionic arm64 binary run as the shell user?
 //
-// this is a host-side probe only — no FEXCore, no guest. it answers the questions M4's
+// this is a host-side probe only — no FEXCore, no guest. it answers the questions the vulkan thunk's
 // design depends on before any of it is designed:
 //   - does the platform loader hand a shell binary a working instance and device at all
 //   - which instance/device extensions exist (WSI lives in the loader on android, not the

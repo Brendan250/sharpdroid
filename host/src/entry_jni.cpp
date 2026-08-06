@@ -2,7 +2,7 @@
 //
 // deliberately thin. everything the app can ask for is expressed as the argument vector RunMain
 // already took, so the app passes the same flags a shell would and no measurement stops being
-// comparable to the ones every milestone up to M4 recorded. the one thing that is *not* an
+// comparable to the ones every earlier milestone recorded. the one thing that is *not* an
 // argument is the window, because it is a live object rather than a string.
 
 #include "host_layer.h"
@@ -82,7 +82,7 @@ extern "C" {
 // called from the SurfaceHolder callback, with null when the surface goes away. the window is
 // handed straight to the thunk, which is what turns a presented swapchain image into pixels on
 // the panel; the thunk is also where the surface *size* now comes from, so that the extent the
-// guest is told about and the buffer it ends up in cannot disagree. that disagreement is M4c2a's
+// guest is told about and the buffer it ends up in cannot disagree. that disagreement is the
 // bug, and the constant that papered over it is what this retires.
 JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetSurface(JNIEnv* Env, jclass, jobject Surface) {
   ANativeWindow* Next = Surface ? ::ANativeWindow_fromSurface(Env, Surface) : nullptr;

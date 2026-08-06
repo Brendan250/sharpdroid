@@ -51,7 +51,8 @@ final class SharpEmuBuild {
      * for.
      */
     /**
-     * <p><b>2 is M7, audio.</b> The bump is the first real exercise of this mechanism, and it is
+     * <p><b>2 means the payload understands the audio flag.</b> The bump is the first real
+     * exercise of this mechanism, and it is
      * also the first time the range does not include every generation before it. The reason is
      * what a contract-1 build now does: it does not know {@code SHARPEMU_HOST_AUDIO}, so it asks
      * SDL for a device, SDL names four backends Android does not have, and the port degrades to
@@ -190,7 +191,7 @@ final class SharpEmuBuild {
     static SharpEmuBuild resolve(String id, File internal, File staged) {
         // An absolute path names one build directory and runs it where it lies — no id resolution,
         // no copy onto internal storage. That is what a deploy loop wants: the internal install
-        // exists for durability, not because a payload has to be there, and M6 measured a build
+        // exists for durability, not because a payload has to be there, and a build
         // running off external FUSE storage at 874–902 ms against 879–907 from internal.
         //
         // It also sidesteps the trap that id resolution has by design: `--es sharpemu parity`
@@ -246,7 +247,7 @@ final class SharpEmuBuild {
      * and deliberately no install step.
      *
      * <p><b>This is what {@code --es sharpemu} reaches now.</b> The internal install exists for
-     * durability rather than because a payload has to be there — M6 measured a build running off
+     * durability rather than because a payload has to be there — a build running off
      * external FUSE storage at 874–902 ms against 879–907 from internal — so a directory named
      * outright is simply run.
      */

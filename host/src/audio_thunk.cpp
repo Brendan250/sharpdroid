@@ -561,7 +561,7 @@ void ForgetStream(void* Stream) {
 
 // --- the bounded write timeout ---------------------------------------------------------------
 //
-// M3d delivers asynchronous signals at syscall exits only, and CoreCLR suspends every thread with
+// the host layer delivers asynchronous signals at syscall exits only, and CoreCLR suspends every thread with
 // SIGRTMIN to collect. a guest thread parked indefinitely inside AAudioStream_write is a thread
 // that cannot acknowledge a GC suspension, and the collector waits for all of them — a way to
 // stall the whole managed runtime from a place nothing would think to look.
@@ -632,7 +632,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
   // or not --audio was given; there is no version of "not staged" to fall back to. so an unenabled
   // thunk answers every call with a failure the guest can act on, rather than by letting the magic
   // number fall through to the syscall table as an unhandled number. the fork's backend then
-  // degrades to silent exactly as it did before M7.
+  // degrades to silent exactly as it did before the thunk existed.
   if (!ThunkEnabled) {
     if (!Complained) {
       Complained = true;

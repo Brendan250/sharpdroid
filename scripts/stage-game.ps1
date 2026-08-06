@@ -25,7 +25,7 @@ param(
     # the same folder name with the same eboot.bin size, and silently reusing the wrong one is a
     # plausible artefact attributed to the wrong source.
     #
-    # **-Restage is the word, everywhere.** run.ps1 has used it for exactly this since M6, and
+    # **-Restage is the word, everywhere.** run.ps1 uses it for exactly this, and
     # -Force already means "rebuild what is up to date" on build-all.ps1 -- two meanings for one flag
     # across scripts that get run in the same breath. kept as an alias because -Force is what this
     # one was called until 2026-08-05.

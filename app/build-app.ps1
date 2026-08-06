@@ -1,4 +1,4 @@
-# builds the M5 APK, offline, with no gradle.
+# builds the APK, offline, with no gradle.
 #
 #   .\app\build-app.ps1              # build, as SharpEmu Debug
 #   .\app\build-app.ps1 -Install     # build, then adb install -r
@@ -85,7 +85,7 @@ if (-not (Test-Path $stlSo)) { throw "libc++_shared.so not found at $stlSo" }
 # nativeLibraryDir, into an isolated linker namespace, by adrenotools itself. so the only way to
 # put them where it will look is to package them as native libraries and let the installer unpack
 # them, which is what extractNativeLibs="true" in the manifest is for. that flag was already on
-# for M5's own reason (a 33 MB .so is simpler left compressed in the zip) and happens to be
+# for a reason of its own (a 33 MB .so is simpler left compressed in the zip) and happens to be
 # exactly adrenotools' documented useLegacyPackaging requirement.
 #
 # the other two hooks adrenotools builds, file_redirect and gsl_alloc, are deliberately not here:

@@ -112,7 +112,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // --ez audiowatchdog true reports the stream's state once a second whether or not the guest
         // is submitting. the periodic report on the write path cannot see the guest stopping.
         audioWatchdog = getIntent().getBooleanExtra("audiowatchdog", false);
-        // --es smc full, because item 16 needs the two SMC modes compared on the same build. this
+        // --es smc full, because chasing the audio stall needs the two SMC modes compared on the
+        // same build. this
         // is a *launch* extra and still not a build one: the comment below about a payload that can
         // ask for --smc none stands, and nothing here lets it. mtrack stays the default, so a run
         // that does not say otherwise is the configuration every published number was taken on.

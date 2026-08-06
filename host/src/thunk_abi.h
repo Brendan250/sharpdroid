@@ -31,9 +31,10 @@
 namespace HostLayer::ThunkABI {
 
 // which half of CPUState's XMM union the register file is in. FEX picks the 32-byte stride avx
-// layout only when SupportsAVX *and* SupportsSVE256 are set (ArchHelpers/Arm64Emitter.cpp:741,828);
-// with AVX alone — which is what M3b turned on and what this device runs, since the Oryon cores
-// have no SVE256 — spills go to the 16-byte stride sse layout instead. reading the wrong one is
+// layout only when SupportsAVX *and* SupportsSVE256 are set — Arm64Emitter::SpillStaticRegs and
+// Arm64Emitter::FillStaticRegs are the two sites. with AVX alone, which is what the host-features
+// work turned on and what this device runs since the Oryon cores have no SVE256, spills go to the
+// 16-byte stride sse layout instead. reading the wrong one is
 // not a crash, it is every float argument after the first silently belonging to a different
 // register. set once from main.cpp, off what FEXCore reports rather than off what we assume.
 inline bool AvxRegisterFileState {};

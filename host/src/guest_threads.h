@@ -1,6 +1,6 @@
 // sharpemu-android host layer — guest threads.
 //
-// up to M1e the host layer was single-threaded, and not incidentally: FEXCore's thread state, the
+// the host layer began single-threaded, and not incidentally: FEXCore's thread state, the
 // GDT, the call-return shadow stack, the signal mask and the setjmp escape hatch were all file
 // scope singletons in main.cpp. this is where all of that becomes per-thread, because .NET's
 // CoreCLR cannot finish initialising without `pthread_create` and glibc implements that with
@@ -66,11 +66,11 @@ struct GuestThread {
 
   // --- storage FEXCore expects the owner of the thread to provide -----------------------------
   //
-  // the decoder does not tolerate an empty GDT: Frontend.cpp:1386 reads the CS descriptor to
-  // decide 64-bit mode and dereferences the result unchecked. and the JIT reaches the call-return
-  // shadow stack through a pinned register with no null check — BranchOps.cpp:168 is a pre-index
-  // store to `[REG_CALLRET_SP, #-0x10]` — so a zero there turns the thread's first `call` into a
-  // store to 0xFFFFFFFFFFFFFFF0.
+  // the decoder does not tolerate an empty GDT: Decoder::DecodeInstructionsAtEntry reads the CS
+  // descriptor to decide 64-bit mode and dereferences the result unchecked. and the JIT reaches
+  // the call-return shadow stack through a pinned register with no null check — the JIT's
+  // ExitFunction op stores to `[REG_CALLRET_SP, #-0x10]` pre-index — so a zero there turns the
+  // thread's first `call` into a store to 0xFFFFFFFFFFFFFFF0.
   //
   // both are per-thread, and both are inherited by a cloned thread rather than defaulted: the GDT
   // is copied from the parent, the call-return stack is fresh because its contents describe host
@@ -281,19 +281,19 @@ bool SignalTrace();
  * `ExecuteThread` at the *guest* RIP that the host PC maps back to. that is only sound at a guest
  * instruction boundary. land in the middle of the arm64 sequence implementing one guest
  * instruction and the guest registers are half-updated while RIP still points at the start of it,
- * so resuming re-runs the instruction over its own partial results. M3d is the milestone that
- * found this the hard way.
+ * so resuming re-runs the instruction over its own partial results. this was found the hard way,
+ * and it cost a milestone.
  *
  * - SyscallOnly (the default): syscall exits alone. sound by construction — the guest chose that
  *   boundary itself — and it is what gets `Dreaming Sarah` through its boot. what it does not do
  *   is reach a thread that spins in translated code without ever calling anything, which is case 1
- *   of the M3c regression guest.
+ *   of the `asyncsig` regression guest.
  * - SafePoint: FEXCore's interrupt fault page. the JIT stores to it at every block entry and ahead
  *   of every backward branch, so arming it PROT_NONE turns the next of those into a fault we can
  *   deliver from. it covers the spin case and the regression guest passes all three routes on it —
  *   but the game still dies under it, and a back-edge check is *not* the boundary a block entry is:
  *   the host PC there maps back to a guest instruction that has already run. not trusted yet.
- * - Block: the M3c behaviour, delivering anywhere inside a translated block. kept because it is
+ * - Block: the original behaviour, delivering anywhere inside a translated block. kept because it is
  *   what *shows* the bug — it is not safe and is not a supported mode.
  */
 enum class AsyncSite {

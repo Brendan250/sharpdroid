@@ -3,7 +3,7 @@
 // two modes:
 //
 //   sharpemu-host-layer --spike               24 bytes of hand-assembled x86-64. no loader, no
-//                                             syscall table. this is the M1a regression test:
+//                                             syscall table. this is the smoke test:
 //                                             it proves the JIT still translates, executes and
 //                                             faults on this device.
 //   sharpemu-host-layer [--trace] <elf> [..]  load an x86-64 ELF and run it.
@@ -16,7 +16,7 @@
 // the call-return stack, the escape hatch, the fault handler and the dispatch loop — moved into
 // guest_threads.cpp when there stopped being exactly one of each.
 //
-// and since M5 it is not the process entry either. what was main() is HostLayer::RunMain, called
+// and since the app arrived it is not the process entry either. what was main() is HostLayer::RunMain, called
 // either by entry_exe.cpp's main() or by entry_jni.cpp on behalf of the app — see host_layer.h.
 // the argument vector is the interface in both cases, so the app passes the same flags a shell
 // would and every measurement stays comparable.
@@ -72,9 +72,10 @@ HostLayer::LinuxSyscallHandler LinuxSyscalls;
 //
 // this is not optional and understating it is not safe, which makes it the exception to the rule
 // below. FEXCore's CPUID emulation sizes its per-core table from CPUMIDRs.size() and then indexes
-// it with the *current* core number — CPUID.cpp:1118 is `PerCPUData[GetCPUID()]` with no bounds
-// check — so leaving the vector empty is a wild read the moment a guest asks for CPUID leaf
-// 0x8000_0002, the processor brand string. that is exactly where CoreCLR's startup crashed.
+// it with the *current* core number — CPUIDEmu::Function_8000_0002h is `PerCPUData[GetCPUID()]`
+// with no bounds check — so leaving the vector empty is a wild read the moment a guest asks for
+// CPUID leaf 0x8000_0002, the processor brand string. that is exactly where CoreCLR's startup
+// crashed.
 //
 // read from /sys rather than by pinning to each core and executing `mrs`: the kernel already
 // publishes the value per cpu, and MIDR_EL1 in userspace is an emulated trap anyway. it matters
@@ -108,8 +109,8 @@ void FillMIDRs(FEXCore::HostFeatures& Features) {
 // outside FEXCore, and probes rather more than this; wiring it up is its own task.
 //
 // "understating the host's instruction set costs performance and never correctness" was the rule
-// here, and M3b proved it wrong. SupportsAVX is not a host capability at all: it is what decides
-// whether FEXCore's decoder has a VEX table *to decode with*. Frontend.cpp:82-88 picks
+// here, and AVX proved it wrong. SupportsAVX is not a host capability at all: it is what decides
+// whether FEXCore's decoder has a VEX table *to decode with*. the Decoder constructor picks
 // VEXTableOps + SVE256 if the host has it, VEXTableOps_AVX128 — 256-bit decomposed into pairs of
 // 128-bit NEON, which any arm64 can run — if it does not, and leaves both **null** otherwise. so
 // with it unset every VEX-encoded instruction is undecodable and raises #UD.
@@ -118,7 +119,7 @@ void FillMIDRs(FEXCore::HostFeatures& Features) {
 // compiled for a fixed Zen 2 target and simply uses AVX: `vmovups ymm0, [rip+0xc663d]` at
 // 0x80400B75B in libc.prx, ~250 imports into Dreaming Sarah's startup, is where it landed.
 //
-// FEX itself sets this unconditionally on arm64 (Source/Common/HostFeatures.cpp:669) for exactly
+// FEX itself sets this unconditionally on arm64 (FetchHostFeatures, in Source/Common/) for exactly
 // this reason, so this is not us claiming something the device cannot do.
 FEXCore::HostFeatures MinimalHostFeatures() {
   FEXCore::HostFeatures Features {};
@@ -224,7 +225,7 @@ public:
   // the spike goes through the same VMA tracker as everything else rather than claiming the whole
   // address space is executable. it is the cheapest possible test that the tracker is wired up:
   // if RunSpike's Record call below is wrong, the decoder refuses the first instruction and the
-  // M1a regression fails immediately instead of something subtle happening much later.
+  // spike regression fails immediately instead of something subtle happening much later.
   FEXCore::HLE::ExecutableRangeInfo QueryGuestExecutableRange(FEXCore::Core::InternalThreadState*, uint64_t Address) override {
     return HostLayer::VMA::Query(Address);
   }
@@ -340,8 +341,8 @@ constexpr uint64_t GuestInterpOffset = 0x8000'0000;
 // what has to be free for a base to be usable.
 constexpr uint64_t GuestSpanEnd = 0xA000'0000;
 
-// **an app process is not an empty process, and this is where M5 found that out.** every
-// milestone up to M4 ran the host layer as a shell binary, where the bottom 2.5 GiB is untouched
+// **an app process is not an empty process, and moving into an APK is where that was found out.**
+// until then the host layer only ever ran as a shell binary, where the bottom 2.5 GiB is untouched
 // and these offsets could be absolute addresses. inside an APK, ART got there first: the dalvik
 // main heap is a 256 MiB region at 0x14000000, the non-moving heap at 0x34000000, two JIT code
 // caches at 0x54000000, and the boot image and its .oat files run from about 0x70cc0000 upwards.
@@ -349,10 +350,10 @@ constexpr uint64_t GuestSpanEnd = 0xA000'0000;
 // inside the last, so the loader's MAP_FIXED_NOREPLACE reservation returned EEXIST and the run
 // ended before the guest existed.
 //
-// so the base is measured rather than declared, which is the same answer M3a reached for
+// so the base is measured rather than declared, which is the same answer the fork reached for
 // SharpEmu's own layout one level up. **zero is tried first and it is not a formality**: on a
-// shell process it always wins, so every address in every log from M1a to M4 is reproduced
-// exactly and no earlier measurement stops being comparable. the rest are 4 GiB apart and all
+// shell process it always wins, so every address in every log taken before the app existed is
+// reproduced exactly and no earlier measurement stops being comparable. the rest are 4 GiB apart and all
 // stop short of the 32 GiB the PS5 image wants.
 constexpr uint64_t GuestBaseCandidates[] {
   0, 0x2'0000'0000, 0x3'0000'0000, 0x4'0000'0000, 0x5'0000'0000, 0x6'0000'0000, 0x7'0000'0000,
@@ -397,7 +398,8 @@ int RunELF(FEXCore::Context::Context* CTX, const char* Path, const char* LibDir,
   }
   const auto& Elf = Program.Exec;
   // the payload's size alongside its path, so a measurement is attributable to a specific build
-  // rather than to whatever happened to be lying at that path. M6 gave a run a build *name*; this
+  // rather than to whatever happened to be lying at that path. selectable builds gave a run a
+  // build *name*; this
   // is the cheapest form of the same guarantee, and it is the one the shell binary gets too. the
   // `mrpurple-t29` trap in miniature: a plausible number attributed to the wrong artefact.
   struct stat PayloadStat {};
@@ -458,9 +460,9 @@ int RunELF(FEXCore::Context::Context* CTX, const char* Path, const char* LibDir,
     // globalization the fix is to stage libicuuc/libicui18n/libicudata, not to change anything
     // here.
     "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1",
-    // deliberately NOT setting DOTNET_GCRegionRange. the M0.5 probe needed it — under wine the
-    // regions GC reserved a range covering 0x8_0000_0000 and the PS5 image landed on top of it —
-    // but that was wine's address space, not ours. measured here on M3a: setting it to 0x100000000
+    // deliberately NOT setting DOTNET_GCRegionRange. the early throwaway probe under wine needed
+    // it — the regions GC reserved a range covering 0x8_0000_0000 and the PS5 image landed on top
+    // of it — but that was wine's address space, not ours. measured here: setting it to 0x100000000
     // changes nothing either way, and without it the guest maps the full PS5 image at 32 GiB and
     // applies all 120,776 relocations. so it is a wine artefact, not a latent fix to keep around.
   };
@@ -623,7 +625,8 @@ int HostLayer::RunMain(int argc, char** argv) {
         return 2;
       }
     } else if (std::strcmp(argv[ArgIndex], "--vulkan") == 0) {
-      // off by default so that every pre-M4 measurement still reproduces exactly: without it the
+      // off by default so that every measurement taken before the thunk existed still reproduces
+      // exactly: without it the
       // guest's dlopen of libvulkan.so.1 fails the way it always did, and nothing else changes.
       HostLayer::VulkanThunk::SetEnabled(true);
     } else if (std::strcmp(argv[ArgIndex], "--vulkan-lib") == 0 && ArgIndex + 1 < argc) {
@@ -653,9 +656,9 @@ int HostLayer::RunMain(int argc, char** argv) {
     } else if (std::strcmp(argv[ArgIndex], "--vulkan-size") == 0 && ArgIndex + 1 < argc) {
       // the presentation size the guest is told the display is. it must match whatever the
       // client thinks its drawable is, or the client recreates its swapchain forever without
-      // ever erroring -- see m4c2a. it applies only when there is no window: with one, the size
-      // comes from the ANativeWindow and this flag is refused. under android WSI the driver
-      // answers the question and none of it is consulted.
+      // ever erroring, which is how this was found. it applies only when there is no window:
+      // with one, the size comes from the ANativeWindow and this flag is refused. under android
+      // WSI the driver answers the question and none of it is consulted.
       unsigned Width = 0, Height = 0;
       if (std::sscanf(argv[++ArgIndex], "%ux%u", &Width, &Height) != 2 || !Width || !Height) {
         std::fprintf(stderr, "[host-layer] --vulkan-size wants WxH, e.g. 1920x1080\n");
@@ -688,9 +691,9 @@ int HostLayer::RunMain(int argc, char** argv) {
       // it on the first line.
       HostLayer::VulkanThunk::SetProfile(true);
     } else if (std::strcmp(argv[ArgIndex], "--audio") == 0) {
-      // off by default so that every pre-M7 measurement still reproduces exactly: without it the
-      // guest's AAudio calls fail the way they always did and the fork's backend degrades to
-      // silent, which is what every pre-M7 number was taken against.
+      // off by default so that every measurement taken before audio existed still reproduces
+      // exactly: without it the guest's AAudio calls fail the way they always did and the fork's
+      // backend degrades to silent, which is what every earlier number was taken against.
       HostLayer::AudioThunk::SetEnabled(true);
     } else if (std::strcmp(argv[ArgIndex], "--audio-lib") == 0 && ArgIndex + 1 < argc) {
       HostLayer::AudioThunk::SetLibraryPath(argv[++ArgIndex]);
@@ -740,7 +743,7 @@ int HostLayer::RunMain(int argc, char** argv) {
 
   // FEXCore defaults to 32-bit mode, and nothing complains if you leave it there: the decoder
   // takes its bitness from the CS descriptor, so 64-bit instructions still decode correctly.
-  // what changes is the *register file* — Arm64Emitter.cpp:387 picks x32::SRA over x64::SRA,
+  // what changes is the *register file* — the Arm64Emitter constructor picks x32::SRA over x64::SRA,
   // which is 8 guest GPRs instead of 16 mapped to host registers. guest code touching R8-R15,
   // or holding a 64-bit value anywhere, then quietly gets 32-bit results.
   //
@@ -764,7 +767,8 @@ int HostLayer::RunMain(int argc, char** argv) {
   // running already-compiled guest code — see guest_threads.h's AsyncSite.
   //
   // GDBSERVER is a strange-looking way to ask for it, and it is deliberate: inside FEXCore this
-  // option does exactly one thing, `Config.NeedsPendingInterruptFaultCheck = true` (Core.cpp:356),
+  // option does exactly one thing in ContextImpl::InitCore,
+  // `Config.NeedsPendingInterruptFaultCheck = true`,
   // which is the switch that makes the JIT emit the check. everything else called gdbserver lives
   // in FEX's frontend, which we do not build. it is the only public way to reach the switch, and
   // FEX is not ours to add another one to.
@@ -790,7 +794,7 @@ int HostLayer::RunMain(int argc, char** argv) {
   LinuxSyscalls.SetTrace(Trace);
   CTX->SetSyscallHandler(SpikeMode ? static_cast<FEXCore::HLE::SyscallHandler*>(&SpikeSyscalls) : &LinuxSyscalls);
 
-  // InitCore() unconditionally dereferences the signal delegator — Core.cpp:349 calls
+  // InitCore() unconditionally dereferences the signal delegator — it calls
   // SignalDelegation->SetConfig(...) with no null check — so one must be installed first or it
   // segfaults at +0x38. a plain instance is enough to get through init; it delivers nothing,
   // which is what makes an unhandled guest fault fatal for now.

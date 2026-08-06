@@ -1,6 +1,7 @@
 // sharpemu-android host layer — delivering signals to the guest.
 //
-// M1b caught guest faults and reported them. this is the other half: building the x86-64 signal
+// the ELF loader's fault handling caught guest faults and reported them. this is the other half:
+// building the x86-64 signal
 // frame the guest's own handler expects, redirecting the guest into that handler, and putting
 // everything back on rt_sigreturn.
 //

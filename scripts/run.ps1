@@ -312,7 +312,7 @@ function Write-Summary([string]$path) {
         $permanent = $stalls.Count - $recovered.Count
         Write-Host ("  audio: {0} stall episode(s), {1} recovered" -f $stalls.Count, $recovered.Count)
         if ($permanent -gt 0) {
-            Write-Host ("  ** {0} did not recover - this is the open item 16 bug, not something you just broke **" -f $permanent)
+            Write-Host ("  ** {0} did not recover - this is the known audio-stall bug, not something you just broke **" -f $permanent)
         }
     }
     if ($fatal.Count) { $fatal | Select-Object -First 3 | ForEach-Object { Write-Host ("  FATAL  " + $_.Line.Trim()) } }

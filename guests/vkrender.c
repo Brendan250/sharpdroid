@@ -1,7 +1,7 @@
-// M4b regression guest: guest x86-64 code makes the Adreno actually execute something, and
+// regression guest: guest x86-64 code makes the Adreno actually execute something, and
 // reads the pixels back.
 //
-// M4a proved the thunk marshals arguments and that enumeration works. enumeration is not
+// vulkan.c proved the thunk marshals arguments and that enumeration works. enumeration is not
 // execution: nothing in it allocated device memory, built a command buffer, or waited on the
 // GPU. this does all of that from guest code and then checks the bytes the GPU wrote.
 //
@@ -14,8 +14,8 @@
 //                                         only works because guest and host share one address
 //                                         space 1:1
 //
-// it writes the result to out.ppm beside itself as well as checking it, because a milestone
-// about graphics should produce something that can be looked at.
+// it writes the result to out.ppm beside itself as well as checking it, because a test about
+// graphics should produce something that can be looked at.
 //
 // still -nostdlib. it defines memset/memcpy itself since the compiler is entitled to emit calls
 // to them for the large structures vulkan is made of, and there is no libc here to provide them.
@@ -39,7 +39,7 @@ static long Write(int Fd, const void* Buffer, unsigned long Count) {
 
 static int Create(const char* Path) {
   // openat(AT_FDCWD, path, O_WRONLY|O_CREAT|O_TRUNC, 0644). x86-64 O_ values, which the host
-  // layer translates: see m1b.
+  // layer translates in TranslateOpenFlags().
   long Result;
   register long R10 __asm__("r10") = 0644;
   __asm__ volatile("syscall"

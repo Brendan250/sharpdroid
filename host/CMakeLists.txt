@@ -128,11 +128,11 @@ target_link_libraries(FEXCore INTERFACE FEXCore_Base)
 
 # --- our host layer ---------------------------------------------------------------------
 #
-# built twice, from one set of objects, because M5 needed the app without wanting to give up the
+# built twice, from one set of objects, because the app was needed without giving up the
 # shell binary. everything the host layer does is in the static library; the two things on top of
 # it are entry points and nothing else:
 #
-#   sharpemu-host-layer         an executable. every measurement from M1a to M4 came through it,
+#   sharpemu-host-layer         an executable. every measurement taken before the app came through it,
 #                               regression.sh runs it, and it is a far better place to bisect a
 #                               JIT problem from than an activity is.
 #   libsharpemu-host-layer.so   the JNI surface the APK loads.

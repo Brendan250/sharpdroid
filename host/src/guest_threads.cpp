@@ -137,7 +137,7 @@ constexpr size_t SignalStackSize = 256 * 1024;
 // FEX keeps a shadow stack of return addresses beside the guest's own stack, so a guest `ret` can
 // branch straight back to already-compiled host code instead of going through the block lookup.
 //
-// mirrors ThreadManager.cpp:172-198: guard pages either side, and a default position a quarter of
+// mirrors ThreadManager::CreateThread: guard pages either side, and a default position a quarter of
 // the way in rather than at the top, so a thread that returns more often than it calls underflows
 // into slack instead of into a guard page.
 bool SetupCallRetStack(GuestThread& T) {
@@ -195,9 +195,9 @@ void SetupGuest64BitSegments(GuestThread& T) {
 }
 
 // point a thread's CPUState at its own GDT. this has to happen after any CPUState copy, because
-// CreateThread's inherited state carries the *parent's* segment_arrays pointers — Core.cpp:426
-// memcpy's the whole CPUState — and a child left pointing at its parent's GDT would keep working
-// right up until the parent exited and freed it.
+// CreateThread's inherited state carries the *parent's* segment_arrays pointers —
+// ContextImpl::CreateThread memcpy's the whole CPUState — and a child left pointing at its
+// parent's GDT would keep working right up until the parent exited and freed it.
 void AttachSegmentArrays(GuestThread& T) {
   auto& State = T.Thread->CurrentFrame->State;
   State.segment_arrays[FEXCore::Core::CPUState::SEGMENT_ARRAY_INDEX_GDT] = &T.GDT[0];
@@ -754,8 +754,8 @@ void DeliverPendingAtSyscallExit(GuestThread& T, uint64_t Number, uint64_t Resul
 
   // the syscall has to be finished by hand, because the JIT block that issued it is about to be
   // abandoned. RIP is still *at* the two-byte `syscall` — FEX hands the handler the state as it was
-  // when the instruction began (OpcodeDispatcher.cpp:72) and lets the JIT step over it on the way
-  // back — so stepping it is ours, and RAX is ours to write.
+  // when the instruction began (OpDispatchBuilder::SyscallOp) and lets the JIT step over it on
+  // the way back — so stepping it is ours, and RAX is ours to write.
   //
   // unless the signal asked for the call to be restarted, in which case the step is simply not
   // taken and the syscall number goes back where the guest put it. that is exactly what linux does
@@ -825,8 +825,8 @@ void Run(GuestThread& T) {
     // ExecuteThread can also come back carrying a generated fault rather than because the guest
     // stopped. that is a consequence of EnableExitOnHLT: with it set, the dispatcher's
     // generated-SIGSEGV trampoline unwinds out of ExecuteThread instead of raising a host signal
-    // (Dispatcher.cpp:423). without checking here, a guest #GP would look like a guest that
-    // quietly ran off the end of itself.
+    // (the GuestSignal_SIGSEGV handler Dispatcher::EmitDispatcher emits). without checking here,
+    // a guest #GP would look like a guest that quietly ran off the end of itself.
     const int GeneratedSignal = Signals->TakeGeneratedFault(T);
     if (!GeneratedSignal) {
       return;
@@ -881,7 +881,7 @@ uint64_t Clone(FEXCore::Core::CpuStateFrame* Frame, uint64_t Flags, uint64_t Sta
 
   // inherit the parent's whole CPUState, then correct the parts a new thread does not inherit.
   // this ordering is forced: CreateThread memcpy's the state over whatever RIP and RSP were passed
-  // in (Core.cpp:421-427), so passing them as arguments would be silently discarded.
+  // in (ContextImpl::CreateThread), so passing them as arguments would be silently discarded.
   T->Thread = CTX->CreateThread(0, 0, &Frame->State);
   if (!T->Thread) {
     delete T;
@@ -1001,8 +1001,8 @@ void ExitCurrent(int Status, bool Group) {
 
   // longjmp out of the syscall handler, which the JIT called from inside a translated block. this
   // abandons FEXCore's dispatcher frame without unwinding it — which is what FEX does too
-  // (Thread.cpp:473, LongjumpDeallocateAndExit), because there is no way back into a guest thread
-  // that has asked to stop existing.
+  // (LongjumpDeallocateAndExit, in LinuxSyscalls' Thread.cpp), because there is no way back into
+  // a guest thread that has asked to stop existing.
   siglongjmp(T->EscapeHatch, 1);
   __builtin_unreachable();
 }

@@ -1,12 +1,12 @@
-// M4c1 regression guest: a guest-driven swapchain, on a window system the host layer invents.
+// regression guest: a guest-driven swapchain, on a window system the host layer invents.
 //
 // there is no ANativeWindow to be had from a shell binary, so the surface and the swapchain are
 // implemented in the thunk rather than forwarded to the driver. from in here that is invisible:
 // the guest asks for VK_EXT_headless_surface, which is a real vulkan extension meaning exactly
 // "a surface with no window", and then does the ordinary thing.
 //
-// what it proves that M4b could not: acquire/render/present as a *loop*, with the semaphore and
-// fence handshake the presenter will use, and images the guest never allocated.
+// what it proves that vkrender.c could not: acquire/render/present as a *loop*, with the
+// semaphore and fence handshake the presenter will use, and images the guest never allocated.
 
 #include <stdint.h>
 #include <vulkan/vulkan_core.h>

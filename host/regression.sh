@@ -28,7 +28,7 @@ run "M1b hello-libc     " ./hello-libc
 run "M1c signals        " ./signals
 run "M1d getent         " --libs ./guest-libs ./getent --version
 run "M1g smc            " ./smc
-# the default asynchronous-signal site is `syscall`, which is what boots the game (M3d). it does
+# the default asynchronous-signal site is `syscall`, which is what boots the game. it does
 # not reach the guest's spinning worker, so case 1 of this guest is expected to fail there — which
 # is a real gap, recorded rather than papered over. `safepoint` is the mode that
 # covers all three routes, so that is the one this asserts, and running it here is what keeps the

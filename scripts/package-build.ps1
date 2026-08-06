@@ -43,7 +43,7 @@ param(
     # monotonic per (id, sharpemuVersion), so "latest" is sortable without parsing anything.
     [int]$BuildVersion = 1,
     # the launcher<->payload interface generation. see docs/build-format.md.
-    # 2 since M7: the payload is expected to understand SHARPEMU_HOST_AUDIO. see
+    # 2 means the payload is expected to understand SHARPEMU_HOST_AUDIO. see
     # SharpEmuBuild.CONTRACT_MIN for why the app's range does not include 1 any more.
     [int]$HostContract = 2,
     # guest environment this build wants defaulted on, NAME=VALUE. the lowest-precedence source
@@ -140,7 +140,7 @@ $known = @{
     "perf/render-pass-batching" = @{
         name  = "Render pass batching"
         env   = @("SHARPEMU_BATCH_RENDER_PASSES=1")
-        notes = "performance plus render pass batching. archived: implemented, measured, and reverted on scope - it joins nothing, because a per-draw global-memory barrier refuses every join. item 18 of performance-improvements.md."
+        notes = "performance plus render pass batching. archived: implemented, measured, and reverted on scope - it joins nothing, because a per-draw global-memory barrier refuses every join."
     }
 }
 if ($known.ContainsKey($Branch)) {

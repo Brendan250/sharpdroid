@@ -223,8 +223,8 @@ void GuestSignals::ReconstructGuestState(GuestThread& T, void* HostUContext) {
     }
   }
 
-  // XMMs, the same way but through the vector registers. this is the half that M1b left undone
-  // and the half SharpEmu's SSE4a emulation depends on.
+  // XMMs, the same way but through the vector registers. this is the half the original fault
+  // reporting left undone, and the half SharpEmu's SSE4a emulation depends on.
   if (const auto* FPSimd = FindFPSimdContext(Context)) {
     __uint128_t XMM[16] {};
     for (uint16_t i = 0; i < Config->SRAFPRCount && i < 16; ++i) {
@@ -234,7 +234,7 @@ void GuestSignals::ReconstructGuestState(GuestThread& T, void* HostUContext) {
       }
     }
     // the low 128 bits only. passing nullptr for YMM_High is not "there is no upper half" — since
-    // M3b there is — it is "we did not recover one, so leave CPUState's alone". on the AVX128 path
+    // AVX was turned on there is — it is "we did not recover one, so leave CPUState's alone". on the AVX128 path
     // FEX takes without SVE256, the upper halves live in CPUState.avx_high rather than in the 16
     // SRA-mapped host vector registers, so what is in the signal context is genuinely just the low
     // halves and this is the honest thing to write back.

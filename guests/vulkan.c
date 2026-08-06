@@ -1,4 +1,4 @@
-// M4a regression guest: guest x86-64 vulkan through the host layer's thunk onto the real driver.
+// regression guest: guest x86-64 vulkan through the host layer's thunk onto the real driver.
 //
 // unlike the other guests this one is *dynamic* and links against nothing but the generated
 // libvulkan.so.1, so the whole chain is under test rather than just the marshaller:
@@ -24,7 +24,7 @@
 //
 // what it does NOT check: float arguments. every vulkan command taking one by value is a command
 // buffer recording call (vkCmdSetLineWidth, vkCmdSetDepthBias), so the SSE half of the argument
-// classification only gets exercised once there is something to record into. that is M4b.
+// classification only gets exercised once there is something to record into. that is vkrender.c.
 
 #include <stdint.h>
 #include <vulkan/vulkan_core.h>

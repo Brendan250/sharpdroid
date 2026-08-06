@@ -29,15 +29,16 @@
 # how a rate stops meaning anything, and this script did pool them until a traced run separated them:
 #
 #   AUDIO STALL   the audio thread is ALIVE, parked in a futex on a guest address, and the game
-#                 carries on rendering at its full frame rate at ~100% of a core. **this is item 16.**
+#                 carries on rendering at its full frame rate at ~100% of a core. **this is the
+#                 audio stall.**
 #   AUDIO CRASH   the process DIED and took the audio with it: presented frames stop too and process
-#                 CPU falls to a few percent. that is the item 12a family -- a signal-delivery
-#                 correctness bug -- and it is not item 16. it counts as a crash whether the fault
+#                 CPU falls to a few percent. that is a *different* failure -- a signal-delivery
+#                 correctness bug -- and not the stall. it counts as a crash whether the fault
 #                 killed the guest audio thread or the runtime raised a fatal error on some other
 #                 thread; the second shape was seen for the first time on 2026-08-04 and had been
 #                 scoring as a stall.
 #
-# quote the stall rate for item 16. the crash rate belongs to a different investigation.
+# quote the stall rate when you mean the stall. the crash rate belongs to a different investigation.
 #
 # what each column means:
 #   stalls      [audio-wd] STALL episodes -- the guest stopped submitting for 2 s or more
@@ -191,10 +192,10 @@ function Invoke-Run($buildPath, $build, $arm, $armExtra, $n) {
     # heading until a traced run separated them.** they must not share a rate:
     #
     #   STALL  the audio thread is alive and parked in a futex, and the game carries on rendering at
-    #          its full frame rate. this is item 16.
+    #          its full frame rate. this is the audio stall.
     #   CRASH  the audio thread *died* on an unhandled guest fault and took the emulator with it --
     #          frames stop too, and process CPU falls to a few percent instead of ~100. that is the
-    #          item 12a family, not this one.
+    #          signal-delivery family, not this one.
     #
     # **the discriminator is the audio thread's own fate, and nothing else.** "a thread died on an
     # unhandled fault" appears in both -- a run has been seen where some *other* guest thread faulted
@@ -248,7 +249,7 @@ foreach ($b in $labels) {
     $st = @($mine | Where-Object { $_.Kind -eq "STALL" }).Count
     $cr = @($mine | Where-Object { $_.Kind -eq "CRASH" }).Count
     if ($mine.Count) {
-        # the stall rate is the one item 16 is about, and it is the only one worth quoting for it.
+        # the stall rate is the one the audio stall is about, and the only one worth quoting for it.
         Write-Host ("{0,-34} audio lost in {1} of {2} runs  ({3:N0}%)  =  {4} stall ({5:N0}%) + {6} crash ({7:N0}%)" -f `
             $b, $bad, $mine.Count, (100.0 * $bad / $mine.Count), `
             $st, (100.0 * $st / $mine.Count), $cr, (100.0 * $cr / $mine.Count))

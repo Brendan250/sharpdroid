@@ -1,7 +1,8 @@
 #!/system/bin/sh
 # samples what the device is doing to itself, once a second, until it is killed.
 #
-# it exists because the Odin 3 powered off four times during M3d and "thermal" was a guess with
+# it exists because the Odin 3 powered off four times while the game was being brought up, and
+# "thermal" was a guess with
 # nothing behind it. a reboot takes the answer with it, so this writes and *syncs* as it goes:
 # whatever the last line says is what the device was at when it stopped existing.
 #

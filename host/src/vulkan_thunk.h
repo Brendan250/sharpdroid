@@ -66,8 +66,8 @@ inline bool IsThunkCall(uint64_t SyscallNumber) {
 }
 
 // enabled by --vulkan. off by default: with the thunk unavailable the guest's dlopen of
-// libvulkan.so.1 fails the way it did before M4, which is the behaviour every earlier milestone
-// was measured against.
+// libvulkan.so.1 fails the way it did before the thunk existed, which is the behaviour every
+// earlier measurement was taken against.
 void SetEnabled(bool Enabled);
 bool Enabled();
 void SetTrace(bool Enabled);
@@ -89,7 +89,7 @@ void SetProfile(bool Enabled);
 // the host vulkan to load. defaults to the platform loader, "libvulkan.so", which is what
 // gives WSI and the stock adreno driver.
 //
-// **this is not where a turnip .so goes**, and the reason is the one trap M4 recorded: on android
+// **this is not where a turnip .so goes**, and the reason is the one trap building this recorded: on android
 // WSI lives in the *loader*, not the driver. naming turnip here would dlopen a driver with no
 // vkCreateSwapchainKHR in it at all. the loader still has to be the loader; what has to change is
 // which driver it loads, which is SetDriver below.
@@ -149,8 +149,7 @@ uint64_t PresentedFrameCount();
 // which window system the guest gets.
 //
 //   Headless   the thunk invents the surface and owns the swapchain, and a present is a copy into
-//              whatever the host wants. this is M4c1, and it is the only thing a shell binary with
-//              no window can do.
+//              whatever the host wants. it is the only thing a shell binary with no window can do.
 //   Android    a real VK_KHR_android_surface on the app's ANativeWindow, and a real swapchain from
 //              the platform loader. the driver composites the guest's own images and nothing is
 //              copied anywhere.
@@ -168,11 +167,11 @@ void SetWsiMode(WsiMode Mode);
 // means it can arrive before the guest starts and vanish while it is running.
 //
 // a window changes two things and only two. it is **authoritative for the extent**, which is what
-// finally retires M4c2a's hand-matched 1920x1080: a surface that disagrees with the client's
+// finally retires the hand-matched 1920x1080 this used to need: a surface that disagrees with the client's
 // drawable makes the presenter recreate its swapchain forever without ever erroring, so the size
 // has to come from one place, and the only place that actually knows is here. and it gives
-// Present() somewhere to put the frame, which is the whole of M5 — up to now a presented image
-// was counted and dropped.
+// Present() somewhere to put the frame — before there was a window, a presented image was counted
+// and dropped.
 void SetAndroidWindow(::ANativeWindow* Window);
 
 // where to write presented frames as PPMs, as "<prefix>-NNNNN.ppm". off unless asked for: it

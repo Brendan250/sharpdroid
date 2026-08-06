@@ -19,7 +19,7 @@
 // reach the stale translation.
 //
 // **we cannot ask the kernel any of this, and that is the whole reason this file exists.**
-// TranslateProt drops PROT_EXEC before any guest mapping reaches bionic (M1d), because an android
+// TranslateProt drops PROT_EXEC before any guest mapping reaches bionic, because an android
 // app is denied `execute` on its own app_data_file. so the host kernel does not know which guest
 // pages the guest believes are executable, and /proc/self/maps will never say. the guest's
 // *requested* protection exists only here, recorded at the moment the syscall arrives.
