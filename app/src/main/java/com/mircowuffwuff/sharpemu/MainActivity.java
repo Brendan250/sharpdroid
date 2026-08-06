@@ -210,7 +210,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         if (driverName == null) {
             return null;
         }
-        File staged = new File(new File(externalRoot, "gpu-drivers"), driverName);
+        File staged = new File(AppStorage.stagedDrivers(externalRoot), driverName);
         File meta = new File(staged, "meta.json");
         if (!meta.isFile()) {
             Log.i(TAG, "[app] no driver staged at " + staged + " — using the stock adreno driver");
@@ -241,7 +241,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
             // per driver, so switching between two packages cannot leave the previous one's
             // library sitting in the directory being pointed at.
-            File installDir = new File(new File(getFilesDir(), "gpu-driver"), driverName);
+            File installDir = AppStorage.installedDriver(getFilesDir(), driverName);
             if (!installDir.isDirectory() && !installDir.mkdirs()) {
                 Log.e(TAG, "[app] could not create " + installDir);
                 return null;
@@ -294,10 +294,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * was the problem.
      */
     private File resolvePayload(File root) {
-        File staged = new File(root, "builds");
+        File staged = AppStorage.stagedBuilds(root);
         SharpEmuBuild build;
         if (buildPath == null || buildPath.isEmpty()) {
-            build = SharpEmuBuild.mostRecent(staged, new File(getFilesDir(), "builds"));
+            build = SharpEmuBuild.mostRecent(staged, AppStorage.installedBuilds(getFilesDir()));
         } else if (!buildPath.startsWith("/")) {
             Log.e(TAG, "[app] --es sharpemu wants an absolute path to a build directory, and '"
                     + buildPath + "' is a name. selecting a build by id was removed on 2026-08-05,"
@@ -334,8 +334,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         if (payload == null) {
             return;
         }
-        File game = new File(new File(root, "games"), gameName + "/eboot.bin");
-        for (File needed : new File[] {payload, game, new File(root, "guest-libs")}) {
+        File game = new File(AppStorage.games(root), gameName + "/eboot.bin");
+        for (File needed : new File[] {payload, game, AppStorage.guestLibs(root)}) {
             if (!needed.exists()) {
                 Log.e(TAG, "[app] missing: " + needed.getAbsolutePath()
                         + " — stage it with scripts/stage-game.ps1 or scripts/stage-guest-libs.ps1");
@@ -419,7 +419,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         }
 
         args.add("--libs");
-        args.add(new File(root, "guest-libs").getAbsolutePath());
+        args.add(AppStorage.guestLibs(root).getAbsolutePath());
         // internal storage, not the external one the payload sits on: .NET reaches for TMPDIR far
         // more than for its own bundle, and the external volume is FUSE-backed on Android 11+, so
         // every file operation there is a userspace round trip.

@@ -103,7 +103,7 @@ $steps = @(
         # two copies of the rule would eventually disagree -- silently, as a missing artefact on a
         # build that worked.
         produces = (Get-ApkArtefact -Package (Resolve-AppIdentity -Package $Package -Name $Name -Release:$Release).Package)
-        about   = "aapt2, javac, d8, zipalign, apksigner. no gradle"
+        about   = "gradle: AGP, kotlin, androidx and Material3"
         always  = $true
     }
 )

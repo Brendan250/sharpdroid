@@ -18,7 +18,7 @@ performance-0.0.3-hotfix-2-b1/
 └── plugins/           managed plugins, and the ffmpeg tree the Bink decoder wants
 ```
 
-**the host layer needs no part of this.** it takes a payload path and stays a thing that runs an ELF; `GuestProcFS::SetExe` is the `realpath` of the path it is handed, so `AppContext.BaseDirectory` follows the build directory by itself. name resolution, `meta.json` and the contract check are the launcher's job, in `app/java/.../SharpEmuBuild.java`, because that is where a build list needs them anyway and two implementations of one contract is one too many.
+**the host layer needs no part of this.** it takes a payload path and stays a thing that runs an ELF; `GuestProcFS::SetExe` is the `realpath` of the path it is handed, so `AppContext.BaseDirectory` follows the build directory by itself. name resolution, `meta.json` and the contract check are the launcher's job, in `app/src/main/java/.../SharpEmuBuild.java`, because that is where a build list needs them anyway and two implementations of one contract is one too many.
 
 **the zip is the distribution format and the directory is what runs.** android's shell has no unzip worth relying on, so a zip is unpacked on a PC and pushed. `meta.json` sits at the **zip root**, not inside a wrapper directory — that is the single thing most likely to differ between two hand-made packages.
 

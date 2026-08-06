@@ -14,6 +14,13 @@
 # to publish one.
 /app/debug.keystore
 
+# gradle's own project-local cache and daemon state. there is no way to redirect it from inside the
+# build the way build/ is redirected, so it is ignored where it lands.
+/.gradle/
+# written by app/build-app.ps1 from whatever scripts/toolchain.ps1 resolved. it holds an absolute
+# SDK path, which is true on exactly one machine.
+/local.properties
+
 # editors and platform junk
 .vs/
 .idea/

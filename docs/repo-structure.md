@@ -17,7 +17,7 @@ why sharpemu-android is two repositories, what lives in each, and where every ar
 
 it is an architectural layer, and layers are the classic wrong reason to split a repository. the app and the host layer are one build unit with a source-level interface between them:
 
-- `hostContract`, the launcher↔payload interface generation, is emitted by `scripts/package-build.ps1` and checked by `app/java/.../SharpEmuBuild.java`. bumping it is one change in two files
+- `hostContract`, the launcher↔payload interface generation, is emitted by `scripts/package-build.ps1` and checked by `app/src/main/java/.../SharpEmuBuild.java`. bumping it is one change in two files
 - every launch flag is parsed in `host/src/host_layer.cpp` and constructed in `MainActivity.java`
 - the JNI entry point's symbol name is hardcoded in `host/CMakeLists.txt` so the linker cannot garbage-collect it. renaming the java package breaks the native link
 - each thunk generator emits two halves from one source: a `.inc` compiled into the host layer and a `.S` assembled into a guest-side shared object
@@ -51,10 +51,18 @@ a repository boundary there would buy an independent version number nobody would
 │   ├── thunks/audio/         generator, generated halves
 │   └── tools/python3.cmd     a shim FEXCore's generators need on windows
 │
+├── settings.gradle.kts  build.gradle.kts  gradle.properties  gradlew  gradlew.bat
+├── gradle/
+│   ├── libs.versions.toml    the app's dependency versions, in one place
+│   └── wrapper/              the gradle distribution the wrapper fetches
+│
 ├── app/                      the android app
-│   ├── AndroidManifest.xml
-│   ├── build-app.ps1         gradle-free: aapt2, javac, d8, zipalign, apksigner
-│   └── java/com/mircowuffwuff/sharpemu/
+│   ├── build.gradle.kts      the APK: AGP, kotlin, androidx, Material3
+│   ├── build-app.ps1         drives gradle, and resolves the SDK for it
+│   └── src/main/
+│       ├── AndroidManifest.xml
+│       ├── java/com/mircowuffwuff/sharpemu/   java and kotlin, side by side
+│       └── res/
 │
 ├── guests/                   x86-64 test guests the host layer is exercised against
 ├── guest-libs/               fetch script for the staged x86-64 shared objects
@@ -79,7 +87,10 @@ a repository boundary there would buy an independent version number nobody would
 └── build/                    all local output. ignored
 ```
 
-four notes on the shape:
+five notes on the shape:
+
+- **the app is a gradle build, and it did not used to be.** the APK was assembled by calling aapt2, javac, d8, zipalign and apksigner directly, which needed no maven and no gradle distribution and was one offline command. that stopped being the right trade when the frontend work started: a game list and an Eden-shaped settings screen want Material3, RecyclerView, SAF and the rest, and hand-resolving that transitive graph offline is a job with no end. **`app/build-app.ps1` is still the entry point** — it resolves the SDK and JDK through `scripts/toolchain.ps1` and writes `local.properties` from what it found, so the app step cannot disagree with the native step about which SDK it built against, and it copies the APK to the path every other script predicts
+
 
 - **`.gitattributes` forces LF on everything**, and that is correctness rather than tidiness. `host/regression.sh` and `scripts/device/*.sh` are pushed to an android device and run by `/system/bin/sh`, where a CR is a syntax error; git for windows sets `core.autocrlf = true` in its system config, so without the attribute a clone on windows would break them on checkout
 
@@ -125,7 +136,7 @@ both are **git submodules under `external/`**, pinned, and **never modified**:
 | `libFEXCore.a`, `libsharpemu-host-layer.so`, the `sharpemu-host-layer` shell binary | `host/build.ps1` (NDK, cmake, ninja) | this tree + the FEX checkout |
 | the adrenotools hooks and static archives | `scripts/build-adrenotools.ps1` | the libadrenotools checkout |
 | the guest-side `libvulkan.so.1` and `libaaudio.so` | `host/thunks/*/build-guest-*.ps1` | generated stubs |
-| the APK — `build/app-debug/` by default, `build/app/` with `-Release` | `app/build-app.ps1` | the host layer's `.so`, the STL, the adrenotools hooks |
+| the APK — `build/app-debug/` by default, `build/app/` with `-Release` | `app/build-app.ps1`, driving gradle | the host layer's `.so`, the STL, the adrenotools hooks |
 
 **the fork's own CI is not in that table, and that is accurate rather than an omission.** it builds every branch and uploads workflow artifacts, and it cuts releases only on `v*` tags; neither produces the build format this app installs.
 
@@ -203,5 +214,6 @@ SharpEmu builds are GPLv2 binaries. the corresponding source is our fork, public
 - the android SDK, the JDK and the .NET SDK. `toolchain/` is where they land and is ignored — `toolchain.json` is the committed declaration, `toolchain/` the materialisation, in the same relationship as `package.json` to `node_modules/`
 - all build output
 - **the staged x86-64 guest libraries.** they are Debian glibc, libstdc++ and openssl binaries and are LGPL; `guest-libs/fetch-guest-libs.ps1` fetches them, and they are not redistributed here
-- a debug signing keystore. `app/build-app.ps1` generates one on demand
+- a debug signing keystore. `app/build-app.ps1` generates one on demand. it is named explicitly as the debug signing config rather than left to gradle's per-machine `~/.android/debug.keystore`, because a device that already has the app installed refuses an update signed by a different key
+- **gradle's own caches.** `.gradle/` and `local.properties` are per-machine and ignored; `gradle/wrapper/` and `gradle/libs.versions.toml` are the committed declarations, in the same relationship as `toolchain.json` to `toolchain/`
 - **the maintainer's working notes.** the long-form investigation records — measurement logs, dated snapshots, root causes that turned out to be wrong — are kept privately. this repository documents how the project works; it is not the record of how each thing was found out

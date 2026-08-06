@@ -5,19 +5,16 @@
   its content is that the host layer is a library now and that a presented frame has somewhere to
   go.
 
-  extractNativeLibs is on because the host layer is a 33 MB .so and leaving it compressed in the
-  zip is simpler than the uncompressed page-aligned layout the in-place loader wants. it costs
-  install time once, not launch time.
+  four things that used to be here are in app/build.gradle.kts now, because AGP owns them: the
+  application id (namespace and applicationId are separate there, and only the second one moves),
+  the SDK levels, extractNativeLibs - which is packaging { jniLibs { useLegacyPackaging } } - and
+  debuggable, which the debug build type sets and which is a lint error when hardcoded here. the
+  label is a string resource so a renamed build can set it without this file being rewritten.
 -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.mircowuffwuff.sharpemu">
-
-    <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="35" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
-        android:label="SharpEmu"
-        android:debuggable="true"
-        android:extractNativeLibs="true"
+        android:label="@string/app_name"
         android:hardwareAccelerated="true"
         android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
 

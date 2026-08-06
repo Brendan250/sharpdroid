@@ -102,9 +102,11 @@ so `-Restage` is the word everywhere — not `-Force`, which already means "rebu
 | `host/thunks/audio/build-guest-aaudio.ps1` | the same for 72 AAudio entry points |
 | `host/build.ps1` | **FEXCore for bionic plus the host layer**, as a JNI library and a shell binary. `-Clean`, `-BuildType`, `-ApiLevel` |
 | `guests/build-guests.ps1` | the nine x86-64 test guests `regression.sh` exercises the host layer with |
-| `app/build-app.ps1` | the APK. no gradle: aapt2, javac, d8, zipalign, apksigner. `-Install`, `-Release`, `-Package <id>`, `-Name <label>` — see [which app you are building](#which-app-you-are-building) |
+| `app/build-app.ps1` | the APK, by driving gradle. `-Install`, `-Release`, `-Package <id>`, `-Name <label>`, `-Offline` — see [which app you are building](#which-app-you-are-building) |
 
 the ordering is real rather than editorial — the host cmake project refuses without `build/adrenotools/libadrenotools.a`, `build-app.ps1` refuses without `libsharpemu-host-layer.so`, and `build-guests.ps1` refuses without the generated guest-side libraries.
+
+**call `build-app.ps1` rather than `gradlew` directly.** it resolves the SDK and JDK through `toolchain.ps1` and writes `local.properties` from what it found, generates the debug key if it is missing, passes the application id and label, and copies the APK to the path every other script predicts. `gradlew` on its own finds its own SDK through `ANDROID_HOME`, which is exactly the disagreement the resolver exists to prevent. it also points `TEMP` at a directory inside `build/`, without which gradle does not start at all on some machines: the JDK builds a NIO selector's wakeup pipe out of an AF_UNIX socket placed under `%TEMP%`, and where `connect` on such a socket fails, gradle reports it as `Unable to establish loopback connection` — which names TCP loopback and is the wrong component entirely.
 
 **regenerating the thunks** is separate, because their output is committed and only changes when the NDK's headers do:
 

@@ -1,0 +1,63 @@
+# the app's dependency versions, in one place.
+#
+# **the versions mirror Eden's android frontend** rather than being picked fresh, and that is
+# deliberate: this app's UI is modelled on Eden's, so being able to read one of its adapters or
+# layouts and carry the pattern across is worth more than being on the newest of everything. where
+# this list differs from Eden's it is because something here was already decided otherwise -- the SDK
+# levels below are this repository's, not Eden's.
+#
+# toolchain.json remains the source of truth for the *toolchains* (NDK, JDK, build-tools, platform).
+# this file is the source of truth for what the app compiles against. the two overlap in exactly one
+# place, the compile and target SDK, and app/build-app.ps1 asserts they agree rather than trusting
+# that somebody updated both.
+
+[versions]
+# AGP 8.7 is the first release with real android-35 support; 8.6 configures against it with a
+# warning. gradle 8.11.1 satisfies AGP 8.7's floor of 8.9.
+agp = "8.7.3"
+kotlin = "2.0.21"
+
+# androidx and material, as Eden has them
+coreKtx = "1.15.0"
+appcompat = "1.7.0"
+material = "1.12.0"
+recyclerview = "1.4.0"
+constraintlayout = "2.2.1"
+fragmentKtx = "1.8.6"
+documentfile = "1.0.1"
+preferenceKtx = "1.2.1"
+lifecycle = "2.8.7"
+navigation = "2.8.9"
+swiperefreshlayout = "1.1.0"
+splashscreen = "1.0.1"
+coil = "2.2.2"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+# Material3 themes, and DynamicColors -- which is where the Material You option in the theme
+# dropdown comes from, rather than from reading android.R.color.system_accent1_* by hand.
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+# the game list, and the settings rows. the yuzu lineage builds its settings screens as a
+# RecyclerView of typed items rather than out of PreferenceScreen, which is why they look the way
+# they do -- see Eden's SettingsAdapter.
+androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
+# SAF: the directory picker for game folders, and the zip import for builds and drivers.
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
+# settings persistence. the rows are drawn by hand; this is what they are stored in.
+androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferenceKtx" }
+androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navigation-fragment-ktx", version.ref = "navigation" }
+androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigation" }
+# "pull from the top to the bottom to refresh games", exactly.
+androidx-swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
+# game icons, decoded off the UI thread.
+coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }

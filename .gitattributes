@@ -4,3 +4,9 @@
 # config, so without this a clone on windows would rewrite them on checkout and the failure would
 # land on the device.
 * text=auto eol=lf
+
+# the exception, and it is gradle's own template rule rather than ours. gradlew.bat is run by
+# cmd.exe, which is not dependable with an LF-only batch file, and the line above would convert it
+# on checkout - so a fresh clone on windows would get a wrapper that may not run. gradlew itself is
+# a shell script and stays LF with everything else.
+*.bat text eol=crlf
