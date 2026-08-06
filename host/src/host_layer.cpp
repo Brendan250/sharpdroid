@@ -455,8 +455,8 @@ int RunELF(FEXCore::Context::Context* CTX, const char* Path, const char* LibDir,
     // .NET links globalization against ICU at runtime and FailFast()s if it cannot find it —
     // "Couldn't find a valid ICU package installed on the system", from a static constructor deep
     // under the first DateTimeOffset.ToLocalTime() SharpEmu's logger performs. that is not a host
-    // layer problem: libicu is simply not among the 23 x86-64 shared objects staged in
-    // guest-libs/, and it is ~30 MB of them.
+    // layer problem: libicu is simply not among the x86-64 shared objects staged in guest-libs/,
+    // and it would be ~30 MB of them.
     //
     // invariant mode is the right answer for the proof of concept and probably for the app too:
     // it costs culture-aware formatting and collation, which a PS5 emulator uses for log
@@ -726,8 +726,9 @@ int HostLayer::RunMain(int argc, char** argv) {
                          "       sharpemu-host-layer [--trace] [--trace-signals] [--timestamps] [--smc none|mtrack|full] "
                          "[--asyncsig syscall|safepoint|block] [--vulkan] [--vulkan-lib <so>] "
                          "[--vulkan-driver <so>] [--vulkan-hooks <dir>] [--vulkan-driver-env NAME=VALUE]... [--vulkan-turbo] "
-                         "[--vulkan-wsi auto|headless|android] [--trace-vulkan] [--vulkan-profile] "
-                         "[--audio] [--audio-lib <so>] [--trace-audio] [--libs <dir>] "
+                         "[--vulkan-size WxH] [--vulkan-wsi auto|headless|android] [--trace-vulkan] "
+                         "[--vulkan-profile] [--vulkan-dump <prefix>] "
+                         "[--audio] [--audio-lib <so>] [--trace-audio] [--audio-watchdog] [--libs <dir>] "
                          "[--tmp <dir>] [--env NAME=VALUE]... <x86-64-elf> [guest args...]\n");
     return 2;
   }
