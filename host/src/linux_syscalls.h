@@ -41,6 +41,10 @@ public:
   void SetTrace(bool Enabled) {
     Trace = Enabled;
   }
+  // count what the guest asks of one directory subtree — opens, stats, directory listings, reads,
+  // and how many of each land on a descriptor that came from there. off unless this is called.
+  // the reasoning, and why the counts matter beyond curiosity, is at FileProbe in linux_syscalls.cpp.
+  void SetFileProbeRoot(const char* Root);
 
   uint64_t UnhandledCount() const {
     return Unhandled.load(std::memory_order_relaxed);

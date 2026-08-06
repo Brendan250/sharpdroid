@@ -72,6 +72,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private boolean profile;
     private boolean turbo;
     private boolean audioWatchdog;
+    /** {@code --ez tracefiles}, counting the guest's file access under the game directory. */
+    private boolean traceFiles;
     /** The host layer's SMC tracking mode. mtrack is the default every measurement was taken on. */
     private String smcMode = "mtrack";
     private String[] guestEnv = {};
@@ -112,6 +114,11 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // --ez audiowatchdog true reports the stream's state once a second whether or not the guest
         // is submitting. the periodic report on the write path cannot see the guest stopping.
         audioWatchdog = getIntent().getBooleanExtra("audiowatchdog", false);
+        // --ez tracefiles true counts what the guest asks of the game directory: opens, stats,
+        // directory listings, and what it then does with the descriptors. it costs a predictable
+        // branch per file syscall when off, and it is what makes two ways of reaching the same game
+        // comparable rather than a matter of opinion.
+        traceFiles = getIntent().getBooleanExtra("tracefiles", false);
         // --es smc full, because chasing the audio stall needs the two SMC modes compared on the
         // same build. this
         // is a *launch* extra and still not a build one: the comment below about a payload that can
@@ -425,6 +432,14 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // every file operation there is a userspace round trip.
         args.add("--tmp");
         args.add(getCacheDir().getAbsolutePath());
+        if (traceFiles) {
+            // the game's own directory rather than the one above it, so a second staged game cannot
+            // land in the counts, and so the numbers stay comparable between two runs of different
+            // titles -- what the guest asks of *a* game is the measurement, not what it asks of the
+            // directory games happen to share.
+            args.add("--trace-files");
+            args.add(game.getParentFile().getAbsolutePath());
+        }
         args.add(payload.getAbsolutePath());
         args.add(game.getAbsolutePath());
 

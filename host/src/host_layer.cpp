@@ -583,6 +583,7 @@ int HostLayer::RunMain(int argc, char** argv) {
   bool SpikeMode = false;
   bool TurboRequested = false;
   bool Trace = false;
+  const char* FileProbeRoot = nullptr;
   auto SMC = HostLayer::VMA::SMCMode::MTrack;
   const char* LibDir = nullptr;
   const char* TmpDir = nullptr;
@@ -593,6 +594,10 @@ int HostLayer::RunMain(int argc, char** argv) {
       SpikeMode = true;
     } else if (std::strcmp(argv[ArgIndex], "--trace") == 0) {
       Trace = true;
+    } else if (std::strcmp(argv[ArgIndex], "--trace-files") == 0 && ArgIndex + 1 < argc) {
+      // separate from --trace for the same reason --trace-signals is: this is a few hundred events
+      // in a whole run against millions, and it answers a question of its own.
+      FileProbeRoot = argv[++ArgIndex];
     } else if (std::strcmp(argv[ArgIndex], "--trace-signals") == 0) {
       // separate from --trace, and not implied by it: the asynchronous signal path is a dozen
       // events in a whole run, where --trace is millions of lines. keeping them apart is what
@@ -723,7 +728,8 @@ int HostLayer::RunMain(int argc, char** argv) {
 
   if (!SpikeMode && ArgIndex >= argc) {
     std::fprintf(stderr, "usage: sharpemu-host-layer [--smc none|mtrack|full] --spike\n"
-                         "       sharpemu-host-layer [--trace] [--trace-signals] [--timestamps] [--smc none|mtrack|full] "
+                         "       sharpemu-host-layer [--trace] [--trace-signals] [--trace-files <prefix>] [--timestamps] "
+                         "[--smc none|mtrack|full] "
                          "[--asyncsig syscall|safepoint|block] [--vulkan] [--vulkan-lib <so>] "
                          "[--vulkan-driver <so>] [--vulkan-hooks <dir>] [--vulkan-driver-env NAME=VALUE]... [--vulkan-turbo] "
                          "[--vulkan-size WxH] [--vulkan-wsi auto|headless|android] [--trace-vulkan] "
@@ -797,6 +803,9 @@ int HostLayer::RunMain(int argc, char** argv) {
 
   SpikeSyscallHandler SpikeSyscalls;
   LinuxSyscalls.SetTrace(Trace);
+  if (FileProbeRoot) {
+    LinuxSyscalls.SetFileProbeRoot(FileProbeRoot);
+  }
   CTX->SetSyscallHandler(SpikeMode ? static_cast<FEXCore::HLE::SyscallHandler*>(&SpikeSyscalls) : &LinuxSyscalls);
 
   // InitCore() unconditionally dereferences the signal delegator — it calls

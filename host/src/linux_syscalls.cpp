@@ -10,6 +10,9 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <set>
+#include <string>
+#include <unordered_map>
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/epoll.h>
@@ -290,7 +293,157 @@ uint64_t AlignUp(uint64_t Value, uint64_t Alignment) {
   return (Value + Alignment - 1) & ~(Alignment - 1);
 }
 
+// --- what the guest asks of one directory subtree ----------------------------------------------
+//
+// off unless --trace-files names a prefix, and the reason it exists is that a directory is not
+// always reached by a path. when a game comes from a storage access framework grant rather than
+// from a real path, every call counted here is one the host layer has to answer itself, out of a
+// provider, across binder — so these counts are what that costs, and the only way to compare the
+// two ways of reaching the same game is to count both.
+//
+// the split is the point rather than the total. a descriptor the framework hands back is a real fd
+// on a real file, so read, pread, lseek, mmap and fstat on one cost nothing extra and stay
+// pass-throughs; it is the path-taking calls that become lookups, and a *directory*, which has no
+// descriptor to hand back at all. hence the fd table — it is the only way to tell a getdents on the
+// game from a getdents on anything else, since the dispatcher otherwise never learns where an fd
+// came from.
+namespace FileProbe {
+
+// the gate, and it is an atomic rather than the string below because every guest read, close and
+// lseek passes it. one relaxed load and a branch that predicts perfectly — the same cost the
+// dispatcher already pays for `if (Trace)` on every syscall, and the same reason it is acceptable.
+// written once before any guest thread exists, read from all of them.
+std::atomic<bool> Active {false};
+
+std::mutex Lock;
+std::string Root;
+std::unordered_map<int, bool> Tracked; // fd -> opened with O_DIRECTORY
+std::set<std::string> Paths;
+struct timespec LastReport {};
+
+struct {
+  uint64_t Opens, DirOpens, WriteOpens, OpenFails;
+  uint64_t Stats, Accesses, Readlinks, Statfs;
+  uint64_t Getdents, Reads, Writes, Seeks, Fstats, Mmaps;
+  uint64_t ReadBytes;
+} Count {};
+
+// every entry point below takes one of these, after the gate and before anything that can fail.
+// the probe prints, printf is allowed to set errno, and the caller's next statement is FromHost,
+// which reads it — so a probe that did not restore errno would turn a successful syscall into a
+// random failure, and it would look like a host-layer bug rather than like the probe.
+struct KeepErrno {
+  int Saved {errno};
+  ~KeepErrno() {
+    errno = Saved;
+  }
+};
+
+bool Enabled() {
+  return Active.load(std::memory_order_relaxed);
+}
+
+bool Matches(const char* Path) {
+  return Path != nullptr && Root.compare(0, Root.size(), Path, 0, Root.size()) == 0;
+}
+
+// every counter is behind the one lock. a diagnostic that races is a diagnostic that gets
+// disbelieved, and this is nowhere near a hot path once the filter has rejected a call.
+void Report(bool Force) {
+  struct timespec Now {};
+  ::clock_gettime(CLOCK_MONOTONIC, &Now);
+  if (!Force && Now.tv_sec - LastReport.tv_sec < 5) {
+    return;
+  }
+  LastReport = Now;
+  std::printf("[files] paths=%zu opens=%llu (dir %llu, write %llu, failed %llu) stat=%llu access=%llu "
+              "readlink=%llu statfs=%llu | getdents=%llu read=%llu (%llu KB) write=%llu lseek=%llu "
+              "fstat=%llu mmap=%llu\n",
+              Paths.size(), (unsigned long long)Count.Opens, (unsigned long long)Count.DirOpens,
+              (unsigned long long)Count.WriteOpens, (unsigned long long)Count.OpenFails, (unsigned long long)Count.Stats,
+              (unsigned long long)Count.Accesses, (unsigned long long)Count.Readlinks, (unsigned long long)Count.Statfs,
+              (unsigned long long)Count.Getdents, (unsigned long long)Count.Reads,
+              (unsigned long long)(Count.ReadBytes / 1024), (unsigned long long)Count.Writes,
+              (unsigned long long)Count.Seeks, (unsigned long long)Count.Fstats, (unsigned long long)Count.Mmaps);
+  std::fflush(stdout);
+}
+
+void OnOpen(const char* Path, uint64_t Flags, int64_t Result) {
+  if (!Enabled() || !Matches(Path)) {
+    return;
+  }
+  KeepErrno Restore;
+  constexpr uint64_t GuestO_DIRECTORY = 0200000;
+  constexpr uint64_t GuestO_WRONLY = 1, GuestO_RDWR = 2, GuestO_CREAT = 0100;
+  const bool Directory = (Flags & GuestO_DIRECTORY) != 0;
+
+  std::lock_guard Guard(Lock);
+  ++Count.Opens;
+  if (Directory) ++Count.DirOpens;
+  if (Flags & (GuestO_WRONLY | GuestO_RDWR | GuestO_CREAT)) ++Count.WriteOpens;
+  if (Result < 0) ++Count.OpenFails;
+
+  // the distinct paths, capped: the question is how many files a game touches, and past a few
+  // thousand the answer is "a lot" and the set is only costing memory.
+  if (Paths.size() < 4096 && Paths.insert(Path).second) {
+    std::printf("[files] open%s%s \"%s\" -> %lld\n", Directory ? " DIR" : "",
+                (Flags & (GuestO_WRONLY | GuestO_RDWR | GuestO_CREAT)) ? " WRITE" : "", Path, (long long)Result);
+    std::fflush(stdout);
+  }
+  if (Result >= 0) {
+    Tracked[static_cast<int>(Result)] = Directory;
+  }
+  Report(false);
+}
+
+void OnPath(const char* Path, uint64_t& Counter) {
+  if (!Enabled() || !Matches(Path)) {
+    return;
+  }
+  KeepErrno Restore;
+  std::lock_guard Guard(Lock);
+  ++Counter;
+  Report(false);
+}
+
+// true when this fd came from a path under the root, so the caller can count what was done to it.
+bool OnFD(int FD, uint64_t& Counter, uint64_t Bytes = 0) {
+  if (!Enabled()) {
+    return false;
+  }
+  KeepErrno Restore;
+  std::lock_guard Guard(Lock);
+  auto Found = Tracked.find(FD);
+  if (Found == Tracked.end()) {
+    return false;
+  }
+  ++Counter;
+  Count.ReadBytes += Bytes;
+  Report(false);
+  return true;
+}
+
+void OnClose(int FD) {
+  if (!Enabled()) {
+    return;
+  }
+  std::lock_guard Guard(Lock);
+  Tracked.erase(FD);
+}
+
+} // namespace FileProbe
+
 } // namespace
+
+void LinuxSyscallHandler::SetFileProbeRoot(const char* Root) {
+  std::lock_guard Guard(FileProbe::Lock);
+  FileProbe::Root = Root ? Root : "";
+  ::clock_gettime(CLOCK_MONOTONIC, &FileProbe::LastReport);
+  // last, and after the string it guards is in place: from here on any guest thread may read it.
+  FileProbe::Active.store(!FileProbe::Root.empty(), std::memory_order_relaxed);
+  std::printf("[files] counting guest file access under \"%s\"\n", FileProbe::Root.c_str());
+  std::fflush(stdout);
+}
 
 LinuxSyscallHandler::LinuxSyscallHandler() {
   // OS_LINUX64 is what marshals guest RAX/RDI/... into SyscallArguments::Argument[]. OS_GENERIC
@@ -453,21 +606,33 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
 
   switch (Number) {
   // --- guest addresses are host addresses, so buffers pass straight through -----------------
-  case SYS_x64_read: return FromHost(::read(static_cast<int>(Arg0), reinterpret_cast<void*>(Arg1), Arg2));
+  case SYS_x64_read: {
+    const long Bytes = ::read(static_cast<int>(Arg0), reinterpret_cast<void*>(Arg1), Arg2);
+    FileProbe::OnFD(static_cast<int>(Arg0), FileProbe::Count.Reads, Bytes > 0 ? Bytes : 0);
+    return FromHost(Bytes);
+  }
   // stdout and stderr go through the timestamper, which is a plain write unless --timestamps is on.
   // this is the only place SharpEmu's log ever reaches the outside world, so it is the only place a
   // stamp has to be applied to get a log the shape of the Windows release's.
   case SYS_x64_write:
+    FileProbe::OnFD(static_cast<int>(Arg0), FileProbe::Count.Writes);
     return FromHost(GuestLog::Write(static_cast<int>(Arg0), reinterpret_cast<const void*>(Arg1), Arg2));
-  case SYS_x64_pread64:
-    return FromHost(::pread(static_cast<int>(Arg0), reinterpret_cast<void*>(Arg1), Arg2, static_cast<off_t>(Arg3)));
+  case SYS_x64_pread64: {
+    const long Bytes = ::pread(static_cast<int>(Arg0), reinterpret_cast<void*>(Arg1), Arg2, static_cast<off_t>(Arg3));
+    FileProbe::OnFD(static_cast<int>(Arg0), FileProbe::Count.Reads, Bytes > 0 ? Bytes : 0);
+    return FromHost(Bytes);
+  }
   // struct iovec is {void* base; size_t len} on both architectures, so no translation.
   case SYS_x64_readv:
     return FromHost(::readv(static_cast<int>(Arg0), reinterpret_cast<const struct iovec*>(Arg1), static_cast<int>(Arg2)));
   case SYS_x64_writev:
     return FromHost(GuestLog::Writev(static_cast<int>(Arg0), reinterpret_cast<const struct iovec*>(Arg1), static_cast<int>(Arg2)));
-  case SYS_x64_close: return FromHost(::close(static_cast<int>(Arg0)));
-  case SYS_x64_lseek: return FromHost(::lseek(static_cast<int>(Arg0), static_cast<off_t>(Arg1), static_cast<int>(Arg2)));
+  case SYS_x64_close:
+    FileProbe::OnClose(static_cast<int>(Arg0));
+    return FromHost(::close(static_cast<int>(Arg0)));
+  case SYS_x64_lseek:
+    FileProbe::OnFD(static_cast<int>(Arg0), FileProbe::Count.Seeks);
+    return FromHost(::lseek(static_cast<int>(Arg0), static_cast<off_t>(Arg1), static_cast<int>(Arg2)));
   case SYS_x64_dup: return FromHost(::dup(static_cast<int>(Arg0)));
   case SYS_x64_dup2: return FromHost(::dup2(static_cast<int>(Arg0), static_cast<int>(Arg1)));
   case SYS_x64_pipe2: return FromHost(::pipe2(reinterpret_cast<int*>(Arg0), static_cast<int>(Arg1)));
@@ -482,7 +647,9 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     }
     return std::strlen(reinterpret_cast<char*>(Arg0)) + 1;
   }
-  case SYS_x64_getdents64: return FromHost(::syscall(SYS_getdents64, Arg0, Arg1, Arg2));
+  case SYS_x64_getdents64:
+    FileProbe::OnFD(static_cast<int>(Arg0), FileProbe::Count.Getdents);
+    return FromHost(::syscall(SYS_getdents64, Arg0, Arg1, Arg2));
 
   // --- creating and modifying files -----------------------------------------------------------
   //
@@ -544,7 +711,9 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   case SYS_x64_dup3: return FromHost(::dup3(static_cast<int>(Arg0), static_cast<int>(Arg1), static_cast<int>(Arg2)));
   case SYS_x64_memfd_create: return FromHost(::syscall(SYS_memfd_create, Arg0, Arg1));
   // struct statfs is all 64-bit words on both LP64 architectures.
-  case SYS_x64_statfs: return FromHost(::statfs(reinterpret_cast<const char*>(Arg0), reinterpret_cast<struct statfs*>(Arg1)));
+  case SYS_x64_statfs:
+    FileProbe::OnPath(reinterpret_cast<const char*>(Arg0), FileProbe::Count.Statfs);
+    return FromHost(::statfs(reinterpret_cast<const char*>(Arg0), reinterpret_cast<struct statfs*>(Arg1)));
   case SYS_x64_fstatfs: return FromHost(::fstatfs(static_cast<int>(Arg0), reinterpret_cast<struct statfs*>(Arg1)));
   // arm64 has no plain access/stat/lstat — asm-generic dropped them in favour of the *at forms —
   // so on x86-64 these are the numbers glibc actually issues, and they have to be routed by hand.
@@ -560,6 +729,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     // reading whatever the guest happened to leave in R10, and bionic rejects unknown flags
     // with EINVAL.
     const uint64_t Flags = Number == SYS_x64_faccessat2 ? Arg3 : 0;
+    FileProbe::OnPath(Path, FileProbe::Count.Accesses);
     if (const char* Substitute = Proc.Substitute(Path)) {
       Path = Substitute;
     }
@@ -571,7 +741,9 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
 #ifdef SYS_statx
   // struct statx is fixed-width and identical on every architecture, so it needs no translation
   // — unlike struct stat, which is the one that does.
-  case SYS_x64_statx: return FromHost(::syscall(SYS_statx, Arg0, Arg1, Arg2, Arg3, Arg4));
+  case SYS_x64_statx:
+    FileProbe::OnPath(reinterpret_cast<const char*>(Arg1), FileProbe::Count.Stats);
+    return FromHost(::syscall(SYS_statx, Arg0, Arg1, Arg2, Arg3, Arg4));
 #endif
 
   // --- paths, with /proc/self answered about the guest rather than about us ------------------
@@ -589,7 +761,9 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     if (const char* Substitute = Proc.Substitute(Path)) {
       Path = Substitute;
     }
-    return FromHost(::openat(DirFD, Path, TranslateOpenFlags(Flags), static_cast<mode_t>(Mode)));
+    const int Opened = ::openat(DirFD, Path, TranslateOpenFlags(Flags), static_cast<mode_t>(Mode));
+    FileProbe::OnOpen(Path, Flags, Opened >= 0 ? Opened : -errno);
+    return FromHost(Opened);
   }
   case SYS_x64_readlink:
   case SYS_x64_readlinkat: {
@@ -598,6 +772,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     char* Buffer = reinterpret_cast<char*>(Number == SYS_x64_readlink ? Arg1 : Arg2);
     const size_t Size = Number == SYS_x64_readlink ? Arg2 : Arg3;
 
+    FileProbe::OnPath(Path, FileProbe::Count.Readlinks);
     if (const char* Target = Proc.ReadLinkTarget(Path)) {
       // readlink does not NUL-terminate and does not fail on truncation — it writes what fits and
       // returns that. matching that exactly matters: the caller sizes its buffer from the result.
@@ -611,6 +786,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
 
   case SYS_x64_fstat: {
     struct stat Host {};
+    FileProbe::OnFD(static_cast<int>(Arg0), FileProbe::Count.Fstats);
     if (::fstat(static_cast<int>(Arg0), &Host) != 0) {
       return static_cast<uint64_t>(-errno);
     }
@@ -620,6 +796,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   case SYS_x64_newfstatat: {
     struct stat Host {};
     const char* Path = reinterpret_cast<const char*>(Arg1);
+    FileProbe::OnPath(Path, FileProbe::Count.Stats);
     if (const char* Substitute = Proc.Substitute(Path)) {
       Path = Substitute;
     }
@@ -634,6 +811,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   case SYS_x64_lstat: {
     struct stat Host {};
     const char* Path = reinterpret_cast<const char*>(Arg0);
+    FileProbe::OnPath(Path, FileProbe::Count.Stats);
     // lstat of /proc/self/exe would report the symlink itself, but the substitute is not a
     // symlink — so an lstat of it answers about the guest binary. that is the more useful lie:
     // the only thing a caller learns from lstat'ing the link is its target's length, which it
@@ -656,6 +834,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   // protection the *guest* asked for rather than the one bionic was given. the host kernel never
   // sees PROT_EXEC, so if the tracker is not told here the information does not exist anywhere.
   case SYS_x64_mmap: {
+    FileProbe::OnFD(static_cast<int>(static_cast<int32_t>(Arg4)), FileProbe::Count.Mmaps);
     void* Result = ::mmap(reinterpret_cast<void*>(Arg0), Arg1, TranslateProt(Arg2), TranslateMapFlags(Arg3),
                           static_cast<int>(static_cast<int32_t>(Arg4)), static_cast<off_t>(Arg5));
     if (Result == MAP_FAILED) {
