@@ -81,7 +81,7 @@ the page size is read at runtime rather than assumed: android also ships 16k-pag
 the two things that are easy to get wrong by assuming they are no-ops:
 
 - **values**, where a guest constant differs from the arm64 one. `PROT_*`, `MAP_*`, `FUTEX_*`, `SCHED_*`, `PR_*`, `RLIMIT_*`, `AT_*` and errno are all identical across the two architectures. four `O_*` bits are not — `O_DIRECT`, `O_LARGEFILE`, `O_DIRECTORY` and `O_NOFOLLOW` sit at different values, and passing them through unchanged silently turns an `O_DIRECTORY` open into an `O_LARGEFILE` one. two `MAP_*` bits are x86-only placement hints and are dropped.
-- **structures**, where a guest layout differs from the host's. `struct stat` is the one that does: the field order diverges after `st_ino` and the padding differs, so every stat-shaped syscall writes the 144-byte x86-64 layout by hand. `struct statx` is fixed-width and identical everywhere, which is exactly why it needs nothing. `iovec`, `pollfd`, `epoll_event`, `timespec`, `timeval`, `sockaddr`, `msghdr`, `rusage`, `tms`, `statfs` and `rlimit64` all agree.
+- **structures**, where a guest layout differs from the host's. `struct stat` is the one that does: the field order diverges after `st_ino` and the padding differs, so every stat-shaped syscall writes the 144-byte x86-64 layout by hand. `struct statx` is fixed-width and identical everywhere, which is exactly why it needs no translation — it is filled by hand in one place only, for a path the guest file layer owns, where there is no kernel answer to translate in the first place. `iovec`, `pollfd`, `epoll_event`, `timespec`, `timeval`, `sockaddr`, `msghdr`, `rusage`, `tms`, `statfs` and `rlimit64` all agree.
 
 **arm64 has no plain `access`, `stat`, `lstat`, `open`, `mkdir`, `rename`, `unlink`, `link`, `symlink` or `chmod`** — asm-generic dropped them in favour of the `*at` forms — but on x86-64 those are the numbers glibc actually issues, so each is routed onto its `*at` equivalent by hand. a guest dynamic linker probes `/etc/ld.so.preload` with `access` before it does anything else, so this is reached immediately.
 
@@ -96,7 +96,7 @@ the handled set that is more than a forward:
 | `rt_sigaction` `rt_sigprocmask` `sigaltstack` `rt_sigreturn` | the guest's own signal state, tracked in the host layer and never installed on the host |
 | `kill` `tkill` `tgkill` | raise a guest signal on a guest thread. none of them delivers anything at the point of the call |
 | `clone` `exit` `exit_group` `set_tid_address` | threads |
-| `open` `openat` `stat` `lstat` `newfstatat` `access` `faccessat` `faccessat2` `readlink` `readlinkat` | path-taking, and therefore subject to the `/proc/self` substitution below |
+| `open` `openat` `stat` `lstat` `newfstatat` `statx` `access` `faccessat` `faccessat2` `readlink` `readlinkat` `getdents64` | path-taking, and therefore subject to the `/proc/self` substitution below and to the guest file layer beside it |
 | `write` `writev` to fd 1 and 2 | the guest's log, optionally line-stamped |
 | `poll` `ppoll` `select` `pselect6` | the `p` variants' signal mask is **dropped rather than forwarded.** guest signals are emulated entirely inside the host layer, so the guest's mask and the host's have no relationship; handing the guest's mask to the kernel would not change what the guest sees, and would blindfold the host layer's own `SIGSEGV` handler |
 | `set_robust_list` | accepted and ignored. it is glibc's crash-recovery bookkeeping for threads that die holding a mutex, and guest threads only die by asking to |
@@ -134,6 +134,14 @@ the host layer sets these before whatever the launcher adds. the payload-facing 
 `/proc/<our own pid>/` is recognised as well as `/proc/self/`, because glibc and CoreCLR both build that form from `getpid()` rather than using the shorthand.
 
 **what is deliberately not virtualised is as interesting as what is.** because guest and host share one address space, `/proc/self/maps` read straight from bionic already describes the guest's mappings at their real addresses, more accurately than anything synthesised could — with the one caveat that the permission column is the host's, and therefore has no `x` anywhere. `/proc/self/fd` is honest for the same reason. both pass through.
+
+## the guest file layer
+
+`host/src/guest_files.{h,cpp}` and `host/src/saf_bridge.{h,cpp}`. the same idea as `/proc/self` one level up, with a real directory behind it: a game the user granted rather than staged is not reachable by path at all, so the guest is handed an invented one — `/game/eboot.bin` — and the path-taking calls above are answered out of a content provider instead of being forwarded to bionic.
+
+**it is off unless `--saf-mount <prefix>` names a mount**, and the flag needs the app, because there is no provider to ask on the other side of a shell. without it every path in this section behaves exactly as it always has, which is what keeps a run through the scripts comparable to every measurement taken before the layer existed.
+
+only *paths* are answered. a descriptor the provider returns is a real kernel descriptor on a real file, so `read`, `pread`, `lseek`, `mmap` and `fstat` on one are not intercepted and cost nothing extra — and the guest's path-taking is over by the end of boot. the layer is read-only, a directory descriptor is a `memfd` with a hand-written `dirent64` listing beside it, and `saf_bridge.cpp` is this project's only two-way JNI. [`guest-files.md`](guest-files.md) has the design, the costs and the measured A/B against a staged path.
 
 ## threads
 
@@ -229,6 +237,8 @@ the argument vector is the whole interface, and the app passes the same flags a 
 | `--env NAME=VALUE` | appended to the guest environment. repeatable |
 | `--trace` | every syscall, with the tid and, where there is one, the path |
 | `--trace-signals` | the asynchronous signal path only |
+| `--trace-files <prefix>` | what the guest asks of one directory subtree — opens, stats, listings, and what it then does with the descriptors. a few hundred events in a whole run against `--trace`'s millions, and it answers a question of its own: it is what makes two ways of reaching the same game comparable rather than a matter of opinion |
+| `--saf-mount <prefix>` | where a game the user granted appears to the guest. **needs the app**, and the run is refused rather than half-mounted if there is no provider to ask. [`guest-files.md`](guest-files.md) |
 | `--timestamps` | prefixes every line the guest writes to stdout or stderr with elapsed time since process start. **elapsed rather than time of day**, because every number worth having is a delta from the first line and a delta stays meaningful next to a run from another day. the host layer's own lines are deliberately unstamped, which makes them instantly distinguishable while their position still says when they happened |
 | `--smc none\|mtrack\|full` | above |
 | `--asyncsig syscall\|safepoint\|block` | above |

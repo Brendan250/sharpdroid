@@ -22,6 +22,7 @@
 // would and every measurement stays comparable.
 
 #include "elf_loader.h"
+#include "guest_files.h"
 #include "guest_log.h"
 #include "host_layer.h"
 #include "guest_signals.h"
@@ -584,6 +585,7 @@ int HostLayer::RunMain(int argc, char** argv) {
   bool TurboRequested = false;
   bool Trace = false;
   const char* FileProbeRoot = nullptr;
+  const char* SafMount = nullptr;
   auto SMC = HostLayer::VMA::SMCMode::MTrack;
   const char* LibDir = nullptr;
   const char* TmpDir = nullptr;
@@ -598,6 +600,12 @@ int HostLayer::RunMain(int argc, char** argv) {
       // separate from --trace for the same reason --trace-signals is: this is a few hundred events
       // in a whole run against millions, and it answers a question of its own.
       FileProbeRoot = argv[++ArgIndex];
+    } else if (std::strcmp(argv[ArgIndex], "--saf-mount") == 0 && ArgIndex + 1 < argc) {
+      // where the guest's game directory appears, when the game came from a grant on a directory the
+      // user picked rather than from a path. the prefix is invented — nothing at that path exists —
+      // so an ordinary run never names one and never reaches any of that machinery. it needs the
+      // app: there is no provider to ask on the other side of a shell.
+      SafMount = argv[++ArgIndex];
     } else if (std::strcmp(argv[ArgIndex], "--trace-signals") == 0) {
       // separate from --trace, and not implied by it: the asynchronous signal path is a dozen
       // events in a whole run, where --trace is millions of lines. keeping them apart is what
@@ -735,6 +743,7 @@ int HostLayer::RunMain(int argc, char** argv) {
                          "[--vulkan-size WxH] [--vulkan-wsi auto|headless|android] [--trace-vulkan] "
                          "[--vulkan-profile] [--vulkan-dump <prefix>] "
                          "[--audio] [--audio-lib <so>] [--trace-audio] [--audio-watchdog] [--libs <dir>] "
+                         "[--saf-mount <prefix>] "
                          "[--tmp <dir>] [--env NAME=VALUE]... <x86-64-elf> [guest args...]\n");
     return 2;
   }
@@ -805,6 +814,12 @@ int HostLayer::RunMain(int argc, char** argv) {
   LinuxSyscalls.SetTrace(Trace);
   if (FileProbeRoot) {
     LinuxSyscalls.SetFileProbeRoot(FileProbeRoot);
+  }
+  // and the run is refused if it does not take. a mount that silently failed would hand the guest a
+  // game directory in which every single file is missing, and that arrives as a broken dump rather
+  // than as a host layer that was never wired up to anything.
+  if (SafMount && !HostLayer::GuestFiles::SetMount(SafMount)) {
+    return 2;
   }
   CTX->SetSyscallHandler(SpikeMode ? static_cast<FEXCore::HLE::SyscallHandler*>(&SpikeSyscalls) : &LinuxSyscalls);
 

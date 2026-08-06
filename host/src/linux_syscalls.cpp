@@ -1,5 +1,6 @@
 #include "linux_syscalls.h"
 
+#include "guest_files.h"
 #include "guest_log.h"
 #include "guest_threads.h"
 
@@ -240,6 +241,39 @@ void TranslateStat(const struct stat& Host, GuestStat* Guest) {
   Guest->st_mtim_nsec = Host.st_mtim.tv_nsec;
   Guest->st_ctim_sec = Host.st_ctim.tv_sec;
   Guest->st_ctim_nsec = Host.st_ctim.tv_nsec;
+}
+
+// **`struct statx` is the one stat-shaped structure that needs no guest layout of its own.** it is
+// fixed-width and identical on every architecture — that is what it was added for — so the guest's
+// and the host's are the same 256 bytes, and `<linux/stat.h>` is where it comes from: a kernel UAPI
+// header the NDK ships whatever the API level, unguarded, and which `<sys/stat.h>` includes
+// unconditionally. only the `statx()` *function* is `__INTRODUCED_IN(30)`, and nothing here calls it.
+// contrast `GuestStat` above, which is hand-written precisely because the two do differ.
+//
+// it is only ever filled for a path the guest file layer owns. every other statx is still the raw
+// syscall, unchanged, because the kernel fills that one correctly on its own.
+static_assert(sizeof(struct statx) == 256, "struct statx is 256 bytes on every architecture");
+
+void FillStatx(const struct stat& Host, struct statx* Guest) {
+  std::memset(Guest, 0, sizeof(*Guest));
+  // everything a plain stat would have answered, which is everything the layer below can know. a
+  // caller asking for STATX_BTIME is told, correctly, that it was not answered.
+  Guest->stx_mask = STATX_BASIC_STATS;
+  Guest->stx_blksize = static_cast<uint32_t>(Host.st_blksize);
+  Guest->stx_nlink = static_cast<uint32_t>(Host.st_nlink);
+  Guest->stx_uid = Host.st_uid;
+  Guest->stx_gid = Host.st_gid;
+  Guest->stx_mode = static_cast<uint16_t>(Host.st_mode);
+  Guest->stx_ino = Host.st_ino;
+  Guest->stx_size = static_cast<uint64_t>(Host.st_size);
+  Guest->stx_blocks = static_cast<uint64_t>(Host.st_blocks);
+  Guest->stx_atime = {Host.st_atim.tv_sec, static_cast<uint32_t>(Host.st_atim.tv_nsec)};
+  Guest->stx_ctime = {Host.st_ctim.tv_sec, static_cast<uint32_t>(Host.st_ctim.tv_nsec)};
+  Guest->stx_mtime = {Host.st_mtim.tv_sec, static_cast<uint32_t>(Host.st_mtim.tv_nsec)};
+  // major/minor of the fabricated device the layer reports. it is split the way statx splits it
+  // rather than passed whole, because a caller reassembling it expects the halves to make sense.
+  Guest->stx_dev_major = static_cast<uint32_t>((Host.st_dev >> 8) & 0xFFF);
+  Guest->stx_dev_minor = static_cast<uint32_t>(Host.st_dev & 0xFF);
 }
 
 // four O_* bits sit at different values on x86-64 than on the asm-generic architectures arm64
@@ -629,6 +663,9 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     return FromHost(GuestLog::Writev(static_cast<int>(Arg0), reinterpret_cast<const struct iovec*>(Arg1), static_cast<int>(Arg2)));
   case SYS_x64_close:
     FileProbe::OnClose(static_cast<int>(Arg0));
+    // the layer only ever holds *directories*, and forgetting one is all there is to do: the
+    // descriptor underneath is a real one and the close below is what actually closes it.
+    GuestFiles::Close(static_cast<int>(Arg0));
     return FromHost(::close(static_cast<int>(Arg0)));
   case SYS_x64_lseek:
     FileProbe::OnFD(static_cast<int>(Arg0), FileProbe::Count.Seeks);
@@ -649,6 +686,12 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   }
   case SYS_x64_getdents64:
     FileProbe::OnFD(static_cast<int>(Arg0), FileProbe::Count.Getdents);
+    // a directory the file layer invented has nothing underneath it to enumerate, so the records
+    // are written by hand. struct linux_dirent64 is byte-identical on both architectures, which is
+    // why this is a synthesis and not also a translation.
+    if (GuestFiles::OwnsFD(static_cast<int>(Arg0))) {
+      return static_cast<uint64_t>(GuestFiles::GetDents(static_cast<int>(Arg0), reinterpret_cast<void*>(Arg1), Arg2));
+    }
     return FromHost(::syscall(SYS_getdents64, Arg0, Arg1, Arg2));
 
   // --- creating and modifying files -----------------------------------------------------------
@@ -707,7 +750,20 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   case SYS_x64_fdatasync: return FromHost(::fdatasync(static_cast<int>(Arg0)));
   case SYS_x64_flock: return FromHost(::flock(static_cast<int>(Arg0), static_cast<int>(Arg1)));
   case SYS_x64_umask: return static_cast<uint64_t>(::umask(static_cast<mode_t>(Arg0)));
-  case SYS_x64_chdir: return FromHost(::chdir(reinterpret_cast<const char*>(Arg0)));
+  case SYS_x64_chdir: {
+    const char* Path = reinterpret_cast<const char*>(Arg0);
+    // a working directory inside the mount is the one thing the file layer cannot answer for: the
+    // kernel owns the cwd and there is no directory there for it to point at, so this fails with
+    // ENOENT below. it says so rather than leaving a boot to fail somewhere further on, because
+    // neither measured title does it and a third one that did would look like a broken dump.
+    if (GuestFiles::OwnsAt(AT_FDCWD, Path)) {
+      std::printf("[files] the guest tried to chdir into \"%s\", which the layer cannot answer for."
+                  " every path it takes from here has to be an absolute one\n",
+                  Path);
+      std::fflush(stdout);
+    }
+    return FromHost(::chdir(Path));
+  }
   case SYS_x64_dup3: return FromHost(::dup3(static_cast<int>(Arg0), static_cast<int>(Arg1), static_cast<int>(Arg2)));
   case SYS_x64_memfd_create: return FromHost(::syscall(SYS_memfd_create, Arg0, Arg1));
   // struct statfs is all 64-bit words on both LP64 architectures.
@@ -730,6 +786,9 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     // with EINVAL.
     const uint64_t Flags = Number == SYS_x64_faccessat2 ? Arg3 : 0;
     FileProbe::OnPath(Path, FileProbe::Count.Accesses);
+    if (GuestFiles::OwnsAt(DirFD, Path)) {
+      return static_cast<uint64_t>(GuestFiles::Access(DirFD, Path, static_cast<int>(Mode)));
+    }
     if (const char* Substitute = Proc.Substitute(Path)) {
       Path = Substitute;
     }
@@ -741,9 +800,20 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
 #ifdef SYS_statx
   // struct statx is fixed-width and identical on every architecture, so it needs no translation
   // — unlike struct stat, which is the one that does.
-  case SYS_x64_statx:
-    FileProbe::OnPath(reinterpret_cast<const char*>(Arg1), FileProbe::Count.Stats);
+  case SYS_x64_statx: {
+    const char* Path = reinterpret_cast<const char*>(Arg1);
+    FileProbe::OnPath(Path, FileProbe::Count.Stats);
+    if (GuestFiles::OwnsAt(static_cast<int>(Arg0), Path)) {
+      struct stat Host {};
+      const int64_t Result = GuestFiles::Stat(static_cast<int>(Arg0), Path, static_cast<int>(Arg2), &Host);
+      if (Result != 0) {
+        return static_cast<uint64_t>(Result);
+      }
+      FillStatx(Host, reinterpret_cast<struct statx*>(Arg4));
+      return 0;
+    }
     return FromHost(::syscall(SYS_statx, Arg0, Arg1, Arg2, Arg3, Arg4));
+  }
 #endif
 
   // --- paths, with /proc/self answered about the guest rather than about us ------------------
@@ -757,6 +827,16 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     const int Synthetic = Proc.OpenSynthetic(Path);
     if (Synthetic >= 0) {
       return static_cast<uint64_t>(Synthetic);
+    }
+    // the game directory, when it came from a grant rather than from a path. what comes back for a
+    // file is a real descriptor on a real file, which is why nothing downstream of here — read,
+    // pread, lseek, mmap, fstat — had to learn anything about it.
+    if (GuestFiles::OwnsAt(DirFD, Path)) {
+      const int64_t Result = GuestFiles::Open(DirFD, Path, Flags);
+      // the probe counts these exactly as it counts an open of a staged path, which is the only
+      // reason the two ways of reaching the same game can be compared rather than argued about.
+      FileProbe::OnOpen(Path, Flags, Result);
+      return static_cast<uint64_t>(Result);
     }
     if (const char* Substitute = Proc.Substitute(Path)) {
       Path = Substitute;
@@ -773,6 +853,12 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     const size_t Size = Number == SYS_x64_readlink ? Arg2 : Arg3;
 
     FileProbe::OnPath(Path, FileProbe::Count.Readlinks);
+    // nothing under the mount is a symlink, because a document provider has none — so this is
+    // EINVAL for a file that is there and ENOENT for one that is not, which is what the kernel
+    // would have said about a real directory with no symlinks in it.
+    if (GuestFiles::OwnsAt(DirFD, Path)) {
+      return static_cast<uint64_t>(GuestFiles::ReadLink(DirFD, Path));
+    }
     if (const char* Target = Proc.ReadLinkTarget(Path)) {
       // readlink does not NUL-terminate and does not fail on truncation — it writes what fits and
       // returns that. matching that exactly matters: the caller sizes its buffer from the result.
@@ -787,6 +873,17 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   case SYS_x64_fstat: {
     struct stat Host {};
     FileProbe::OnFD(static_cast<int>(Arg0), FileProbe::Count.Fstats);
+    // only a *directory* of the file layer's ever gets here. a file's descriptor is a real one and
+    // bionic answers about it correctly; the memfd standing in for a directory would not, and a
+    // guest checking S_ISDIR would conclude the directory it is holding open is not one.
+    if (GuestFiles::OwnsFD(static_cast<int>(Arg0))) {
+      const int64_t Result = GuestFiles::FStat(static_cast<int>(Arg0), &Host);
+      if (Result != 0) {
+        return static_cast<uint64_t>(Result);
+      }
+      TranslateStat(Host, reinterpret_cast<GuestStat*>(Arg1));
+      return 0;
+    }
     if (::fstat(static_cast<int>(Arg0), &Host) != 0) {
       return static_cast<uint64_t>(-errno);
     }
@@ -797,6 +894,14 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     struct stat Host {};
     const char* Path = reinterpret_cast<const char*>(Arg1);
     FileProbe::OnPath(Path, FileProbe::Count.Stats);
+    if (GuestFiles::OwnsAt(static_cast<int>(Arg0), Path)) {
+      const int64_t Result = GuestFiles::Stat(static_cast<int>(Arg0), Path, static_cast<int>(Arg3), &Host);
+      if (Result != 0) {
+        return static_cast<uint64_t>(Result);
+      }
+      TranslateStat(Host, reinterpret_cast<GuestStat*>(Arg2));
+      return 0;
+    }
     if (const char* Substitute = Proc.Substitute(Path)) {
       Path = Substitute;
     }
@@ -812,6 +917,16 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     struct stat Host {};
     const char* Path = reinterpret_cast<const char*>(Arg0);
     FileProbe::OnPath(Path, FileProbe::Count.Stats);
+    if (GuestFiles::OwnsAt(AT_FDCWD, Path)) {
+      // stat and lstat are one answer here rather than being made into one: a document provider has
+      // no symlinks, so there is never anything for AT_SYMLINK_NOFOLLOW to refuse to follow.
+      const int64_t Result = GuestFiles::Stat(AT_FDCWD, Path, 0, &Host);
+      if (Result != 0) {
+        return static_cast<uint64_t>(Result);
+      }
+      TranslateStat(Host, reinterpret_cast<GuestStat*>(Arg1));
+      return 0;
+    }
     // lstat of /proc/self/exe would report the symlink itself, but the substitute is not a
     // symlink — so an lstat of it answers about the guest binary. that is the more useful lie:
     // the only thing a caller learns from lstat'ing the link is its target's length, which it

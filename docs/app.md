@@ -4,11 +4,11 @@ the APK: one activity holding a `SurfaceView`, and a guest running underneath it
 
 **it is a launcher rather than a frontend.** there is no game list, no settings screen, no file picker and no overlay. every choice a run makes is a launch extra with a compiled-in default, and a run is started by an intent. that is the whole shape of it, and everything below describes it as it is rather than as something on the way somewhere.
 
-`app/src/main/AndroidManifest.xml`, three java files and one kotlin file are all of it, with `host/src/entry_jni.cpp` on the other side of the JNI boundary. [`host-layer.md`](host-layer.md) describes everything below `RunMain`; [`build-format.md`](build-format.md) describes what the app installs and launches; [`repo-structure.md`](repo-structure.md) says where the APK is built and under which application id, and [`scripts.md`](scripts.md) says how to drive any of it.
+`app/src/main/AndroidManifest.xml`, three java files and two kotlin files are all of it, with `host/src/entry_jni.cpp` on the other side of the JNI boundary — and, since a game can come from a grant rather than a path, `GuestFiles.kt` on the *other* side of it, called from the host layer rather than into it. [`host-layer.md`](host-layer.md) describes everything below `RunMain`; [`guest-files.md`](guest-files.md) describes that callback and what it costs; [`build-format.md`](build-format.md) describes what the app installs and launches; [`repo-structure.md`](repo-structure.md) says where the APK is built and under which application id, and [`scripts.md`](scripts.md) says how to drive any of it.
 
 ## three invariants
 
-**the argument vector is the whole interface.** everything the app decides becomes a flag or an `--env` on the vector handed to `RunMain`, so a run in the app takes the same arguments a run from `adb shell` does and the two stay comparable — which is also what lets a JIT problem be bisected outside an app entirely. the one thing that is *not* an argument is the surface, because it is a live object rather than a string, and that is the whole reason `HostLayer` has a second native method.
+**the argument vector is the whole interface.** everything the app decides becomes a flag or an `--env` on the vector handed to `RunMain`, so a run in the app takes the same arguments a run from `adb shell` does and the two stay comparable — which is also what lets a JIT problem be bisected outside an app entirely. two things are *not* arguments, and both are things a string cannot carry: the surface, because it is a live object, which is the whole reason `HostLayer` has a second native method; and a game that came from a grant, because answering for it means the host layer calling *back* into the app, file by file, for as long as the guest keeps asking. the mount those answers appear at is still a flag.
 
 **the app decides and the host layer runs.** build resolution, `meta.json`, the contract check and the driver install all live above the JNI boundary. the host layer takes a payload path and stays a thing that runs an ELF, so the regression set and every bisect command still name a path and none of them grew a mode for any of this. it is also where a build list would need all of it anyway, and two implementations of one contract is one too many.
 
@@ -86,6 +86,8 @@ all of them are read in `onCreate`, because the intent is not readable from a wo
 | `--ez profile true` | the vulkan thunk's profiling | off |
 | `--ez turbo true` | pins the GPU clocks. a thermal and battery trade rather than a free win, which is why it is opt-in | off |
 | `--ez audiowatchdog true` | the audio thunk's periodic stream report | off |
+| `--ez tracefiles true` | counts what the guest asks of the game's own directory — the game's, not the one above it, so a second staged title cannot land in the counts | off |
+| `--es safgame <name>` | a directory inside a **granted tree** instead of a staged one, which mounts the guest file layer and hands the guest an invented path. absent, the game is a path and no interception is registered at all | absent |
 
 **`smc` and `turbo` are the two whose defaults a measurement rests on**: both change how the whole run behaves rather than what it does, so a comparison is only attributable to the extra that moved if neither of these is the thing that moved with it.
 

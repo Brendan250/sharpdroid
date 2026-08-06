@@ -1,0 +1,216 @@
+package com.mircowuffwuff.sharpemu
+
+import android.content.ContentResolver
+import android.content.Context
+import android.database.Cursor
+import android.net.Uri
+import android.provider.DocumentsContract
+import android.util.Log
+import androidx.annotation.Keep
+
+/**
+ * The java side of the guest file layer: a game directory the user granted us, answered file by file.
+ *
+ * A game reached this way is not a path. Android grants an app a *tree*, and everything behind it is
+ * a document reached through a content provider — so the host layer hands the guest an invented path
+ * under [MOUNT] and calls back into here for every lookup the guest makes. `host/src/guest_files.cpp`
+ * is the other half and `docs/guest-files.md` describes both, including what each call costs.
+ *
+ * **The three native entry points are the whole interface, and they are called from guest threads.**
+ * They take a path relative to the mounted directory, they never throw, and they answer with the
+ * errno the syscall underneath should return. Everything else here is called from the app before a
+ * guest exists.
+ *
+ * **A document id is built by concatenation, not by walking.** Resolving `sce_sys/param.json` by
+ * querying for each component in turn is what a `DocumentFile` does, and it costs a fifth of a second
+ * per path on a dump with 816 files in it because every level lists all of its children — where
+ * appending to the parent's id is one query at any size. It assumes the id scheme the platform's own
+ * external-storage provider uses, which holds for internal storage and for an SD card alike, and it
+ * is the only reason this is fast enough to exist.
+ */
+@Keep
+object GuestFiles {
+
+    private const val TAG = "sharpemu"
+
+    /**
+     * Where the guest sees its own game directory.
+     *
+     * Invented, and nothing is there: the prefix test in the host layer is then unambiguous, and no
+     * real path has to be made to appear to work. It is passed down as `--saf-mount`, so both halves
+     * name it from here.
+     */
+    const val MOUNT = "/game"
+
+    // errno, because the caller is a syscall. bionic's values, which are linux's, which are the
+    // guest's too — the numbers agree across both architectures.
+    private const val ENOENT = -2
+    private const val EIO = -5
+
+    @Volatile
+    private var resolver: ContentResolver? = null
+
+    @Volatile
+    private var tree: Uri? = null
+
+    /** The document id of the mounted directory itself. Every path below is this plus a suffix. */
+    @Volatile
+    private var rootId: String? = null
+
+    /**
+     * Points the layer at one game directory inside a granted tree, and says whether it is there.
+     *
+     * The check is not ceremony: a game named by an extra that does not resolve would otherwise
+     * become a guest whose every file is missing, which reads as a corrupt dump rather than as a
+     * name that was wrong.
+     */
+    @JvmStatic
+    fun mount(context: Context, treeUri: Uri, directoryName: String): Boolean {
+        val contentResolver = context.applicationContext.contentResolver
+        val treeId = DocumentsContract.getTreeDocumentId(treeUri)
+        val id = if (directoryName.isEmpty()) treeId else "$treeId/$directoryName"
+
+        resolver = contentResolver
+        tree = treeUri
+        rootId = id
+
+        val probe = statOne("eboot.bin")
+        if (probe == null) {
+            Log.e(TAG, "[app] no eboot.bin under $id — is that the name of a game directory in the grant?")
+            unmount()
+            return false
+        }
+        Log.i(TAG, "[app] the guest's game directory is $id, reached through a grant rather than a path")
+        return true
+    }
+
+    @JvmStatic
+    fun unmount() {
+        resolver = null
+        tree = null
+        rootId = null
+    }
+
+    private fun documentUri(relative: String): Uri? {
+        val treeUri = tree ?: return null
+        val id = rootId ?: return null
+        return DocumentsContract.buildDocumentUriUsingTree(
+            treeUri,
+            if (relative.isEmpty()) id else "$id/$relative",
+        )
+    }
+
+    /**
+     * A cursor, or null for every reason there is — including the ordinary one.
+     *
+     * **A query for a document that is not there throws, and that is the common case rather than the
+     * exceptional one.** A fifth of this guest's opens are of files it is only checking for, so a line
+     * per failure would be a hundred lines of alarm per boot describing a working run. The first one
+     * is reported, once, with what it was; after that they are counted and the count is what says
+     * whether something is actually wrong — a revoked grant fails *every* lookup, and a total equal
+     * to the number of lookups is what that looks like.
+     */
+    private fun query(uri: Uri, columns: Array<String>): Cursor? =
+        try {
+            resolver?.query(uri, columns, null, null, null)
+        } catch (e: Exception) {
+            val n = misses.incrementAndGet()
+            if (n == 1L) {
+                // deliberately not called normal, though it usually is: a file the guest is only
+                // checking for and a grant that has been revoked produce exactly this line, and the
+                // count is the only thing that tells them apart.
+                Log.i(TAG, "[app] a lookup came back empty: $uri. said once — this is what a file the" +
+                    " guest is only checking for looks like, and it is also what a revoked grant looks" +
+                    " like; use --ez tracefiles true to count them", e)
+            }
+            null
+        }
+
+    /** Every lookup that came back with nothing, of any cause. See [query]. */
+    private val misses = java.util.concurrent.atomic.AtomicLong()
+
+    /** What [misses] has reached, for a caller that wants to report it. */
+    @JvmStatic
+    fun missCount(): Long = misses.get()
+
+    /**
+     * An open file descriptor, already ours, or a negative errno.
+     *
+     * `detachFd` rather than `use`: the descriptor is handed to the guest and outlives every object
+     * here, so ownership has to leave with it. Closing the wrapper afterwards would close the fd the
+     * guest is about to read from.
+     */
+    @Keep
+    @JvmStatic
+    fun openFd(relative: String): Int {
+        val uri = documentUri(relative) ?: return EIO
+        return try {
+            val descriptor = resolver?.openFileDescriptor(uri, "r") ?: return ENOENT
+            descriptor.detachFd()
+        } catch (e: Exception) {
+            // absent is the common case and is not worth a stack trace per miss — a fifth of the
+            // guest's opens are of files it is only checking for.
+            ENOENT
+        }
+    }
+
+    /**
+     * Size, kind and modification time in one query, or null when there is no such document.
+     *
+     * Three values in an array rather than bit-packed into one long. Dolphin packs size and
+     * is-a-directory together so that one binder call does the work of two, and that reasoning does
+     * not apply here: the cursor below already returns all three columns in a single round trip, so
+     * packing would buy nothing and cost legibility.
+     */
+    @Keep
+    @JvmStatic
+    fun statOne(relative: String): LongArray? {
+        val uri = documentUri(relative) ?: return null
+        val columns = arrayOf(
+            DocumentsContract.Document.COLUMN_SIZE,
+            DocumentsContract.Document.COLUMN_MIME_TYPE,
+            DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+        )
+        query(uri, columns)?.use {
+            if (!it.moveToFirst()) {
+                return null
+            }
+            // a directory carries no size, and a provider is allowed to leave the column null for a
+            // file it does not know the size of either.
+            val size = if (it.isNull(0)) 0L else it.getLong(0)
+            val directory = it.getString(1) == DocumentsContract.Document.MIME_TYPE_DIR
+            val modified = if (it.isNull(2)) 0L else it.getLong(2)
+            return longArrayOf(size, if (directory) 1L else 0L, modified)
+        }
+        return null
+    }
+
+    /**
+     * The children of one directory, each as its kind then its name — `dsce_sys`, `feboot.bin`.
+     *
+     * One array to walk and one local reference to release per entry, rather than a names array and
+     * a kinds array that have to be kept in step. The guest enumerates exactly one directory per
+     * boot, so this is about correctness rather than speed.
+     */
+    @Keep
+    @JvmStatic
+    fun listChildren(relative: String): Array<String>? {
+        val treeUri = tree ?: return null
+        val id = rootId ?: return null
+        val parent = if (relative.isEmpty()) id else "$id/$relative"
+        val uri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parent)
+        val columns = arrayOf(
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE,
+        )
+        val out = ArrayList<String>()
+        query(uri, columns)?.use {
+            while (it.moveToNext()) {
+                val name = it.getString(0) ?: continue
+                val kind = if (it.getString(1) == DocumentsContract.Document.MIME_TYPE_DIR) "d" else "f"
+                out.add(kind + name)
+            }
+        } ?: return null
+        return out.toTypedArray()
+    }
+}

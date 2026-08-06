@@ -150,11 +150,14 @@ it produces a build **directory and zip** under `build/builds/` and stops there 
 | `scripts/soak.ps1` | **run the app many times and classify every run.** `-Builds <path>,<path>` and `-Arms` interleave, which is what makes a rate comparison survive the device warming up mid-soak. omitted, it soaks what is staged and says which |
 | `scripts/compare-builds.ps1` | one run per SharpEmu build, reporting payload size, fps and render passes per frame. omitted, `-Builds` compares every build on the device |
 | `scripts/compare-drivers.ps1` | one run per GPU driver, steady-state fps from frame 300 onwards. the platform's driver is the control and always runs; `-Build <path>` pins the SharpEmu build the comparison holds constant |
+| `scripts/compare-file-modes.ps1` | **one game reached both ways** — staged as a path, and through a directory grant. compares the guest's own file counts, which must be *identical*, then boot and fps. needs a grant the app already holds |
 | `scripts/device/` | `monitor.sh`, `cpuburn.sh` and `run-monitored.sh` — these run **on the device** |
 
-the first three launch an app that is already installed, and like everything else here they measure the **debug** app unless `-Package` says otherwise — which is the one `run.ps1` has been deploying, so a soak measures what you just built.
+the first four launch an app that is already installed, and like everything else here they measure the **debug** app unless `-Package` says otherwise — which is the one `run.ps1` has been deploying, so a soak measures what you just built.
 
 **at low rates a clean streak proves nothing.** measure the rate, keep the arm you are comparing against selectable, and run both arms in the same sitting.
+
+**and alternating the arms is not the same as reversing their order.** alternate them and the same arm still goes first in every pair, which on a device that drifts downward as it warms makes "which arm" and "which position" indistinguishable — the one that goes first wins, and it looks like a result. `compare-file-modes.ps1` reverses the order on alternate pairs for exactly that reason, and prints the spread *within* each arm beside the difference *between* them, because a gap smaller than the noise is not a finding.
 
 ## the two libraries
 

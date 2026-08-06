@@ -32,6 +32,7 @@ a repository boundary there would buy an independent version number nobody would
 │   ├── repo-structure.md     this file
 │   ├── build-format.md       what a SharpEmu build is, and what a payload must implement
 │   ├── host-layer.md         the loader, the address space, syscalls, threads, signals, SMC
+│   ├── guest-files.md        a granted game directory, answered underneath the guest's syscalls
 │   ├── vulkan.md             the vulkan thunk, both window systems, custom driver injection
 │   ├── audio.md              the AAudio thunk, the callback boundary, the stall watchdog
 │   ├── app.md                the activity, the surface, the launch extras, driver injection
@@ -46,7 +47,8 @@ a repository boundary there would buy an independent version number nobody would
 │   ├── build.ps1
 │   ├── include/              bionic-compat.h
 │   ├── regression.sh         the on-device regression modes
-│   ├── src/                  ELF loader, syscall dispatch, signal delegation, VMA/SMC tracking
+│   ├── src/                  ELF loader, syscall dispatch, signal delegation, VMA/SMC tracking,
+│   │                         and the file layer that answers a granted game directory
 │   ├── thunks/vulkan/        generator, generated halves, the host probe
 │   ├── thunks/audio/         generator, generated halves
 │   └── tools/python3.cmd     a shim FEXCore's generators need on windows
@@ -80,7 +82,7 @@ a repository boundary there would buy an independent version number nobody would
 │   ├── stage-shell.ps1       the shell binary and guests to /data/local/tmp
 │   ├── regression.ps1        stage, run the 15 host-layer modes, report
 │   ├── soak.ps1              many runs, interleaved arms, one classification per run
-│   ├── compare-builds.ps1    compare-drivers.ps1
+│   ├── compare-builds.ps1    compare-drivers.ps1    compare-file-modes.ps1
 │   └── device/               scripts that run on the device
 ├── toolchain.json            every required toolchain version, and where to get it
 ├── toolchain/                toolchains fetched into the repo. ignored
@@ -119,7 +121,7 @@ both are **git submodules under `external/`**, pinned, and **never modified**:
 
 **`scripts/run.ps1` does all of it in one command** — build, stage, launch, follow the log, and it needs no arguments. [`scripts.md`](scripts.md) documents every script and its parameters.
 
-**development happens on the debug app, and that is the default everywhere.** `app/build-app.ps1` and `scripts/build-all.ps1` rename the application id to **`com.mircowuffwuff.sharpemu.debug`** and the launcher label to *SharpEmu Debug*; `run.ps1`, every `stage-*.ps1`, `soak.ps1`, `compare-builds.ps1` and `compare-drivers.ps1` all drive that same id. android treats it as a separate app with its own storage and save data, so **nothing done while developing can reach a personal install of the release build on the same device**.
+**development happens on the debug app, and that is the default everywhere.** `app/build-app.ps1` and `scripts/build-all.ps1` rename the application id to **`com.mircowuffwuff.sharpemu.debug`** and the launcher label to *SharpEmu Debug*; `run.ps1`, every `stage-*.ps1`, `soak.ps1` and every `compare-*.ps1` all drive that same id. android treats it as a separate app with its own storage and save data, so **nothing done while developing can reach a personal install of the release build on the same device**.
 
 **`-Release` builds under the manifest's own id and label**, `-Package` / `-Name` override both, and `-Package` aims any of the other scripts elsewhere. three functions in `scripts/toolchain.ps1` hold the rules — `Resolve-AppIdentity` for what an APK is built as, `Resolve-AppPackage` for which app a script talks to, and `Resolve-AppActivity` for the component name to launch — so no two scripts can disagree about any of them.
 

@@ -144,8 +144,13 @@ add_library(host-layer-core STATIC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/audio_thunk.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/elf_loader.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/linux_syscalls.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_files.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_log.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_procfs.cpp"
+  # the java side of the guest file layer. it links into the shell binary too, where there is no
+  # JavaVM to hand it — Available() answers false there and the mount is refused, which is a better
+  # answer than a second build configuration would be.
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/saf_bridge.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_signals.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_threads.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/vma_tracker.cpp"
@@ -210,3 +215,7 @@ set_target_properties(sharpemu-host-layer-jni PROPERTIES OUTPUT_NAME "sharpemu-h
 # to it. without this the linker's --gc-sections drops both symbols and the app dies at
 # UnsatisfiedLinkError with the library sitting right there.
 target_link_options(sharpemu-host-layer-jni PRIVATE "-Wl,-u,Java_com_mircowuffwuff_sharpemu_HostLayer_nativeRun")
+# and JNI_OnLoad, for exactly the same reason and with a worse failure: the runtime looks it up by
+# name at load time, nothing in the link graph refers to it either, and dropping it costs no error
+# at all -- the library loads, and the file layer simply never has a class to call.
+target_link_options(sharpemu-host-layer-jni PRIVATE "-Wl,-u,JNI_OnLoad")

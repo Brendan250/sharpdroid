@@ -1,6 +1,8 @@
 package com.mircowuffwuff.sharpemu;
 
 import android.app.Activity;
+import android.content.UriPermission;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -41,6 +43,15 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private static final String GAME = "Dreaming Sarah [PPSA02929]";
 
     private String gameName;
+
+    /**
+     * {@code --es safgame <directory name>}, a game inside the granted tree instead of a staged one.
+     *
+     * <p>Null means the staged path, which is the mode every script uses and every number was
+     * measured on. The two are deliberately reachable side by side, on the same build, so the cost of
+     * the file layer stays something that can be measured rather than argued about.
+     */
+    private String safGameName;
 
     /**
      * Which staged GPU driver to inject, or null for the stock Adreno one.
@@ -138,6 +149,12 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         if (gameName == null || gameName.isEmpty()) {
             gameName = GAME;
         }
+        // --es safgame <directory name>, naming a game inside the tree the user granted rather than
+        // one staged into the app's own directory. **absent is the whole point**: without it nothing
+        // here changes, the game is a path, no interception is registered, and the run is exactly the
+        // one every measurement so far was taken on. That is what keeps a frame rate measured through
+        // the scripts free of any alibi.
+        safGameName = getIntent().getStringExtra("safgame");
         // --es sharpemu <absolute path>, in the shape --es driver and --es game already have:
         // comparing two builds should be a loop over `am start`, not an APK rebuild per candidate.
         // **A path, never an id** — see resolvePayload for why the id form was removed. Null here
@@ -330,6 +347,31 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         return build.payloadFile();
     }
 
+    /**
+     * Points the guest file layer at a game inside a tree the user has already granted us.
+     *
+     * <p><b>The grant is the first persisted read permission we hold, and that is a placeholder.</b>
+     * There is no picker yet, so this reuses whatever was granted by hand — which is enough to prove
+     * the file layer against a real dump, and is the one piece here that a directory picker replaces
+     * wholesale rather than extends.
+     */
+    private boolean mountSafGame() {
+        Uri tree = null;
+        for (UriPermission held : getContentResolver().getPersistedUriPermissions()) {
+            if (held.isReadPermission()) {
+                tree = held.getUri();
+                break;
+            }
+        }
+        if (tree == null) {
+            Log.e(TAG, "[app] --es safgame needs a granted directory and this app holds none."
+                    + " grant one through the picker first");
+            return false;
+        }
+        Log.i(TAG, "[app] using the tree granted earlier: " + tree);
+        return GuestFiles.mount(this, tree, safGameName);
+    }
+
     private void runGuest() {
         File root = getExternalFilesDir(null);
         if (root == null) {
@@ -341,8 +383,27 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         if (payload == null) {
             return;
         }
-        File game = new File(AppStorage.games(root), gameName + "/eboot.bin");
-        for (File needed : new File[] {payload, game, AppStorage.guestLibs(root)}) {
+
+        // the game, one of two ways. a staged directory is a real path and the host layer opens it
+        // with an ordinary openat; a granted one is not a path at all, so the host layer is told to
+        // mount the provider and the guest is handed an invented path under it. everything after
+        // this point is the same argument vector either way.
+        String guestGame;
+        File staged = new File(AppStorage.games(root), gameName + "/eboot.bin");
+        if (safGameName != null && !safGameName.isEmpty()) {
+            if (!mountSafGame()) {
+                return;
+            }
+            guestGame = GuestFiles.MOUNT + "/eboot.bin";
+        } else {
+            guestGame = staged.getAbsolutePath();
+            if (!staged.exists()) {
+                Log.e(TAG, "[app] missing: " + staged.getAbsolutePath()
+                        + " — stage it with scripts/stage-game.ps1");
+                return;
+            }
+        }
+        for (File needed : new File[] {payload, AppStorage.guestLibs(root)}) {
             if (!needed.exists()) {
                 Log.e(TAG, "[app] missing: " + needed.getAbsolutePath()
                         + " — stage it with scripts/stage-game.ps1 or scripts/stage-guest-libs.ps1");
@@ -432,20 +493,37 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // every file operation there is a userspace round trip.
         args.add("--tmp");
         args.add(getCacheDir().getAbsolutePath());
+        // the mount, and only when a granted game asked for one. the flag being absent is what keeps
+        // an ordinary run on exactly the code path it has always been on.
+        if (safGameName != null && !safGameName.isEmpty()) {
+            args.add("--saf-mount");
+            args.add(GuestFiles.MOUNT);
+        }
         if (traceFiles) {
             // the game's own directory rather than the one above it, so a second staged game cannot
             // land in the counts, and so the numbers stay comparable between two runs of different
             // titles -- what the guest asks of *a* game is the measurement, not what it asks of the
-            // directory games happen to share.
+            // directory games happen to share. under a mount that is the mount itself, which is the
+            // same directory named the other way, so the two ways of reaching one game produce two
+            // counts that can be put side by side.
             args.add("--trace-files");
-            args.add(game.getParentFile().getAbsolutePath());
+            args.add(new File(guestGame).getParent());
         }
         args.add(payload.getAbsolutePath());
-        args.add(game.getAbsolutePath());
+        args.add(guestGame);
 
-        Log.i(TAG, "[app] game: " + gameName);
+        // named the way the run reaches it, because the two are different enough that a log which
+        // said only "game: X" would not tell you which of the two arms produced the numbers under it.
+        Log.i(TAG, "[app] game: " + (safGameName != null && !safGameName.isEmpty()
+                ? safGameName + " (through a grant)" : gameName + " (staged)"));
         Log.i(TAG, "[app] starting: " + String.join(" ", args));
         int status = HostLayer.nativeRun(args.toArray(new String[0]));
         Log.i(TAG, "[app] host layer returned " + status);
+        // the lookups that came back empty, counted rather than each one reported. it prints only
+        // when the guest returns rather than calling exit_group, which is the same limitation the
+        // line above it has always had.
+        if (safGameName != null && !safGameName.isEmpty()) {
+            Log.i(TAG, "[app] " + GuestFiles.missCount() + " lookups came back empty");
+        }
     }
 }

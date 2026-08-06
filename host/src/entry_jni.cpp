@@ -6,6 +6,7 @@
 // argument is the window, because it is a live object rather than a string.
 
 #include "host_layer.h"
+#include "saf_bridge.h"
 #include "vulkan_thunk.h"
 
 #include <android/log.h>
@@ -78,6 +79,23 @@ void StartLogPump() {
 } // namespace
 
 extern "C" {
+
+// the one place a class can be looked up by name, and the reason this function exists at all.
+//
+// the host layer has always been one-way — the app calls down and nothing calls back, because a
+// window is an ANativeWindow* and audio is pure NDK. the guest file layer is the first thing that
+// has to ask java a question, and a guest thread cannot ask it: FindClass on a thread this process
+// attached itself searches the *system* class loader, which has never heard of anything in the APK.
+// JNI_OnLoad runs with the app's own class loader in scope, so this is where the class and its
+// method ids are resolved and held.
+//
+// it runs whether or not a run will ever mount anything. resolving three method ids costs
+// microseconds once, and a mount that discovered here that it had nothing to talk to would have
+// discovered it far too late.
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* VM, void*) {
+  HostLayer::SafBridge::OnLoad(VM);
+  return JNI_VERSION_1_6;
+}
 
 // called from the SurfaceHolder callback, with null when the surface goes away. the window is
 // handed straight to the thunk, which is what turns a presented swapchain image into pixels on
