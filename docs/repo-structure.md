@@ -2,8 +2,7 @@
 
 why sharpemu-android is two repositories, what lives in each, and where every artefact is built.
 
-**this file describes the repository as it is.** it is not a plan and carries nothing that has not
-been done; where it is out of date, it is wrong and should be corrected.
+**this file describes the repository as it is.** it is not a plan and carries nothing that has not been done; where it is out of date, it is wrong and should be corrected.
 
 ## the two repositories
 
@@ -12,26 +11,18 @@ been done; where it is out of date, it is wrong and should be corrected.
 | [`sharpemu-android/sharpemu`](https://github.com/sharpemu-android/sharpemu) | our fork of [SharpEmu](https://github.com/sharpemu/sharpemu), the PS5 emulator itself. a stack of branches: `main` mirrors upstream, `parity` carries everything android needs to be *correct*, `performance` adds localized performance edits | follows upstream, which moves fast. absorbs upstream releases |
 | **sharpemu-android** | **this tree.** the android app, the host layer it runs SharpEmu inside, the thunks, the test guests and the build tooling | follows android and our own work. releases an APK |
 
-**the rule that drew that line is release cadence, not architecture.** two things belong in one
-repository when they must change in the same commit; they belong apart when they are released
-independently. the fork tracks somebody else's project and must be rebasable against it, so it is
-separate. everything here ships as one APK and versions together, so it is one.
+**the rule that drew that line is release cadence, not architecture.** two things belong in one repository when they must change in the same commit; they belong apart when they are released independently. the fork tracks somebody else's project and must be rebasable against it, so it is separate. everything here ships as one APK and versions together, so it is one.
 
 ### why the host layer is not a third repository
 
-it is an architectural layer, and layers are the classic wrong reason to split a repository. the app
-and the host layer are one build unit with a source-level interface between them:
+it is an architectural layer, and layers are the classic wrong reason to split a repository. the app and the host layer are one build unit with a source-level interface between them:
 
-- `hostContract`, the launcher↔payload interface generation, is emitted by `scripts/package-build.ps1`
-  and checked by `app/java/.../SharpEmuBuild.java`. bumping it is one change in two files
+- `hostContract`, the launcher↔payload interface generation, is emitted by `scripts/package-build.ps1` and checked by `app/java/.../SharpEmuBuild.java`. bumping it is one change in two files
 - every launch flag is parsed in `host/src/host_layer.cpp` and constructed in `MainActivity.java`
-- the JNI entry point's symbol name is hardcoded in `host/CMakeLists.txt` so the linker cannot
-  garbage-collect it. renaming the java package breaks the native link
-- each thunk generator emits two halves from one source: a `.inc` compiled into the host layer and a
-  `.S` assembled into a guest-side shared object
+- the JNI entry point's symbol name is hardcoded in `host/CMakeLists.txt` so the linker cannot garbage-collect it. renaming the java package breaks the native link
+- each thunk generator emits two halves from one source: a `.inc` compiled into the host layer and a `.S` assembled into a guest-side shared object
 
-a repository boundary there would buy an independent version number nobody would ever bump, and cost
-a submodule pointer update on most commits.
+a repository boundary there would buy an independent version number nobody would ever bump, and cost a submodule pointer update on most commits.
 
 ## the tree
 
@@ -39,6 +30,11 @@ a submodule pointer update on most commits.
 ├── LICENSE  LICENSES/  REUSE.toml  .gitignore  .gitattributes  .gitmodules
 ├── docs/
 │   ├── repo-structure.md     this file
+│   ├── build-format.md       what a SharpEmu build is, and what a payload must implement
+│   ├── host-layer.md         the loader, the address space, syscalls, threads, signals, SMC
+│   ├── vulkan.md             the vulkan thunk, both window systems, custom driver injection
+│   ├── audio.md              the AAudio thunk, the callback boundary, the stall watchdog
+│   ├── app.md                the activity, the surface, the launch extras, driver injection
 │   └── scripts.md            every script, and the flags worth knowing
 │
 ├── external/                 pinned submodules, never modified
@@ -85,20 +81,11 @@ a submodule pointer update on most commits.
 
 four notes on the shape:
 
-- **`.gitattributes` forces LF on everything**, and that is correctness rather than tidiness.
-  `host/regression.sh` and `scripts/device/*.sh` are pushed to an android device and run by
-  `/system/bin/sh`, where a CR is a syntax error; git for windows sets `core.autocrlf = true` in its
-  system config, so without the attribute a clone on windows would break them on checkout
+- **`.gitattributes` forces LF on everything**, and that is correctness rather than tidiness. `host/regression.sh` and `scripts/device/*.sh` are pushed to an android device and run by `/system/bin/sh`, where a CR is a syntax error; git for windows sets `core.autocrlf = true` in its system config, so without the attribute a clone on windows would break them on checkout
 
-- **`host/` builds FEXCore too.** FEX's own top-level `CMakeLists.txt` refuses to configure for
-  android, but `FEXCore/` is a standalone project with no references to parent targets, so
-  `host/CMakeLists.txt` assembles the dependency graph itself. every line of that glue is ours and
-  the FEX checkout stays pristine
-- **the thunks live under `host/`** rather than beside it. each is host-layer code that happens to
-  emit a guest-side artefact as well
-- **measurement scripts are tools, not part of the app.** `scripts/soak.ps1` runs the app many times
-  and classifies every run, because the failures worth chasing here are intermittent and a handful of
-  clean runs proves nothing
+- **`host/` builds FEXCore too.** FEX's own top-level `CMakeLists.txt` refuses to configure for android, but `FEXCore/` is a standalone project with no references to parent targets, so `host/CMakeLists.txt` assembles the dependency graph itself. every line of that glue is ours and the FEX checkout stays pristine
+- **the thunks live under `host/`** rather than beside it. each is host-layer code that happens to emit a guest-side artefact as well
+- **measurement scripts are tools, not part of the app.** `scripts/soak.ps1` runs the app many times and classifies every run, because the failures worth chasing here are intermittent and a handful of clean runs proves nothing
 
 ## external dependencies
 
@@ -109,57 +96,27 @@ both are **git submodules under `external/`**, pinned, and **never modified**:
 | [FEX](https://github.com/FEX-Emu/FEX) | tag `FEX-2607`, `1cc4b93e7` | MIT | FEX bans AI-generated contributions, so any patch we made could never go upstream and would become a permanent private delta |
 | [libadrenotools](https://github.com/bylaws/libadrenotools) | `8fae8ce` | BSD-2-Clause | custom GPU driver loading |
 
-**`--recurse-submodules` is not optional**: FEX carries sixteen submodules of its own — vixl, fmt,
-xxhash, range-v3, unordered_dense and the rest — and `host/CMakeLists.txt` fails to configure with a
-message about them if they are absent. a full recursive clone is around 840 MB.
+**`--recurse-submodules` is not optional**: FEX carries sixteen submodules of its own — vixl, fmt, xxhash, range-v3, unordered_dense and the rest — and `host/CMakeLists.txt` fails to configure with a message about them if they are absent. a full recursive clone is around 840 MB.
 
-**the submodules are what enforce "never modified" for free.** a patched FEX shows dirty in
-`git status` the moment it happens, where a checkout beside the tree would go unnoticed.
+**the submodules are what enforce "never modified" for free.** a patched FEX shows dirty in `git status` the moment it happens, where a checkout beside the tree would go unnoticed.
 
-`host/CMakeLists.txt` and `scripts/build-adrenotools.ps1` resolve `external/<name>` first and fall
-back to a checkout in the workspace, which is what makes a working tree with the submodules
-uninitialised still buildable for anyone who already has them.
+`host/CMakeLists.txt` and `scripts/build-adrenotools.ps1` resolve `external/<name>` first and fall back to a checkout in the workspace, which is what makes a working tree with the submodules uninitialised still buildable for anyone who already has them.
 
-**the SharpEmu fork is a separate checkout in the workspace, and deliberately not vendored here.** a
-recorded commit pointer would name one commit; the fork is developed across several branches and
-builds are cut from more than one of them. what ties a build to a commit is the `commit` field in its
-`meta.json`, which survives into the artefact.
+**the SharpEmu fork is a separate checkout in the workspace, and deliberately not vendored here.** a recorded commit pointer would name one commit; the fork is developed across several branches and builds are cut from more than one of them. what ties a build to a commit is the `commit` field in its `meta.json`, which survives into the artefact.
 
 ## where each artefact is built
 
-**`scripts/run.ps1` does all of it in one command** — build, stage, launch, follow the log, and it
-needs no arguments. [`scripts.md`](scripts.md) documents every script and its parameters.
+**`scripts/run.ps1` does all of it in one command** — build, stage, launch, follow the log, and it needs no arguments. [`scripts.md`](scripts.md) documents every script and its parameters.
 
-**development happens on the debug app, and that is the default everywhere.** `app/build-app.ps1`
-and `scripts/build-all.ps1` rename the application id to **`com.mircowuffwuff.sharpemu.debug`** and
-the launcher label to *SharpEmu Debug*; `run.ps1`, every `stage-*.ps1`, `soak.ps1`,
-`compare-builds.ps1` and `compare-drivers.ps1` all drive that same id. android treats it as a
-separate app with its own storage and save data, so **nothing done while developing can reach a
-personal install of the release build on the same device**.
+**development happens on the debug app, and that is the default everywhere.** `app/build-app.ps1` and `scripts/build-all.ps1` rename the application id to **`com.mircowuffwuff.sharpemu.debug`** and the launcher label to *SharpEmu Debug*; `run.ps1`, every `stage-*.ps1`, `soak.ps1`, `compare-builds.ps1` and `compare-drivers.ps1` all drive that same id. android treats it as a separate app with its own storage and save data, so **nothing done while developing can reach a personal install of the release build on the same device**.
 
-**`-Release` builds under the manifest's own id and label**, `-Package` / `-Name` override both, and
-`-Package` aims any of the other scripts elsewhere. three functions in `scripts/toolchain.ps1` hold
-the rules — `Resolve-AppIdentity` for what an APK is built as, `Resolve-AppPackage` for which app a
-script talks to, and `Resolve-AppActivity` for the component name to launch — so no two scripts can
-disagree about any of them.
+**`-Release` builds under the manifest's own id and label**, `-Package` / `-Name` override both, and `-Package` aims any of the other scripts elsewhere. three functions in `scripts/toolchain.ps1` hold the rules — `Resolve-AppIdentity` for what an APK is built as, `Resolve-AppPackage` for which app a script talks to, and `Resolve-AppActivity` for the component name to launch — so no two scripts can disagree about any of them.
 
-**that last one is why the JNI note above matters in the tooling too.** an activity is
-`<application id>/<java package>.MainActivity` and the two halves move independently: the id is
-renamed per build, the java package never is. renaming the java package would break the native link,
-the two JNI symbols, the `-Wl,-u` in `host/CMakeLists.txt` **and** every launch command — which is
-one place now rather than five.
+**that last one is why the JNI note above matters in the tooling too.** an activity is `<application id>/<java package>.MainActivity` and the two halves move independently: the id is renamed per build, the java package never is. renaming the java package would break the native link, the two JNI symbols, the `-Wl,-u` in `host/CMakeLists.txt` **and** every launch command — which is one place now rather than five.
 
-**`scripts/build-all.ps1` runs the whole pipeline in dependency order** — `-List` prints the steps
-and what each one is waiting on, `-Install` puts the APK on the device. the ordering is real rather
-than editorial: `host/CMakeLists.txt` refuses to configure without `build/adrenotools/libadrenotools.a`,
-`app/build-app.ps1` refuses without `libsharpemu-host-layer.so`, and `guests/build-guests.ps1`
-refuses without the generated guest-side `libvulkan.so.1` and `libaaudio.so`. every step asserts the
-artefact it was supposed to produce rather than trusting that it returned quietly.
+**`scripts/build-all.ps1` runs the whole pipeline in dependency order** — `-List` prints the steps and what each one is waiting on, `-Install` puts the APK on the device. the ordering is real rather than editorial: `host/CMakeLists.txt` refuses to configure without `build/adrenotools/libadrenotools.a`, `app/build-app.ps1` refuses without `libsharpemu-host-layer.so`, and `guests/build-guests.ps1` refuses without the generated guest-side `libvulkan.so.1` and `libaaudio.so`. every step asserts the artefact it was supposed to produce rather than trusting that it returned quietly.
 
-**staging is one script per thing** — `stage-build.ps1`, `stage-game.ps1`, `stage-guest-libs.ps1`,
-`stage-driver.ps1`, `stage-shell.ps1` — all verifying what landed rather than trusting the push. the
-first four take `-Package <application id>` and default to the debug app like everything else;
-`stage-shell.ps1` has no `-Package` because `/data/local/tmp` belongs to no app.
+**staging is one script per thing** — `stage-build.ps1`, `stage-game.ps1`, `stage-guest-libs.ps1`, `stage-driver.ps1`, `stage-shell.ps1` — all verifying what landed rather than trusting the push. the first four take `-Package <application id>` and default to the debug app like everything else; `stage-shell.ps1` has no `-Package` because `/data/local/tmp` belongs to no app.
 
 | artefact | built by | from |
 | --- | --- | --- |
@@ -170,22 +127,13 @@ first four take `-Package <application id>` and default to the debug app like ev
 | the guest-side `libvulkan.so.1` and `libaaudio.so` | `host/thunks/*/build-guest-*.ps1` | generated stubs |
 | the APK — `build/app-debug/` by default, `build/app/` with `-Release` | `app/build-app.ps1` | the host layer's `.so`, the STL, the adrenotools hooks |
 
-**the fork's own CI is not in that table, and that is accurate rather than an omission.** it builds
-every branch and uploads workflow artifacts, and it cuts releases only on `v*` tags; neither produces
-the build format this app installs.
+**the fork's own CI is not in that table, and that is accurate rather than an omission.** it builds every branch and uploads workflow artifacts, and it cuts releases only on `v*` tags; neither produces the build format this app installs.
 
-**the packaging script lives here rather than in the fork on purpose.** it is an app tool with three
-lines of SharpEmu knowledge in it: it knows the app's package name, the `meta.json` schema the app
-reads, the on-device directory naming and the `hostContract` semantics. and a packager that lives
-inside the thing it packages gets versioned by its own input — checking out an older branch of the
-fork would hand you that branch's frozen copy of the packager.
+**the packaging script lives here rather than in the fork on purpose.** it is an app tool with three lines of SharpEmu knowledge in it: it knows the app's package name, the `meta.json` schema the app reads, the on-device directory naming and the `hostContract` semantics. and a packager that lives inside the thing it packages gets versioned by its own input — checking out an older branch of the fork would hand you that branch's frozen copy of the packager.
 
 ## the workspace
 
-several things this tree builds against are large, are somebody else's, or are the user's own files,
-and none of them are vendored here: the **android SDK and NDK**, the **JDK**, the **.NET SDK**, the
-**SharpEmu fork**, GPU driver packages and the test games. (FEX and libadrenotools are the exception
-and are submodules, above — they are pinned to an exact commit, which the others are not.)
+several things this tree builds against are large, are somebody else's, or are the user's own files, and none of them are vendored here: the **android SDK and NDK**, the **JDK**, the **.NET SDK**, the **SharpEmu fork**, GPU driver packages and the test games. (FEX and libadrenotools are the exception and are submodules, above — they are pinned to an exact commit, which the others are not.)
 
 **the simplest way to get the toolchains is to let the repository fetch its own:**
 
@@ -194,13 +142,9 @@ and are submodules, above — they are pinned to an exact commit, which the othe
 .\scripts\fetch-toolchain.ps1 -Install   # ~1 GB into .\toolchain\, which is gitignored
 ```
 
-that needs nothing outside this directory and no environment variable. **`scripts/fetch-toolchain.ps1`
-never touches a machine-wide install or `PATH`** — it pulls Temurin from the Adoptium API, the
-android components through `sdkmanager`, and the .NET SDK through Microsoft's own
-`dotnet-install.ps1`, all into `toolchain/`.
+that needs nothing outside this directory and no environment variable. **`scripts/fetch-toolchain.ps1` never touches a machine-wide install or `PATH`** — it pulls Temurin from the Adoptium API, the android components through `sdkmanager`, and the .NET SDK through Microsoft's own `dotnet-install.ps1`, all into `toolchain/`.
 
-the *workspace* — the directory this tree sits in — is searched as well, which is a convenience for
-anyone who keeps a clone beside their SDKs rather than an assumption that they do:
+the *workspace* — the directory this tree sits in — is searched as well, which is a convenience for anyone who keeps a clone beside their SDKs rather than an assumption that they do:
 
 ```
 workspace/
@@ -214,9 +158,7 @@ set **`$env:SHARPEMU_WORKSPACE`** to point that elsewhere.
 
 ### finding a toolchain
 
-**`toolchain.json`** declares every required version in one place, and **`scripts/toolchain.ps1`**
-resolves them. no build script contains a version number or a toolchain path of its own; each asks
-for what it uses, so a missing JDK cannot break the native build:
+**`toolchain.json`** declares every required version in one place, and **`scripts/toolchain.ps1`** resolves them. no build script contains a version number or a toolchain path of its own; each asks for what it uses, so a missing JDK cannot break the native build:
 
 ```powershell
 . (Join-Path $PSScriptRoot "..\scripts\toolchain.ps1")
@@ -233,65 +175,33 @@ per tool, first hit wins:
 | 4 | `ANDROID_HOME` / `ANDROID_SDK_ROOT`, `ANDROID_NDK_HOME` / `ANDROID_NDK_ROOT`, `JAVA_HOME`, `DOTNET_ROOT` |
 | 5 | `PATH` |
 
-the SharpEmu fork is the one exception: it is a checkout you develop in rather than something
-fetched, so it is looked for in the workspace and never in `toolchain/`.
+the SharpEmu fork is the one exception: it is a checkout you develop in rather than something fetched, so it is looked for in the workspace and never in `toolchain/`.
 
-**every hit is version-checked**, which is what makes layers 3 and 4 safe: a java 8 on `JAVA_HOME` is
-named and skipped rather than failing later inside `javac`, and a runtime-only .NET install is
-recognised as having no SDKs. layers 3 and 4 say what they picked. **an explicit `SHARPEMU_*` that
-fails its check is an error, never a silent fallback** — if you set it, you meant it.
+**every hit is version-checked**, which is what makes layers 3 and 4 safe: a java 8 on `JAVA_HOME` is named and skipped rather than failing later inside `javac`, and a runtime-only .NET install is recognised as having no SDKs. layers 3 and 4 say what they picked. **an explicit `SHARPEMU_*` that fails its check is an error, never a silent fallback** — if you set it, you meant it.
 
-the versions required, and why they are not incidental: **NDK 29.0.14206865** — r29 is a floor
-because FEXCore uses `std::atomic_ref`, which libc++ did not implement until LLVM 19, and this exact
-build is the one the turnip package was compiled with, so a different r29+ is accepted with a
-warning. **cmake 3.22.1** and ninja from the SDK. **build-tools 35.0.0**, **platform android-35**,
-**JDK 21**, and a **.NET SDK satisfying the fork's `global.json`** — 10.0.103 or a later 10.0.x. the
-APK targets API 35 with a minimum of API 28.
+the versions required, and why they are not incidental: **NDK 29.0.14206865** — r29 is a floor because FEXCore uses `std::atomic_ref`, which libc++ did not implement until LLVM 19, and this exact build is the one the turnip package was compiled with, so a different r29+ is accepted with a warning. **cmake 3.22.1** and ninja from the SDK. **build-tools 35.0.0**, **platform android-35**, **JDK 21**, and a **.NET SDK satisfying the fork's `global.json`** — 10.0.103 or a later 10.0.x. the APK targets API 35 with a minimum of API 28.
 
-`fetch-toolchain.ps1` asks the resolver what is already present rather than guessing, and reports
-where it found each thing — "present" can legitimately mean "on your `PATH`, somewhere else
-entirely".
+`fetch-toolchain.ps1` asks the resolver what is already present rather than guessing, and reports where it found each thing — "present" can legitimately mean "on your `PATH`, somewhere else entirely".
 
 ## licensing
 
 **GPL-2.0-or-later**, matching the SharpEmu fork exactly.
 
-that is a deliberate choice rather than a default. code moves across the boundary between this tree
-and the fork in both directions — a fix for the same bug can be written on either side — and matching
-licences means moving it is a copy-paste rather than a legal question, and anything written here
-stays upstreamable to SharpEmu. GPLv3 would have closed that direction, because a GPLv3 file cannot
-be contributed into a GPL-2.0-or-later project without forcing v3 on the combination. "or later" also
-keeps us compatible with the Apache-2.0 headers the thunk generators read.
+that is a deliberate choice rather than a default. code moves across the boundary between this tree and the fork in both directions — a fix for the same bug can be written on either side — and matching licences means moving it is a copy-paste rather than a legal question, and anything written here stays upstreamable to SharpEmu. GPLv3 would have closed that direction, because a GPLv3 file cannot be contributed into a GPL-2.0-or-later project without forcing v3 on the combination. "or later" also keeps us compatible with the Apache-2.0 headers the thunk generators read.
 
-dependencies keep their own licences and their texts are carried in `LICENSES/`: **FEXCore is MIT**,
-**libadrenotools is BSD-2-Clause**, both compatible.
+dependencies keep their own licences and their texts are carried in `LICENSES/`: **FEXCore is MIT**, **libadrenotools is BSD-2-Clause**, both compatible.
 
-**the licence is declared once, in `REUSE.toml`, and no source file carries an SPDX header.** that is
-a deliberate choice: the GPL's *"attach them to the start of each source file"* language is in its
-**How to Apply These Terms** appendix, which is advice rather than a condition — what the licence
-requires is a notice on each copy of the program, and the root `LICENSE` is that. one aggregate
-annotation keeps the tree machine-readable for a scanner and stays true on its own as files come and
-go, where sixty-eight headers are sixty-eight chances to forget one.
+**the licence is declared once, in `REUSE.toml`, and no source file carries an SPDX header.** that is a deliberate choice: the GPL's *"attach them to the start of each source file"* language is in its **How to Apply These Terms** appendix, which is advice rather than a condition — what the licence requires is a notice on each copy of the program, and the root `LICENSE` is that. one aggregate annotation keeps the tree machine-readable for a scanner and stays true on its own as files come and go, where sixty-eight headers are sixty-eight chances to forget one.
 
-**the fork is the exception, and it is not ours to change.** SharpEmu follows REUSE strictly and its
-CI rejects a new file without a header. code does move across that boundary in both directions, so
-**anything that crosses into the fork gains a header at the moment it crosses** — which is one line
-of work at the time it happens rather than a standing tax on every file here.
+**the fork is the exception, and it is not ours to change.** SharpEmu follows REUSE strictly and its CI rejects a new file without a header. code does move across that boundary in both directions, so **anything that crosses into the fork gains a header at the moment it crosses** — which is one line of work at the time it happens rather than a standing tax on every file here.
 
-SharpEmu builds are GPLv2 binaries. the corresponding source is our fork, public, and each build's
-`meta.json` records the exact commit it was cut from. running one is aggregation rather than linking:
-SharpEmu is a guest process image executed under emulation, never a library the app links against.
+SharpEmu builds are GPLv2 binaries. the corresponding source is our fork, public, and each build's `meta.json` records the exact commit it was cut from. running one is aggregation rather than linking: SharpEmu is a guest process image executed under emulation, never a library the app links against.
 
 ## what is deliberately not here
 
 - **games.** PS5 titles are the user's own dumps and never appear here
-- the android SDK, the JDK and the .NET SDK. `toolchain/` is where they land and is ignored —
-  `toolchain.json` is the committed declaration, `toolchain/` the materialisation, in the same
-  relationship as `package.json` to `node_modules/`
+- the android SDK, the JDK and the .NET SDK. `toolchain/` is where they land and is ignored — `toolchain.json` is the committed declaration, `toolchain/` the materialisation, in the same relationship as `package.json` to `node_modules/`
 - all build output
-- **the staged x86-64 guest libraries.** they are Debian glibc, libstdc++ and openssl binaries and
-  are LGPL; `guest-libs/fetch-guest-libs.ps1` fetches them, and they are not redistributed here
+- **the staged x86-64 guest libraries.** they are Debian glibc, libstdc++ and openssl binaries and are LGPL; `guest-libs/fetch-guest-libs.ps1` fetches them, and they are not redistributed here
 - a debug signing keystore. `app/build-app.ps1` generates one on demand
-- **the maintainer's working notes.** the long-form investigation records — measurement logs, dated
-  snapshots, root causes that turned out to be wrong — are kept privately. this repository documents
-  how the project works; it is not the record of how each thing was found out
+- **the maintainer's working notes.** the long-form investigation records — measurement logs, dated snapshots, root causes that turned out to be wrong — are kept privately. this repository documents how the project works; it is not the record of how each thing was found out
