@@ -22,6 +22,8 @@ the APK: one activity holding a `SurfaceView`, and a guest running underneath it
 
 **only the debug build type is ever assembled**, including for `-Release`. the two senses of the word are deliberately not the same thing here: `-Release` means the manifest's own application id and label, not an optimised non-debuggable build.
 
+**the previous APK is deleted before gradle runs, and that is not tidiness.** AGP updates the archive in place, so an entry that changes size is appended and the old bytes stay where they are — an APK rebuilt through a day of work fills with holes nothing ever reads. it installs and runs perfectly, which is why it goes unnoticed; it was measured at **10,055,013 bytes of dead space in a 39 MB file whose entries come to 29 MB**, one hole of it 8.96 MB. deleting one file costs a repackage of about a second and no recompilation, and it is what makes the APK size a property of the source rather than of how many times it was built. **measure an APK from a clean package or not at all.**
+
 ## the manifest
 
 | | |

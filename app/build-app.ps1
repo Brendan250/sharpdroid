@@ -170,6 +170,19 @@ if ($Name) {
 }
 if ($Offline) { $gradleArgs += "--offline" }
 
+# **the previous APK is deleted so that AGP writes a whole new zip rather than editing that one.**
+# its packaging step updates the archive in place, and an entry that changes size is appended while
+# the old bytes are left where they were -- so an APK rebuilt all day accumulates holes that nothing
+# ever reads. measured: 915 entries and 10,055,013 bytes of dead space, in a file whose entries come
+# to 29 MB, with a single 8.96 MB hole in the middle of it. it installs and runs perfectly, which is
+# why it went unnoticed; it costs a third of every `adb install` in the deploy loop, and it makes the
+# APK size recorded against a milestone a number that depends on how many times it was built.
+#
+# deleting one file costs a repackage -- about a second, and no recompilation, since dexing and
+# resource merging are upstream of it and stay up to date.
+$gradleApk = Join-Path $repoRoot "build\gradle\app\outputs\apk\debug\app-debug.apk"
+Remove-Item -LiteralPath $gradleApk -Force -ErrorAction SilentlyContinue
+
 Write-Host "gradle :app:assembleDebug"
 & $gradlew @gradleArgs
 if ($LASTEXITCODE -ne 0) { throw "gradle build failed" }
@@ -177,8 +190,7 @@ if ($LASTEXITCODE -ne 0) { throw "gradle build failed" }
 # --- collect ----------------------------------------------------------------------------------
 # AGP writes to build\gradle\app\outputs\... . every other script in this repository asks
 # Get-ApkArtefact where the APK is, so it is copied to the path they predict rather than teaching
-# eight scripts about AGP's output layout.
-$gradleApk = Join-Path $repoRoot "build\gradle\app\outputs\apk\debug\app-debug.apk"
+# eight scripts about AGP's output layout. $gradleApk is resolved above, where it is deleted.
 if (-not (Test-Path $gradleApk)) { throw "gradle reported success and $gradleApk is not there" }
 
 New-Item -ItemType Directory -Force -Path $out | Out-Null
