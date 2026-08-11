@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the pill behind a badge.
+
+  it is solid white and every use tints it, because a shape's own solid colour cannot be a theme
+  attribute on every API this app supports while android:backgroundTint on the view can. so the
+  shape is the geometry and the layout picks the colour.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="6dp" />
+    <solid android:color="#FFFFFF" />
+</shape>

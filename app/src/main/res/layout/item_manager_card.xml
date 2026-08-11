@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  one card in a manager screen: a SharpEmu build, a GPU driver package, or the pinned row above
+  either of them.
+
+  **one layout for both managers, because they are one card with a different thing on it.** what the
+  two screens settle between them is the *content* - a radio, the name, the version under it, a
+  description under that, a badge above and a trash can on the right - and neither settles it
+  differently. a second copy of this file would drift from the first the moment either gained a line,
+  and the reasoning below would then be true of one screen and stale on the other.
+
+  **a card in a grid, the settings scene's own shape.** same rounded rectangle, same fill, same
+  outline, with the radio where a section button carries its icon - so the selection indicator sits
+  exactly where the eye already looks.
+
+  the cell is one column or two depending on the orientation, from values/integers.xml, and **every
+  card is that width, the pinned one included**: a card of a different size in a grid of identical
+  ones reads as a different kind of thing rather than as the pinned one. being first and wearing its
+  own badge is what says it is pinned.
+
+  **every card is exactly four lines: badges, name, version, and one more.** two cards sharing a grid
+  row are each as tall as their own content, so anything that varies leaves one of them ragged beside
+  the other - and a card whose fourth line is missing does not read as shorter, it reads as empty.
+  so each line is present on every card and each is exactly one line tall.
+
+  **which means every line needs something true to say, and none of them may wrap.** the first badge
+  is provenance and is always there, the fourth line falls back to something every item has, and a
+  line too long to fit scrolls rather than ellipsizing - see ManagerCard and each adapter.
+
+  **the vertical margin is 6dp, and two stacked cards add theirs**, so the gap between any pair of
+  rows is 12dp. the gap above the *first* row is this margin plus the list's own top padding, and
+  that padding is where it gets tuned - see activity_manager.xml.
+
+  the fill is colorSurfaceContainer for the reason item_settings_section.xml records: in a dynamic
+  scheme colorSurfaceVariant and colorOutlineVariant are generated at colliding tones, so the
+  outline is drawn and cannot be seen.
+-->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="6dp"
+    android:layout_marginVertical="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="?attr/colorSurfaceContainer"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="18dp">
+
+        <!-- not clickable: the whole card takes the tap, so the radio never disagrees with it. it
+             sits where a section button's icon does.
+
+             **the minimum size and the padding are cleared, and that is what makes the spacing
+             match.** a compound button reserves a 48dp touch target around a glyph less than half
+             that wide, so a margin measured from the edge of that box is not a margin from anything
+             visible: the gap to the card's edge and the gap to the text come out different for one
+             number. with the box collapsed onto the glyph the margin is the gap, and 18dp is the
+             card's own padding - so the block sits as far from the radio as the radio sits from the
+             edge.
+
+             giving up the touch target costs nothing here, and only here: this radio is not
+             clickable. the card is what takes the tap. -->
+        <com.google.android.material.radiobutton.MaterialRadioButton
+            android:id="@+id/selected"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="18dp"
+            android:clickable="false"
+            android:focusable="false"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <!-- **provenance, and it is always shown.** where an item came from is the one claim
+                     about it that cannot be faked and the one that has a different answer for every
+                     card. a row of optional badges is what reserves a slot that is empty on most of
+                     them, so this one is never optional. -->
+                <TextView
+                    android:id="@+id/badge"
+                    style="@style/Badge" />
+
+                <!-- **the second badge, for a manager with one more thing to say than provenance.**
+                     it never stands alone, so it reserves nothing on the cards that do not carry it
+                     and on the screens that have no use for it at all. -->
+                <TextView
+                    android:id="@+id/badge_extra"
+                    style="@style/Badge"
+                    android:backgroundTint="?attr/colorSecondary"
+                    android:textColor="?attr/colorOnPrimary"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="?attr/colorOnSurface" />
+
+            <TextView
+                android:id="@+id/version"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <!-- the fourth line is what the item says about itself, a fallback every item has, or in
+                 red the reason this device cannot use it. one of those is always true, so the line is
+                 never blank. -->
+            <TextView
+                android:id="@+id/description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/delete"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/manager_delete"
+            android:src="@drawable/ic_delete" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

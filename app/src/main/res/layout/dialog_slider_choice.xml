@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  a choice along a ladder, as a slider with one detent per rung.
+
+  **the name and the line under it are fixed in height and the slider is not between them.** the
+  detail text changes with every detent and the rungs do not describe themselves in the same number
+  of words, so a layout that let it grow would move the slider under the user's thumb as they
+  dragged. two lines is what the longest of them needs, and reserving them costs one blank line on
+  the shortest.
+
+  **the slider's own value label is turned off.** it would show a number - the detent index - over
+  the thumb, which is the one readout here that means nothing to anybody; the name above is what a
+  position is called, and it is placed where a thumb does not cover it.
+
+  a dialog caps the height of the view it is given and a column that overflows is not scrolled but
+  truncated from the bottom, so nothing may be added below the slider without checking it on a short
+  screen.
+
+  **the slider is drawn wider than this column and hangs into its horizontal padding**, by most of
+  the room the widget reserves for its thumb. three eighths of it stays: the halo drawn around a thumb
+  being dragged is wider than the bar, and a track taken all the way out to the column's edge has that
+  halo clipped flat at both extremes. that is set in code; the padding here is what it borrows from.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="16dp">
+
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:textColor="?attr/colorPrimary"
+        tools:text="Intermediate" />
+
+    <TextView
+        android:id="@+id/detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:minLines="2"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="FEXCore's own defaults." />
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/slider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:stepSize="1"
+        android:valueFrom="0"
+        android:valueTo="4"
+        app:labelBehavior="gone"
+        app:tickVisible="true" />
+
+    <!-- **the axis, named at its two ends.** a slider with no scale is a control whose direction has
+         to be guessed, and these are the only two labels that fit without crowding the detents
+         between them. they name what the ladder trades rather than the rungs that sit there: the
+         chosen rung is named above the slider, so an end wearing its own entry's name showed that
+         name twice at once as soon as the thumb arrived.
+
+         **labelSmall on the body colour, and the alignment is what makes them a scale.** a quieter
+         role was tried and is not what settled them: with both ends sitting on the same column the
+         rest of the dialog uses, they read as the slider's own edges rather than as another line of
+         text, and dimming them past the description only made the smallest text here the hardest to
+         read. the size stays for the same reason - labelSmall is the smallest role in the file, and
+         below it means an absolute sp that no longer moves with the user's font scale.
+
+         **on the dialog's own text column, with nothing added to move them.** the track above is
+         widened until it very nearly begins there, so the column is what both edges line up on -
+         reaching the last few dp with padding of their own put the labels further in than the track
+         rather than level with it. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/lowLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="Faithful" />
+
+        <TextView
+            android:id="@+id/highLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/slider_scale_end"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="Fast" />
+    </LinearLayout>
+</LinearLayout>

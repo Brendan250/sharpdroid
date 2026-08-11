@@ -45,9 +45,9 @@
 // file.** parking the guest thread inside a blocking AAudioStream_write stopped playback dead
 // partway into 29% of runs — the thread stopped coming back, the audio server saw a client that had
 // gone quiet, and the stream was suspended with nothing anywhere returning an error. the fork now
-// passes a zero timeout and paces itself with a bounded sleep instead. that took it to about 6%,
-// which is a mitigation and not a cure: **the bug is open**, and the mechanism was not identified
-// here — it turned out not to be in the audio path at all.
+// passes a zero timeout and paces itself with a bounded sleep instead, which brings it to about 6%.
+// that is a mitigation and not a cure: **the bug is open**, and its mechanism is not in the audio
+// path at all.
 //
 // the host half clamps the timeout regardless, as a net rather than a knob: the host layer delivers
 // asynchronous signals at syscall exits only, and CoreCLR suspends every thread with SIGRTMIN to
@@ -107,11 +107,11 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
 
 // how far the device has actually played, sampled from the streams the guest opened.
 //
-// this is the mrpurple-t29 guard for audio, and it is the reason it exists rather than a
-// nice-to-have: a stream that opens and plays nothing looks *exactly* like a stream that works.
-// AAudioStream_getFramesRead climbing at the stream's sample rate is the only thing that
-// distinguishes them, and a driver that silently did not load is precisely how turnip wasted a
-// session once already.
+// this is a guard rather than a nice-to-have: a stream that opens and plays nothing looks *exactly*
+// like a stream that works. AAudioStream_getFramesRead climbing at the stream's sample rate is the
+// only thing that distinguishes them. it is the same shape as a GPU driver package that fails to
+// load and falls back to the platform's own — every call succeeds and the measurement is of
+// something else entirely.
 void ReportStreams();
 
 // counters, for the run summary.

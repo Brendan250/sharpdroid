@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the fade a scrolling list ends in, so a row cut by the bottom of the screen dissolves rather than
+  stopping mid-letter.
+
+  **it is drawn rather than asked of the framework, and the list's padding is why.** a view's own
+  fading edge is painted at its bounds less its bottom padding, and these lists carry enough of it to
+  keep the last row clear of a floating button - so the framework's fade lands well up the list,
+  where there is no edge, and the edge that is actually cut keeps its hard line.
+
+  **it is safe to leave up at the end of the list for the same reason.** the last row stops a
+  button's height above the bottom, so this covers empty surface there and dims no content.
+
+  the surface colour is a theme attribute, so it follows every scheme the app offers rather than
+  being one palette's value written twice.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- 90 degrees runs bottom to top, so the opaque end is the screen's edge. -->
+    <gradient
+        android:angle="90"
+        android:startColor="?attr/colorSurface"
+        android:endColor="@android:color/transparent"
+        android:type="linear" />
+
+</shape>

@@ -1,10 +1,10 @@
-# stages an adrenotools driver package where the app can install it from.
+# stages an adrenotools driver package where the app can list it and load it from.
 #
 #   .\scripts\stage-driver.ps1                          # Turnip_Gen8_V33.zip
 #   .\scripts\stage-driver.ps1 -Driver .\other.zip      # any adrenotools package
 #   .\scripts\stage-driver.ps1 -Driver .\t.zip -Name turnip
 #
-# the package format is the one the real frontend will import over SAF: a zip holding meta.json
+# the package format is the one the driver manager imports over SAF: a zip holding meta.json
 # and the driver .so. it is unpacked here rather than on the device because android's shell has no
 # unzip worth relying on, and the two files are small.
 #
@@ -15,10 +15,9 @@
 # /storage/emulated/0 is by definition. MainActivity copies it onto internal storage at launch,
 # which is the same two-step the AdrenoToolsTest reference does and for the same reason.
 
-# **-Driver is the zip and -Package is the application id**, matching every other stage-*.ps1. it
-# was the other way round until 2026-08-05, with the zip on -Package and the app on -AppPackage,
-# which reads backwards against its siblings and is the kind of thing that quietly stages a driver
-# to the wrong app.
+# **-Driver is the zip and -Package is the application id**, matching every other stage-*.ps1. the
+# other way round -- the zip on -Package and the app on a flag of its own -- reads backwards against
+# its siblings, and that is the kind of thing that quietly stages a driver to the wrong app.
 param(
     [string]$Driver = "Turnip_Gen8_V33.zip",
     [string]$Name = "turnip",

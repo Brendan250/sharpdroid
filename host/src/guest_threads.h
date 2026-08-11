@@ -254,8 +254,8 @@ uint64_t CreatedCount();
 uint64_t UnalignedFixupCount();
 
 ///< how many times a thread's call-return shadow stack pointer was reset after walking off one of
-///< its guard pages. FEX treats that fault as routine; the host layer did not handle it at all
-///< until 2026-08-05, and this number is what says whether that mattered on any given run.
+///< its guard pages. FEX treats that fault as routine, and this number is what says whether the
+///< host layer handling it mattered on any given run.
 uint64_t CallRetResetCount();
 
 ///< what the asynchronous signal path did. Deferred is the number worth watching: it counts the
@@ -286,8 +286,8 @@ bool SignalTrace();
  * `ExecuteThread` at the *guest* RIP that the host PC maps back to. that is only sound at a guest
  * instruction boundary. land in the middle of the arm64 sequence implementing one guest
  * instruction and the guest registers are half-updated while RIP still points at the start of it,
- * so resuming re-runs the instruction over its own partial results. this was found the hard way,
- * and it cost a milestone.
+ * so resuming re-runs the instruction over its own partial results. it is an expensive mistake to
+ * make: nothing errors, and the corruption surfaces far from the interrupt that caused it.
  *
  * - SyscallOnly (the default): syscall exits alone. sound by construction — the guest chose that
  *   boundary itself — and it is what gets `Dreaming Sarah` through its boot. what it does not do

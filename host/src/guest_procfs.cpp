@@ -60,8 +60,8 @@ const char* GuestProcFS::Substitute(const char* Path) const {
 }
 
 const char* GuestProcFS::ReadLinkTarget(const char* Path) const {
-  // for now the only /proc/self symlink the guest is lied to about is exe, and its target is the
-  // same path a lookup would be redirected to.
+  // exe is the only /proc/self symlink the guest is lied to about, and its target is the same path
+  // a lookup would be redirected to.
   return Substitute(Path);
 }
 

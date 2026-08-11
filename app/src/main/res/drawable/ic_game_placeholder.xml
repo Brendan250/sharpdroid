@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  what a row shows where a dump has no sce_sys/icon0.png, and what coil draws in the moment before
+  one that does is decoded.
+
+  deliberately a shape rather than a logo: it says "no artwork", not "this game".
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorOnSurfaceVariant">
+
+    <!-- the frame -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M5,3h14a2,2 0 0 1 2,2v14a2,2 0 0 1 -2,2h-14a2,2 0 0 1 -2,-2v-14a2,2 0 0 1 2,-2zM5,5v14h14v-14z" />
+
+    <!-- the play mark -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M10,8.5l6,3.5l-6,3.5z" />
+
+</vector>

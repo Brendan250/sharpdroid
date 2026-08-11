@@ -52,8 +52,9 @@ std::atomic<uint64_t> ThreadsCreated {};
 
 ///< how often a guest thread's call-return shadow stack was reset after walking off a guard page.
 ///< reported because the whole question about this mechanism is whether it happens at all: a run
-///< that reports zero says the gap it closes was theoretical, and a run that reports thousands says
-///< the host layer had been handing FEX's own bookkeeping faults to the guest as crashes.
+///< that reports zero says the gap it closes is theoretical, and a run that reports thousands says
+///< that without it the host layer would be handing FEX's own bookkeeping faults to the guest as
+///< crashes.
 std::atomic<uint64_t> CallRetResets {};
 
 // one lock covering thread bookkeeping and the two handshakes that use it: a parent waiting for a
@@ -430,9 +431,9 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
   // FEX's call-return shadow stack running off one of its own guard pages, which is **not an
   // error**: it is the predictor being asked to pop more than it was given, and FEX's own
   // `SyscallHandler::HandleSegfault` treats it as routine — *"Reset REG_CALLRET_SP to the default
-  // location to allow for underflows/overflows"*. the host layer had no such case until 2026-08-05:
-  // it reset the pointer at signal delivery and at re-entry, where the *contents* stop describing
-  // live frames, but nothing caught the pointer walking out of the mapping.
+  // location to allow for underflows/overflows"*. resetting the pointer at signal delivery and at
+  // re-entry — where the *contents* stop describing live frames — is not enough on its own: neither
+  // catches the pointer walking out of the mapping, which is what this case is for.
   //
   // this workload makes that walk likely rather than theoretical. SharpEmu resumes a cooperatively
   // blocked guest thread by entering a trampoline that abandons the host stack and `ret`s into the

@@ -4,3 +4,6 @@
 [submodule "external/libadrenotools"]
 	path = external/libadrenotools
 	url = https://github.com/bylaws/libadrenotools.git
+[submodule "external/sharpemu"]
+	path = external/sharpemu
+	url = https://github.com/sharpemu-android/sharpemu.git

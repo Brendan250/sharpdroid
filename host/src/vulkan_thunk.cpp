@@ -468,11 +468,11 @@ bool Attach(uint64_t Base) {
 // vkQueuePresentKHR into whatever the host wants a present to mean: a frame counter, an optional
 // PPM, or a copy into a window buffer.
 //
-// the app gave the host layer a window and the follow-up gave the swapchain back to the driver, so
-// this is no longer the path a game runs on. it is kept, selectable and covered by the regression
-// set, for two reasons: a shell binary still has no window and every measurement taken before the
-// app existed came through here, and a graphics regression under a real swapchain — or under a driver that is not the one
-// this was proved against — needs something known-good to bisect against.
+// **this is not the path a game runs on**, since the app supplies a window and the swapchain goes
+// back to the driver. it is kept, selectable and covered by the regression set for two reasons: a
+// shell binary has no window and needs it, and a graphics regression under a real swapchain — or
+// under a driver other than the one a result was proved against — needs something known-good to
+// bisect against.
 //
 // the guest asks for this through `VK_EXT_headless_surface`, which is a real vulkan extension
 // meaning exactly "a surface with no window". that keeps the fork's side of it honest vulkan
@@ -511,8 +511,8 @@ std::atomic<uint64_t> PresentedFrames {};
 // between "WSI can be invented" and "WSI has somewhere to go".
 std::atomic<::ANativeWindow*> AppWindow {};
 // set once a window has been seen. the *size* has to stop being overridable at that point, or a
-// --vulkan-size left on a command line would quietly contradict the buffer frames land in, which
-// is the failure that cost a milestone to find.
+// --vulkan-size left on a command line quietly contradicts the buffer frames land in — and an
+// extent mismatch does not error, it recreates the swapchain forever and never renders.
 bool WindowOwnsSize {};
 
 WsiMode RequestedWsi {WsiMode::Auto};
@@ -678,13 +678,13 @@ uint64_t CreateSwapchain(const VkSwapchainCreateInfoKHR* Info, VkDevice Device, 
 }
 
 // pulling a presented frame back out — a full device-to-host copy and a stall, into a linear image
-// the CPU can read. it exists so that "the game renders" can be looked at rather than inferred
-// from a frame counter, and it became the headless present: the same copy, into an ANativeWindow
-// buffer instead of a file.
+// the CPU can read. it exists so that "the game renders" can be looked at rather than inferred from
+// a frame counter, and the headless present is the same copy into an ANativeWindow buffer instead
+// of a file.
 //
 // **both consumers are headless-only.** under android WSI the swapchain images belong to the
 // driver and there is nothing here to copy; `adb shell screencap -p` answers the same question
-// better, now that there is a screen to capture.
+// more cheaply.
 struct Capture {
   VkCommandPool Pool;
   VkCommandBuffer Commands;
@@ -1060,8 +1060,9 @@ uint64_t CountPresentedFrame() {
 
 // present is where back-pressure comes from. the guest's frame is not finished when it calls
 // this -- it is finished when the semaphores it is waiting on are signalled -- so waiting here
-// is what stops the render loop free-running. before this existed that loop measured 70,000 dispatches a
-// second with nothing to push back on it, which is the leading suspect for the device reboots.
+// is what stops the render loop free-running. without it that loop free-runs — measured at 70,000
+// dispatches a second with nothing to push back on it, which is the leading suspect for the device
+// reboots.
 uint64_t Present(const VkPresentInfoKHR* Info) {
   auto Submit = Host<PFN_vkQueueSubmit>("vkQueueSubmit");
   auto CreateFence = Host<PFN_vkCreateFence>("vkCreateFence");

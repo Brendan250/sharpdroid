@@ -109,8 +109,8 @@ PFN Host(uint32_t Id) {
 
 // --- the streams the guest opened -----------------------------------------------------------
 //
-// tracked for one reason, and it is the mrpurple-t29 lesson rather than bookkeeping: **a stream
-// that opens and plays nothing looks exactly like a stream that works**. every call succeeds,
+// tracked for one reason, and it is a correctness guard rather than bookkeeping: **a stream that
+// opens and plays nothing looks exactly like a stream that works**. every call succeeds,
 // every buffer is accepted, and the only thing that differs is that the device never consumed
 // anything. AAudioStream_getFramesRead climbing at the stream's own sample rate is what separates
 // the two, so it is measured here rather than hoped for.
@@ -337,10 +337,10 @@ bool ParseFutexWait(const char* Syscall, uint64_t& Address, uint64_t& Operation,
   return true;
 }
 
-// **passive by default, and that is the whole design.** the first version of this called
-// getState/getFramesRead/getXRunCount every second and the stall stopped happening — which is not a
+// **passive by default, and that is the whole design.** a loop that calls
+// getState/getFramesRead/getXRunCount every second makes the stall stop happening — which is not a
 // fix, it is an observer effect: AAudio's client drains the service's up-message queue inside its
-// own calls, so a chatty watchdog does the draining the guest had stopped doing. an instrument that
+// own calls, so a chatty watchdog does the draining the guest has stopped doing. an instrument that
 // cures the disease cannot measure it.
 //
 // so the loop reads nothing but our own two counters, and only once the gap is real does it ask

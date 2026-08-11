@@ -29,9 +29,11 @@ public final class HostLayer {
     /**
      * Runs a guest to completion. Blocks for the whole run, so never call it on the UI thread.
      *
-     * <p>A guest that calls {@code exit_group} does not return from here at all — it takes the
-     * process with it, which is what the host layer has always done and is the first thing a real
-     * frontend will have to solve.
+     * <p>A guest that calls {@code exit_group} does not return from here at all — it ends the
+     * process, which is what the syscall means and the only safe answer once the other guest
+     * threads are inside translated code. So this is called in a process given to one run and
+     * ended with it; see {@link MainActivity}, which the manifest puts in {@code :guest} for
+     * exactly that.
      */
     public static native int nativeRun(String[] args);
 }

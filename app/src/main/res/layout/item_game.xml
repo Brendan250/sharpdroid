@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  one game, as a card holding its cover.
+
+  **the manager card, with artwork where the text block is.** the fill, the outline, the radius and
+  the margins are all that file's - see item_manager_card.xml - because this screen had none of the
+  scheme on it: a bare tile on the base surface uses one surface tone and one text colour, so the only
+  colour present was the cover art's, and five covers in five unrelated palettes is what read as
+  incohesive. a container tone behind each one is what separates them and what makes this screen
+  visibly the same app as the ones behind it.
+
+  **the tile is square by ratio and not by a height.** a cell is as wide as the grid's column, which
+  changes with the orientation and the screen, so a fixed height would be square on one device and a
+  rectangle on the next. that is the whole reason there is a ConstraintLayout inside the card.
+
+  **the artwork's radius is smaller than the card's**, which is what nesting a shape asks for: two
+  equal radii read as one shape drawn twice. it cannot be concentric at this inset - the padding is
+  wider than the radius it would step down from - so it is a smaller echo of the card's rather than a
+  calculation.
+
+  **the title id is not here.** the name is what a person picks a game by; the id is what a log line
+  and a script name it by, and both of those say it themselves. it is still parsed and still carried -
+  see Game - and the per-game screen is where it belongs on screen.
+
+  **the name is one line and scrolls when it does not fit**, the manager cards' answer to the same
+  problem - see ManagerCard. one line is what keeps every card in the grid exactly as tall as every
+  other without anything having to reserve a blank line or stretch to its row, and a name too long to
+  read is worth more scrolling than ellipsized, since the end of a title is often the half that
+  distinguishes two of them.
+
+  **bodyLarge rather than titleMedium, which is the same size a weight lighter.** a card of this size
+  under a piece of cover art wants a label and not a heading, and the pair of roles differ by exactly
+  that - both 16sp, one medium and one regular - so this is a role and not an override of one.
+
+  it is aligned to the start rather than centred, so it begins where the artwork above it does.
+-->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="6dp"
+    android:layout_marginVertical="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardBackgroundColor="?attr/colorSurfaceContainer"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/icon"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:importantForAccessibility="no"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_game_placeholder"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.SharpEmu.Tile" />
+
+        <TextView
+            android:id="@+id/name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurface"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/icon"
+            tools:text="Dreaming Sarah" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

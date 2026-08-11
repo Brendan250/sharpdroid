@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the global settings scene: the section buttons and nothing else.
+
+  the toolbar carries a back arrow rather than relying on the system one, because this screen is
+  entered from the game list's cog and leaving it is the common action.
+
+  **the horizontal padding is what holds the cards off the screen edge, and outsideOverlay is what
+  keeps the scrollbar out of it.** a scrollbar respects its view's padding by default, so padding the
+  list alone leaves the track floating a finger's width in from the edge - which is precisely what a
+  scrollbar should never look like. outsideOverlay draws it at the view's own edge instead.
+
+  **the top padding is smaller than the horizontal, and the card's own margin is why.** each card
+  carries 6dp on every side, so the gap above the first row is that plus this padding while the gap
+  between two rows is the two margins meeting - 4dp here draws 10dp under the toolbar against the
+  12dp between rows, a little under the list's own rhythm. matching the horizontal 10dp instead puts
+  the first row 16dp down, which reads as the list starting late rather than as a margin.
+
+  **the negative top margin is against the toolbar rather than against the list.** the toolbar is
+  64dp with its title centred in it, so 23dp of it is empty below the baseline - which is most of the
+  distance from the title to the first card, and none of it is something the list's own padding can
+  reach. 6dp back is the list borrowing a little of that empty strip, and the driver manager takes
+  the same 6dp. the toolbar is drawn first, so
+  the list draws over the strip it borrows, and that is why this is a few dp and not a few more: the
+  title's baseline is far enough above that scrolled cards pass under empty toolbar and never under
+  text.
+
+  **the frame around the list exists to hold the fade it ends in**, and for nothing else. the fade is
+  drawn rather than asked of the framework because a view's own fading edge is painted at its bounds
+  less its bottom padding, which would put it well up a list that pads itself at all.
+
+  **what is tuned is this view's own padding and margin, never the card's**: a card's margin is half
+  the gap between every pair of rows, so moving it moves the whole list to change one edge. the
+  driver manager is the same grid with the same numbers.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?attr/colorSurface">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:navigationIcon="@drawable/ic_back"
+        app:title="@string/settings_title" />
+
+    <!-- **the margin is the frame's rather than the list's**, so the list keeps the frame's own
+         bounds and no row can be cut by them. a frame that began at the toolbar's edge with the list
+         pulled above it would clip the first row's corners instead of moving it. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="-6dp">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/sections"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingHorizontal="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="24dp"
+            android:scrollbarStyle="outsideOverlay"
+            android:scrollbars="vertical" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/scrim_list_bottom" />
+
+    </FrameLayout>
+
+</LinearLayout>

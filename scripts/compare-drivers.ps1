@@ -124,7 +124,8 @@ foreach ($driver in $driverList) {
     $log = Join-Path $out "$slug.log"
     # three tags, and each earned its place. sharpemu is ours. hook_impl is adrenotools' own, and
     # the only thing that says why a hook that returned a valid pointer did not actually substitute
-    # the driver - mrpurple-t29 reported success and the stock driver came back. MESA is the
+    # the driver, which is a reachable state: the call reports success and the stock driver comes
+    # back. MESA is the
     # driver's, and its absence is how a TU_DEBUG sweep was run against a variable nothing was
     # reading.
     & $adb logcat -d -s sharpemu:* hook_impl:* MESA:* | Set-Content -Encoding utf8 $log
@@ -178,8 +179,8 @@ foreach ($driver in $driverList) {
     # **the silent one.** adrenotools can return a valid handle and still not substitute the
     # driver - its own header says so - and what comes back is the stock driver rendering
     # perfectly at the stock frame rate. that is indistinguishable from "this turnip build is
-    # excellent" unless the device identity is compared, so it is compared. mrpurple-t29 is why
-    # this check exists: 55.9 fps, and not one frame of it was turnip.
+    # excellent" unless the device identity is compared, so it is compared. a driver package that
+    # fails to load this way can report the best number in the table without rendering one frame.
     if ($driver -and $stockIdentity -and $reports -eq $stockIdentity) {
         $note = "DID NOT LOAD - reports the stock driver's identity, so this number is not this driver"
         $hookWhy = ($lines | Select-String "hook failed: (.+)$" | Select-Object -First 1)

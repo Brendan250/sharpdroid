@@ -112,8 +112,10 @@ JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetSurfac
 }
 
 // blocks for the whole run, so the app must call it off the UI thread. a guest that calls
-// exit_group never returns from here — it calls _exit and takes the app with it, which is what
-// the host layer has always done and is the first thing a real frontend will have to solve.
+// exit_group never returns from here — it calls _exit, which is what the syscall means and the only
+// safe answer once the other guest threads are inside translated code. that is the process this
+// library was loaded into, so a caller that has anything to lose runs a guest in a process it is
+// willing to lose; the app gives one to each run.
 JNIEXPORT jint JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeRun(JNIEnv* Env, jclass, jobjectArray Args) {
   StartLogPump();
 

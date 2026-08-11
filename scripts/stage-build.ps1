@@ -1,7 +1,7 @@
-# puts a packaged SharpEmu build on the device, where the app can install or run it.
+# puts a packaged SharpEmu build on the device, where the app can list and run it.
 #
-#   .\scripts\stage-build.ps1 -Build .\build\builds\performance-0.0.3-hotfix-2-b1
-#   .\scripts\stage-build.ps1 -Build .\build\builds\parity-0.0.3-hotfix-2-b1.zip
+#   .\scripts\stage-build.ps1 -Build .\build\builds\android-0.0.3-hotfix-2-b1
+#   .\scripts\stage-build.ps1 -Build .\build\builds\android-0.0.3-hotfix-2-b1.zip
 #   .\scripts\stage-build.ps1 -Build <dir>            # into the debug app
 #
 # **producing a build and staging it are two jobs**, so scripts\package-build.ps1 produces the
@@ -58,22 +58,22 @@ $dest = "$files/builds/$($src.Folder)"
 $payloadSize = $src.PayloadSize
 
 Write-Host ""
-Write-Host ("staging {0} ({1} {2} b{3}, contract {4})" -f $meta.name, $meta.id, $meta.sharpemuVersion, $meta.buildVersion, $meta.hostContract)
+Write-Host ("staging {0} ({1} {2} {3}, contract {4})" -f $meta.name, $meta.id, $meta.sharpemuVersion, $meta.packagedAt, $meta.hostContract)
 Write-Host ("  payload {0:N0} bytes" -f $payloadSize)
 Write-Host ("  -> {0}" -f $dest)
 
 # **pushed into a scratch directory and then renamed into place, rather than pushed at $dest.**
 # `adb push <dir> <existing dir>/` lands at `<existing dir>/<leaf of the source>` -- the source's own
 # name on this machine, which has nothing to do with the identity in its meta.json. those two
-# coincide for anything package-build.ps1 wrote, which is why this held for as long as it did, and
-# they part company the moment a build directory or a zip is renamed: a build called `wip` staged to
-# `builds/wip`, the assertion below looked at `builds/parity-0.0.3-hotfix-2-b3`, and the header of
-# this very file promises the on-device name comes from meta.json. found on 2026-08-05 by staging a
-# rebuilt build out of a scratch directory.
+# coincide for anything package-build.ps1 wrote, which is what makes the bug easy to miss, and they
+# part company the moment a build directory or a zip is renamed: a build called `wip` would stage to
+# `builds/wip` while the assertion below looked for the name its meta.json derives, and the header of
+# this very file promises the on-device name comes from meta.json. staging a rebuilt build out of a
+# scratch directory is the ordinary way to hit it.
 #
 # the rename is also what makes a re-stage safe: the previous contents are dropped only once the new
 # ones are completely there, so an interrupted push cannot leave a half-build under a name that says
-# it is whole. same reasoning as SharpEmuBuild.install's .partial.
+# it is whole. same reasoning as the `.partial` an import and the bundled unpack both write through.
 $leaf = Split-Path -Leaf $source
 $scratch = "$files/builds/.staging"
 & $adb shell "rm -rf '$scratch' && mkdir -p '$scratch'"
@@ -98,8 +98,8 @@ if ($unpacked -and (Test-Path -LiteralPath $unpacked)) { [System.IO.Directory]::
 Write-Host ""
 Write-Host ("staged: {0} bytes verified on the device" -f $onDevice)
 Write-Host ("  {0}" -f $dest)
-# **and no id form is offered, because the app no longer accepts one.** it used to resolve an id to
-# the highest installed buildVersion, so staging this very build as b1 and then selecting it by name
-# would have run an existing b3 instead. the path is the only way to name a build now, and it is what
-# every script in here passes.
+# **and no id form is offered, because the app does not accept one.** an id resolves to the newest
+# packagedAt of that id, so staging this very build and then selecting it by name could run an older
+# one still on the device. a path is the only way to name a build, and it is what every script here
+# passes.
 Write-Host "  run it with .\scripts\run.ps1 -SharpEmu $Build"

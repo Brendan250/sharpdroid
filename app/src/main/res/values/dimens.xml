@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  dimensions that more than one file has to agree on.
+
+  a number only one layout uses stays in that layout, where it is read beside the view it moves.
+-->
+<resources>
+
+    <!-- where a manager's empty line sits, drawn at the top of the list rather than in the middle of
+         it. it lands about where the first card's own text would - see activity_manager.xml, which
+         is where the arithmetic is. -->
+    <dimen name="manager_empty_top">24dp</dimen>
+
+    <!-- how far the right end of a slider dialog's scale is held off the text column, so that the
+         track and the label under it line up with the OK button's own text rather than with the
+         column the content otherwise uses. it applies to the slider and to the high label equally -
+         the two are flush with each other and this moves both. -->
+    <dimen name="slider_scale_end">22dp</dimen>
+
+</resources>

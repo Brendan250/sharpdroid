@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  how many section buttons sit beside each other on the settings scene.
+
+  one when the screen is taller than it is wide, two when it is wider - Eden's shape, and the reason
+  is that a section button is a title and one line of explanation, so in landscape a single column
+  wastes two thirds of the width and shows four buttons where eight would fit.
+
+  a resource rather than a width calculation: the qualifier is what android already resolves, and an
+  activity is recreated across a rotation, so the value is re-read without anything watching for it.
+
+  **the driver manager uses the same count and deliberately the same one.** its cards are the
+  section grid's cards, so two screens that look alike would be a poor place for the column count to
+  differ - and a driver card carries a little more text than a section button, which is the argument
+  for following the setting rather than inventing a second.
+
+  **the game grid does not follow it and could not.** a section button is a wide thing made of text
+  and a game tile is a square made of artwork, so the count that suits one is wrong for the other:
+  two tiles across a landscape screen would be a pair of enormous squares, and the number that fits
+  is set by how small a cover can be and still be recognised.
+-->
+<resources>
+    <integer name="settings_section_columns">1</integer>
+    <integer name="game_columns">2</integer>
+</resources>

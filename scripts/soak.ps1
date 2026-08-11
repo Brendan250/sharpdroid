@@ -10,7 +10,7 @@
 # project made twice. so: many runs, both arms, interleaved, classified.
 #
 #   .\scripts\soak.ps1                                     # 10 runs of whatever is staged
-#   .\scripts\soak.ps1 -Builds .\build\builds\blocking-0.0.3-hotfix-2-b1,.\build\builds\performance-0.0.3-hotfix-2-b1 -Runs 6
+#   .\scripts\soak.ps1 -Builds .\build\builds\blocking-0.0.3-hotfix-2-b1,.\build\builds\android-0.0.3-hotfix-2-b1 -Runs 6
 #   .\scripts\soak.ps1 -Game "Y:\games\Dead Cells [PPSA15552]" -Runs 5
 #
 # **-Builds and -Game are paths on this machine**, and each is staged if the device does not already
@@ -18,7 +18,7 @@
 # builds' on-device directory names, which are unique per build -- a full path would wreck the
 # column.
 #
-# **`blocking` is the pre-fix control build** and it may not be on the device. it is `performance`
+# **`blocking` is the pre-fix control build** and it may not be on the device. it is the shipping branch
 # b2 verbatim -- the AAudio path that parks the guest thread in a blocking write -- with its
 # meta.json `id` changed. recreate it by checking out the commit before
 # "fix(audio): never park the submitting thread inside AAudio", packaging it, and editing its
@@ -35,8 +35,8 @@
 #                 CPU falls to a few percent. that is a *different* failure -- a signal-delivery
 #                 correctness bug -- and not the stall. it counts as a crash whether the fault
 #                 killed the guest audio thread or the runtime raised a fatal error on some other
-#                 thread; the second shape was seen for the first time on 2026-08-04 and had been
-#                 scoring as a stall.
+#                 thread. **the second shape is the one that scores as a stall if you let it**, since
+#                 the watchdog never gets to say the audio thread is gone.
 #
 # quote the stall rate when you mean the stall. the crash rate belongs to a different investigation.
 #
@@ -50,8 +50,8 @@
 
 param(
     # paths to build directories or zips, one soak arm each. omitted: whatever is staged on the
-    # device -- **not** a literal default like `performance`, which was a name the app resolved to
-    # the highest installed buildVersion and so could measure a build nobody staged.
+    # device -- **not** a literal default like a branch name, which would resolve to the newest
+    # packagedAt of that id and so could measure a build nobody staged.
     [string[]]$Builds = @(),
     [int]$Runs = 10,
     # seconds of measurement, after 25 s of settling. the guest opens its stream at about +6 s.
@@ -131,7 +131,7 @@ function Invoke-Run($buildPath, $build, $arm, $armExtra, $n) {
     # the watchdog runs whether or not this is passed; --ez audiowatchdog true makes it report every
     # second and dump every thread at a stall, which is what the writes/s column reads.
     # Resolve-AppActivity, not "$Package/.MainActivity" -- see toolchain.ps1 for why that shorthand
-    # resolves to nothing under a renamed application id, which is what this line used to be.
+    # resolves to nothing under a renamed application id, which every script here uses.
     # single-quoted for the *device* shell: adb hands the command to sh, and a build directory can
     # carry anything meta.json's id did.
     $start = "am start -n $(Resolve-AppActivity $Package) --es sharpemu '$buildPath' --ez audiowatchdog true"
@@ -205,13 +205,13 @@ function Invoke-Run($buildPath, $build, $arm, $armExtra, $n) {
     # ~100% on a stall and a few percent on a crash.
     $died = @($log | Select-String -Pattern "is GONE \(the guest audio thread died\)").Count
 
-    # **and a fourth false positive, found on 2026-08-04: a fatal error on a thread that is not the
-    # audio one.** a run died at +79.8 s on `Invalid Program: attempted to call a
-    # UnmanagedCallersOnly method from managed code` raised on the *presenter* thread, which took the
-    # whole process down -- so the watchdog never got to say the audio thread was gone, and the run
-    # scored as a stall. the runtime's own fatal-error path plus a dead process is a crash whatever
-    # thread raised it, and process CPU says so independently: a stall holds ~100% of a core to the
-    # end of the window and a dead process reads 0.
+    # **and a fourth false positive: a fatal error on a thread that is not the audio one.** the
+    # runtime can raise `Invalid Program: attempted to call a UnmanagedCallersOnly method from
+    # managed code` on the *presenter* thread, which takes the whole process down -- so the watchdog
+    # never gets to say the audio thread is gone and the run would score as a stall. the runtime's
+    # own fatal-error path plus a dead process is a crash whatever thread raised it, and process CPU
+    # says so independently: a stall holds ~100% of a core to the end of the window, a dead process
+    # reads 0.
     $fatal = @($log | Select-String -Pattern "Fatal error\.|Invalid Program:|took signal \d+ with no handler").Count
     $kind = if (-not $lost) { "ok" } elseif ($died -or ($fatal -and $cpu -lt 10)) { "CRASH" } else { "STALL" }
     $script:results += [pscustomobject]@{ Build = $label; Lost = $lost; Kind = $kind }

@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the app's themes, and none of them is the emulator's.
+
+  Theme.SharpEmu is the application theme: Material3 following the platform between light and dark.
+  it is **not offered in the list** - an explicit Light and an explicit Dark cover it - but it stays,
+  because the manifest names it and because it is what an activity wears for the moment before
+  Theme.kt sets the chosen one. MainActivity
+  names @android:style/Theme.Black.NoTitleBar.Fullscreen in the manifest instead, and that override
+  is the point - its window is a surface a guest renders into rather than a themed screen, and a
+  Material background behind an opaque SurfaceView would be one more thing composited for nothing.
+
+  the other three are set at runtime by Theme.kt, per activity, before setContentView. Material You
+  is not here at all: it is DynamicColors applied over whichever theme is already on, which is what
+  the Material library does and what it should keep doing when the palette below changes.
+
+  the SharpEmu palette is read off the desktop UI's own styles rather than invented - the violet
+  accent, the near-black surfaces and the off-white text are the same values that build
+  uses.
+
+  **a user-defined scheme is not a reason to restructure this file into a shared base plus
+  colour-only schemes.** DynamicColors generates a scheme from a seed colour over whatever theme is
+  current and never reads this file, so nothing here is a prerequisite for one - and a restructure
+  that has to preserve four hand-balanced palettes exactly is a change that quietly does not.
+  Theme.kt has the note.
+-->
+<resources>
+
+    <!--
+      a badge on a build row. the pill is tinted per use and the colours are in the layout, so this
+      is the geometry and the type alone - which is what lets three badges of different colours be
+      three lines of layout instead of three styles.
+    -->
+    <style name="Badge">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginEnd">6dp</item>
+        <item name="android:layout_marginBottom">4dp</item>
+        <item name="android:background">@drawable/bg_badge</item>
+        <item name="android:paddingHorizontal">6dp</item>
+        <item name="android:paddingVertical">1dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceLabelSmall</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <!--
+      the corner a game's cover is clipped to, inside the card that holds it.
+
+      **the card's 16dp less the 8dp it is inset by**, which is what keeps the two corners
+      concentric: an inner shape carrying its container's radius reads as one shape drawn twice, and
+      one carrying too little reads as a square in a rounded box. change either number and this is
+      the other one.
+    -->
+    <style name="ShapeAppearance.SharpEmu.Tile" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+
+    <style name="Theme.SharpEmu" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+    </style>
+
+    <!-- "SharpEmu PC UI inspired colors". dark only, because the desktop UI is. -->
+    <style name="Theme.SharpEmu.Desktop" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#8F73FF</item>
+        <item name="colorOnPrimary">#0B0E14</item>
+        <item name="colorSecondary">#58A6FF</item>
+        <item name="colorSurface">#0D1017</item>
+        <item name="colorSurfaceVariant">#1A2130</item>
+        <!-- what a card is filled with. named so this scheme keeps the fill it had when the card
+             stopped using colorSurfaceVariant - see the section layout for why it did. -->
+        <item name="colorSurfaceContainer">#1A2130</item>
+        <item name="colorOnSurface">#E8ECF4</item>
+        <item name="colorOnSurfaceVariant">#8B94A7</item>
+        <item name="colorError">#E5484D</item>
+        <!-- the single-choice dialog draws its radio buttons with the *framework* accent rather
+             than with colorPrimary, so without these two a themed screen opens a dialog with a
+             stock blue radio in it. found on the device; it is not visible in a layout preview. -->
+        <item name="colorControlActivated">#8F73FF</item>
+        <item name="android:colorAccent">#8F73FF</item>
+        <!-- **the window's own colour, and it is colorSurface deliberately.** every screen paints
+             colorSurface over the whole window, so this is only ever seen where that has not been
+             drawn yet - the frame before an activity's first draw, a recreate, a transition - and a
+             window a couple of levels darker than the screen shows as a band behind the status and
+             navigation bars that comes and goes with how the screen was reached. the other schemes
+             here name one colour for both and none of them has ever done it. -->
+        <item name="android:colorBackground">?attr/colorSurface</item>
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+    </style>
+
+    <!-- "Dark", and black rather than merely dark, which is the whole point - an unlit pixel costs
+         nothing on this panel and a "dark" theme that is #121212 lights every one of them.
+
+         **fully monochrome, and that means naming every role rather than the ones in use.** each is
+         a white, a neutral or a black, including the ones a Material3 dark theme would otherwise
+         hand it - the outline it inherited was #49454F and the secondary container #4A4458, both
+         purples. the accent is a near-white, so what is emphasised reads as brighter rather than as
+         a different hue.
+
+         **what leaks is always a role nothing here mentions**, so a new widget can reintroduce a
+         hue without a line of this file changing: the container pairs arrived that way, by way of an
+         extended FAB and a badge. -->
+    <style name="Theme.SharpEmu.Dark" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#E6E6E6</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorSecondary">#C7C7C7</item>
+        <item name="colorSurface">#000000</item>
+        <item name="colorSurfaceVariant">#101010</item>
+        <!-- **the whole container family, not just the one a card uses.** a switch draws its off
+             track with colorSurfaceContainerHighest and its thumb with colorOutline, and a dialog
+             sits on colorSurfaceContainerHigh - none of which this theme named, so all of them came
+             from Material3 and its dark highest is #36343B, a purple. that was both the leak in
+             "fully monochrome" and the reason an off toggle disappeared into the background. -->
+        <item name="colorSurfaceContainerLowest">#000000</item>
+        <item name="colorSurfaceContainerLow">#0A0A0A</item>
+        <item name="colorSurfaceContainer">#101010</item>
+        <item name="colorSurfaceContainerHigh">#1A1A1A</item>
+        <!-- **highest is the off track of a switch, and its value is a contrast target rather than a
+             taste.** on black it wants the same 1.55 against the background that the SharpEmu theme
+             has, which is where an off toggle stops sitting flat; #262626 measured 1.39. -->
+        <item name="colorSurfaceContainerHighest">#2E2E2E</item>
+        <!-- the off thumb, and it is deliberately well clear of the track above. -->
+        <item name="colorOutline">#949494</item>
+        <item name="colorOutlineVariant">#2E2E2E</item>
+        <item name="colorOnSurface">#FFFFFF</item>
+        <item name="colorOnSurfaceVariant">#9E9E9E</item>
+        <!-- **the container families, because a role this theme does not name is a purple.** the
+             accent roles above are only half of Material3's palette: a filled button and an extended
+             FAB are drawn with the *container* pair rather than with colorPrimary, and a badge asks
+             for one by name. left unnamed they come from the baseline scheme, which is where the
+             lilac pill and the violet Import button came from.
+
+             **the two badge containers are pulled apart on purpose.** a card's provenance is the one
+             claim on it with a different answer per row, and in a scheme with no hue to separate
+             them, imported and staged can only differ by lightness - so imported is well clear of
+             the surface it sits on while staged stays a quiet neutral. -->
+        <item name="colorPrimaryContainer">#383838</item>
+        <item name="colorOnPrimaryContainer">#FFFFFF</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="colorSecondaryContainer">#4A4A4A</item>
+        <item name="colorOnSecondaryContainer">#FFFFFF</item>
+        <item name="colorTertiary">#C7C7C7</item>
+        <item name="colorOnTertiary">#000000</item>
+        <item name="colorTertiaryContainer">#4A4A4A</item>
+        <item name="colorOnTertiaryContainer">#FFFFFF</item>
+        <item name="colorError">#D4D4D4</item>
+        <item name="colorOnError">#000000</item>
+        <item name="colorErrorContainer">#3A3A3A</item>
+        <item name="colorOnErrorContainer">#FFFFFF</item>
+        <!-- what a snackbar and a selection highlight invert to. -->
+        <item name="colorSurfaceInverse">#E6E6E6</item>
+        <item name="colorOnSurfaceInverse">#000000</item>
+        <item name="colorPrimaryInverse">#3D3D3D</item>
+        <item name="colorSurfaceDim">#000000</item>
+        <item name="colorSurfaceBright">#2E2E2E</item>
+        <item name="colorControlActivated">#E6E6E6</item>
+        <item name="android:colorAccent">#E6E6E6</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="android:statusBarColor">#000000</item>
+        <item name="android:navigationBarColor">#000000</item>
+    </style>
+
+    <!-- "Light": the same idea the other way up, and equally monochrome - white, neutrals, black.
+
+         **the two windowLight* flags are not decoration.** they are what turns the *system's* own
+         status and navigation bar contents dark, and without them a white bar draws white icons on
+         white and the clock simply disappears. -->
+    <style name="Theme.SharpEmu.Light" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">#1A1A1A</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#3D3D3D</item>
+        <item name="colorSurface">#FFFFFF</item>
+        <item name="colorSurfaceVariant">#F2F2F2</item>
+        <item name="colorSurfaceContainerLowest">#FFFFFF</item>
+        <item name="colorSurfaceContainerLow">#FAFAFA</item>
+        <item name="colorSurfaceContainer">#F4F4F4</item>
+        <item name="colorSurfaceContainerHigh">#EDEDED</item>
+        <!-- the off track again, on white this time. #E2E2E2 measured 1.30 against the background. -->
+        <item name="colorSurfaceContainerHighest">#DCDCDC</item>
+        <item name="colorOutline">#6E6E6E</item>
+        <item name="colorOutlineVariant">#D9D9D9</item>
+        <item name="colorOnSurface">#101010</item>
+        <item name="colorOnSurfaceVariant">#5C5C5C</item>
+        <!-- the same container families the dark scheme names, and for the same reason: a filled
+             button, an extended FAB and a badge are drawn from these rather than from colorPrimary,
+             and an unnamed one is Material3's baseline lilac. imported sits well below the surface
+             it is on, staged stays a quiet neutral - the separation is lightness, there being no hue
+             to spend. -->
+        <item name="colorPrimaryContainer">#E4E4E4</item>
+        <item name="colorOnPrimaryContainer">#101010</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#C9C9C9</item>
+        <item name="colorOnSecondaryContainer">#101010</item>
+        <item name="colorTertiary">#3D3D3D</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorTertiaryContainer">#C9C9C9</item>
+        <item name="colorOnTertiaryContainer">#101010</item>
+        <item name="colorError">#2B2B2B</item>
+        <item name="colorOnError">#FFFFFF</item>
+        <item name="colorErrorContainer">#DCDCDC</item>
+        <item name="colorOnErrorContainer">#101010</item>
+        <item name="colorSurfaceInverse">#1A1A1A</item>
+        <item name="colorOnSurfaceInverse">#FFFFFF</item>
+        <item name="colorPrimaryInverse">#C7C7C7</item>
+        <item name="colorSurfaceDim">#E0E0E0</item>
+        <item name="colorSurfaceBright">#FFFFFF</item>
+        <item name="colorControlActivated">#1A1A1A</item>
+        <item name="android:colorAccent">#1A1A1A</item>
+        <item name="android:colorBackground">#FFFFFF</item>
+        <item name="android:statusBarColor">#FFFFFF</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
+</resources>

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the main scene.
+
+  the toolbar is a plain view and not the support action bar: it carries the title and the cog, and
+  neither needs the action bar's menu machinery.
+
+  the list and the empty block share the space below it and exactly one of them is visible at a time,
+  which GameListActivity decides after each scan. both sit inside the refresh layout rather than only
+  the list, so the gesture works on a screen with nothing on it - which is the screen most likely to
+  want it, since an empty list is what a folder that has not finished copying looks like.
+
+  **the empty block carries a button and the toolbar does not.** adding a folder lives in
+  Settings -> Data, which is the right home for it and is three taps from here - fine for the once or
+  twice it is done, and wrong for the one screen where it is the only thing left to do. the button is
+  gone the moment there is a game, so it costs the finished screen nothing.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?attr/colorSurface">
+
+    <!-- **the title and the cog are a child view rather than the toolbar's own title and menu.**
+         a toolbar lays both of those out itself and will not be told otherwise: titleMarginStart does
+         not survive the path it takes, and a menu item sits against the toolbar's end whatever the
+         padding or the content inset says - it landed in exactly the same place with 6dp of end
+         padding as with none. in a row of ordinary views both are margins, which simply work, and the
+         vertical centring becomes this file's rather than something to discover.
+
+         the row starts at the toolbar's own contentInsetStart, which is where the title would have
+         begun anyway, so nothing moved to buy this. -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/game_list_title"
+                android:textAppearance="?attr/textAppearanceTitleLarge"
+                android:textColor="?attr/colorOnSurface" />
+
+            <!-- everything between the title and the cog, so the cog is held against the end. -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- **48dp of button around a 24dp glyph**, which is the touch target a toolbar item
+                 would have had. the margin is measured to the glyph rather than to the button: the
+                 icon's own edge sits 12dp inside the box, so the end margin is what is wanted from
+                 the screen edge less that. -->
+            <ImageButton
+                android:id="@+id/settings"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="10dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/settings_open"
+                android:padding="12dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_settings"
+                android:tint="?attr/colorOnSurface" />
+
+        </LinearLayout>
+
+    </com.google.android.material.appbar.MaterialToolbar>
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- **the manager list's padding, because these are that list's cards.** a card carries
+                 6dp on every side, so two neighbours are 12dp apart, and 10dp here holds the
+                 outermost ones 16dp off the screen edge - the same numbers, in the same order, as
+                 activity_manager.xml.
+
+                 **the negative top margin is against the toolbar rather than against the list**, and
+                 it is that file's reasoning too: the toolbar's title is centred in its band, so the
+                 strip below the baseline is empty and none of it is something the list's own padding
+                 can reach. 6dp back is the grid borrowing a little of it. the toolbar is drawn
+                 first, so the cards scroll under empty toolbar and never under text.
+
+                 **outsideOverlay is what keeps the scrollbar out of that padding.** a scrollbar
+                 respects its view's padding by default, so padding the list alone leaves the track
+                 floating a finger's width in from the screen edge, hugging the last column - which
+                 is precisely what a scrollbar should never look like. this draws it at the view's
+                 own edge instead, as every manager screen does. -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/games"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="-6dp"
+                android:clipToPadding="false"
+                android:paddingHorizontal="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="16dp"
+                android:scrollbarStyle="outsideOverlay"
+                android:scrollbars="vertical" />
+
+            <LinearLayout
+                android:id="@+id/empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_margin="32dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="@string/game_list_empty"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/add_folder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/folders_add"
+                    app:icon="@drawable/ic_add" />
+
+            </LinearLayout>
+
+            <!-- the fade the grid ends in, the same one every manager screen has: a card that is
+                 half scrolled off the bottom edge reads as cut without it. last, so it draws over
+                 the grid - and over the empty block, which is centred and never reaches it. -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/scrim_list_bottom" />
+
+        </FrameLayout>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+</LinearLayout>

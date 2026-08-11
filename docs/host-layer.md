@@ -139,7 +139,7 @@ the host layer sets these before whatever the launcher adds. the payload-facing 
 
 `host/src/guest_files.{h,cpp}` and `host/src/saf_bridge.{h,cpp}`. the same idea as `/proc/self` one level up, with a real directory behind it: a game the user granted rather than staged is not reachable by path at all, so the guest is handed an invented one — `/game/eboot.bin` — and the path-taking calls above are answered out of a content provider instead of being forwarded to bionic.
 
-**it is off unless `--saf-mount <prefix>` names a mount**, and the flag needs the app, because there is no provider to ask on the other side of a shell. without it every path in this section behaves exactly as it always has, which is what keeps a run through the scripts comparable to every measurement taken before the layer existed.
+**it is off unless `--saf-mount <prefix>` names a mount**, and the flag needs the app, because there is no provider to ask on the other side of a shell. without it every path in this section is an ordinary syscall with no interception registered anywhere, which is what keeps a run through the scripts free of any alibi: a frame rate measured that way cannot have been moved by a layer that was not in the run.
 
 only *paths* are answered. a descriptor the provider returns is a real kernel descriptor on a real file, so `read`, `pread`, `lseek`, `mmap` and `fstat` on one are not intercepted and cost nothing extra — and the guest's path-taking is over by the end of boot. the layer is read-only, a directory descriptor is a `memfd` with a hand-written `dirent64` listing beside it, and `saf_bridge.cpp` is this project's only two-way JNI. [`guest-files.md`](guest-files.md) has the design, the costs and the measured A/B against a staged path.
 
@@ -160,7 +160,7 @@ two pieces of storage FEXCore expects the owner of a thread to provide, both of 
 
 **the start-up handshake between parent and child lives in the child's own storage**, not on the parent's stack: the parent returns from `clone` straight back into JIT'd code, so by the time the child re-checks its wake-up condition the parent's frame has already been overwritten by guest execution.
 
-**`exit` ends one guest thread; `exit_group` ends the process.** when the initial guest thread calls `exit`, the host layer waits for every other guest thread rather than tearing the address space down under threads that are still using it — on linux the process outlives it. `exit_group` calls `::_exit` — the other guest threads are still inside FEXCore and unwinding past them would be racing them, and the kernel does not politely join threads on `exit_group` either. in the app that takes the process with it.
+**`exit` ends one guest thread; `exit_group` ends the process.** when the initial guest thread calls `exit`, the host layer waits for every other guest thread rather than tearing the address space down under threads that are still using it — on linux the process outlives it. `exit_group` calls `::_exit` — the other guest threads are still inside FEXCore and unwinding past them would be racing them, and the kernel does not politely join threads on `exit_group` either. in the app that ends the process the library was loaded into, which is why the app gives a run a process of its own — see [`app.md`](app.md).
 
 ## signals
 
@@ -242,7 +242,18 @@ the argument vector is the whole interface, and the app passes the same flags a 
 | `--timestamps` | prefixes every line the guest writes to stdout or stderr with elapsed time since process start. **elapsed rather than time of day**, because every number worth having is a delta from the first line and a delta stays meaningful next to a run from another day. the host layer's own lines are deliberately unstamped, which makes them instantly distinguishable while their position still says when they happened |
 | `--smc none\|mtrack\|full` | above |
 | `--asyncsig syscall\|safepoint\|block` | above |
+| `--fex Name=Value` | one FEXCore option, repeatable. below |
 | `--vulkan` `--audio` and their families | the two thunks, `host/src/vulkan_thunk.h` and `host/src/audio_thunk.h` |
+
+### choosing FEXCore options
+
+`--fex TSOEnabled=0` sets one of FEXCore's own configuration options for the run. **it exists because the routes FEX documents do not reach a process that hosts FEXCore as a library**: a `Config.json` and the `FEX_` environment variables are both read by FEX's frontend, and only the core is linked here. so a `FEX_TSOEnabled` in the environment reaches nothing, silently, which is a worse answer than no answer.
+
+**the names are FEXCore's json spellings** — `TSOEnabled`, `Multiblock`, `X87ReducedPrecision` — and they are resolved against FEXCore's own generated option table rather than a list restated here, so a name upstream renames or removes fails to build instead of resolving to the wrong option. **an unknown name refuses the run.** FEX's own loaders skip what they do not recognise, which suits a file a person edits by hand; here the names arrive from a table in a program, and a typo that merely did nothing would be indistinguishable from a knob with no effect on this workload.
+
+values are passed through as written, so a bool wants `0` or `1`: the `none`/`mtrack`/`full` spellings belong to FEX's argument parser, which this does not use.
+
+**three options are the host layer's and a `--fex` naming one is overridden rather than refused.** 64-bit mode, the SMC mode and the interrupt fault page are set after every `--fex` is applied, because each is load-bearing for correctness rather than a preference — the first silently halves the guest register file, the second has to agree with what the VMA tracker is told, and the third is what makes an asynchronous signal deliverable at all. `--smc` is how the SMC mode is chosen.
 
 `--timestamps` detours fds 1 and 2 through a stamping writer. **the whole stamped buffer goes out in a single write**, because many guest threads share that descriptor and two writes per line would let their output interleave mid-sentence; the cost is that a short write cannot be reported back exactly, so the loop finishes the buffer and tells the guest its own length went out. a guest that saw its own write return more than it asked for would be entitled to be confused. stamps are placed by tracking line *starts* rather than writes, which is what survives a guest emitting its text and its newline separately — .NET's console writer does.
 

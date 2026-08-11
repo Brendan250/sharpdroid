@@ -104,11 +104,11 @@ the guest asks the mount exactly what it asks a real directory, and gets the sam
 
 **the first mode keeps working untouched, and that is a hard requirement rather than a courtesy.** every script in this repository stages by path and launches with `am start`; none of them knows this part exists, and no run through them touches an intercepted path. that is what keeps a performance question answerable — a frame rate measured through the scripts cannot have been changed by a file layer that was not in it. lose it and every future measurement acquires an alibi.
 
-the third mode is not a third implementation. it is the second one with the interception not registered.
+**the third mode is not a third implementation — it is the first one, pointed somewhere else.** with all-files access held, the app turns the granted directory's document id into an ordinary path and launches it exactly as it launches a staged game, so nothing below the app changes and this part is not in the run at all. the permission is an opt-in the user switches on from the settings scene, never the way in: with it off, which is the default, a granted game is reached the way this document describes. [`app.md`](app.md) has the branch.
 
-## the JNI, which is new machinery
+## the JNI, which is the one call back up
 
-**the host layer was one-way until this part existed.** the app calls down, and nothing calls back: a window is an `ANativeWindow*` and audio is pure NDK AAudio. a content provider has no NDK, so this is the first thing that has to ask java a question from a guest thread.
+**this is the only place the host layer is not one-way.** everywhere else the app calls down and nothing calls back: a window is an `ANativeWindow*` and audio is pure NDK AAudio. a content provider has no NDK, so this is the one thing that has to ask java a question from a guest thread.
 
 | | |
 | --- | --- |
@@ -141,6 +141,6 @@ the java side is three static methods taking a relative path: an open, a stat, a
 .\scripts\compare-file-modes.ps1
 ```
 
-runs one game both ways, alternating, **with the order reversed on alternate pairs** — because this device drifts downward as it warms, and alternating alone leaves whichever arm goes first in every pair winning by about half a frame per second that is not real. it compares the path-taking counts, which must be identical, then reports boot and frame rate with the spread *within* each arm beside the difference *between* them.
+runs one game every way it can be reached, alternating, **with the order rotated one place each round** — because this device drifts downward as it warms, and alternating alone leaves whichever arm goes first in every round winning by about half a frame per second that is not real. it compares the path-taking counts, which must be identical, then reports boot and frame rate with the spread *within* each arm beside the difference *between* them. `-GamePath <the game's own path on the device>` adds the third arm, which needs all-files access switched on.
 
-underneath it is `--trace-files <prefix>` on the host layer, or `--ez tracefiles true` on the app, which counts everything above under one directory; under a mount, pass the mount. the two ways of reaching one game then produce two counts that can be put side by side, which is the only thing that keeps this a measurement rather than an opinion.
+underneath it is `--trace-files <prefix>` on the host layer, or `--ez tracefiles true` on the app, which counts everything above under one directory; under a mount, pass the mount. every way of reaching one game then produces counts that can be put side by side, which is the only thing that keeps this a measurement rather than an opinion.

@@ -12,12 +12,12 @@
 // and a JIT must write memory then execute it; Dispatcher::Create() allocating buffers was not
 // proof they were usable. they are — so everything from the loader onwards is typing.
 //
-// this file is the driver and nothing else. the per-thread machinery it used to hold — the GDT,
-// the call-return stack, the escape hatch, the fault handler and the dispatch loop — moved into
-// guest_threads.cpp when there stopped being exactly one of each.
+// this file is the driver and nothing else. the per-thread machinery — the GDT, the call-return
+// stack, the escape hatch, the fault handler and the dispatch loop — lives in guest_threads.cpp,
+// because there is one of each per guest thread rather than one of each per process.
 //
-// and since the app arrived it is not the process entry either. what was main() is HostLayer::RunMain, called
-// either by entry_exe.cpp's main() or by entry_jni.cpp on behalf of the app — see host_layer.h.
+// it is not the process entry either. HostLayer::RunMain is called either by entry_exe.cpp's main()
+// or by entry_jni.cpp on behalf of the app — see host_layer.h.
 // the argument vector is the interface in both cases, so the app passes the same flags a shell
 // would and every measurement stays comparable.
 
@@ -49,6 +49,7 @@
 #include <cstring>
 #include <iterator>
 #include <optional>
+#include <string_view>
 #include <vector>
 #include <sys/auxv.h>
 #include <sys/mman.h>
@@ -61,6 +62,32 @@
 #endif
 
 namespace {
+
+// --- FEXCore configuration by name -------------------------------------------------------------
+
+// resolves a FEXCore option's json name — `TSOEnabled`, `Multiblock` — to the enumerator
+// FEXCore::Config::Set takes, so that a JIT knob can be chosen at launch rather than compiled in.
+//
+// the table is FEXCore's own, expanded here rather than restated. `ConfigValues.inl` is generated
+// from FEX's option definitions at build time and every line in it carries the json spelling as its
+// fourth macro argument, so redefining OPT_BASE over the same header produces a mapping that cannot
+// drift from the enum it maps to: an option renamed upstream changes both sides at once, and one
+// removed stops compiling here rather than resolving to the wrong thing.
+//
+// the names are the ones FEX documents. the `FEX_TSOENABLED` environment spelling is deliberately
+// not accepted, and cannot be: FEX reads those in EnvLoader, which lives in FEX's frontend — the
+// part this project does not build. a variable by that name reaches nothing here, so accepting the
+// spelling would promise a route that does not exist.
+std::optional<FEXCore::Config::ConfigOption> ConfigOptionByName(std::string_view Name) {
+#define OPT_BASE(type, group, enum, json, default)     \
+  if (Name == #json) {                                 \
+    return FEXCore::Config::ConfigOption::CONFIG_##enum; \
+  }
+// the header undefines every OPT_ macro on its way out, including the one above, so this is a
+// self-contained expansion rather than something the next include has to be kept clear of.
+#include <FEXCore/Config/ConfigValues.inl>
+  return std::nullopt;
+}
 
 // --- host context, shared by both modes ------------------------------------------------------
 
@@ -346,20 +373,19 @@ constexpr uint64_t GuestInterpOffset = 0x8000'0000;
 // what has to be free for a base to be usable.
 constexpr uint64_t GuestSpanEnd = 0xA000'0000;
 
-// **an app process is not an empty process, and moving into an APK is where that was found out.**
-// until then the host layer only ever ran as a shell binary, where the bottom 2.5 GiB is untouched
-// and these offsets could be absolute addresses. inside an APK, ART got there first: the dalvik
-// main heap is a 256 MiB region at 0x14000000, the non-moving heap at 0x34000000, two JIT code
-// caches at 0x54000000, and the boot image and its .oat files run from about 0x70cc0000 upwards.
-// the guest program at 512 MiB lands inside the first of those and the interpreter at 2 GiB
-// inside the last, so the loader's MAP_FIXED_NOREPLACE reservation returned EEXIST and the run
-// ended before the guest existed.
+// **an app process is not an empty process, and that is why these are offsets rather than absolute
+// addresses.** as a shell binary the bottom 2.5 GiB is untouched and an absolute layout would do.
+// inside an APK, ART is there first: the dalvik main heap is a 256 MiB region at 0x14000000, the
+// non-moving heap at 0x34000000, two JIT code caches at 0x54000000, and the boot image and its .oat
+// files run from about 0x70cc0000 upwards. a guest program pinned at 512 MiB lands inside the first
+// of those and an interpreter pinned at 2 GiB inside the last, so the loader's MAP_FIXED_NOREPLACE
+// reservation returns EEXIST and the run ends before the guest exists.
 //
-// so the base is measured rather than declared, which is the same answer the fork reached for
-// SharpEmu's own layout one level up. **zero is tried first and it is not a formality**: on a
-// shell process it always wins, so every address in every log taken before the app existed is
-// reproduced exactly and no earlier measurement stops being comparable. the rest are 4 GiB apart and all
-// stop short of the 32 GiB the PS5 image wants.
+// so the base is measured rather than declared, which is the same answer the fork reaches for
+// SharpEmu's own layout one level up. **zero is tried first and it is not a formality**: it always
+// wins on a shell process, so the shell binary puts the guest at one fixed set of addresses that two
+// runs can be diffed against each other. the rest are 4 GiB apart and all stop short of the 32 GiB
+// the PS5 image wants.
 constexpr uint64_t GuestBaseCandidates[] {
   0, 0x2'0000'0000, 0x3'0000'0000, 0x4'0000'0000, 0x5'0000'0000, 0x6'0000'0000, 0x7'0000'0000,
 };
@@ -403,10 +429,10 @@ int RunELF(FEXCore::Context::Context* CTX, const char* Path, const char* LibDir,
   }
   const auto& Elf = Program.Exec;
   // the payload's size alongside its path, so a measurement is attributable to a specific build
-  // rather than to whatever happened to be lying at that path. selectable builds gave a run a
-  // build *name*; this
-  // is the cheapest form of the same guarantee, and it is the one the shell binary gets too. the
-  // `mrpurple-t29` trap in miniature: a plausible number attributed to the wrong artefact.
+  // rather than to whatever happens to be lying at that path. the launcher names a build by its
+  // identity; this is the cheapest form of the same guarantee, and it is the one the shell binary
+  // gets too, where there is no meta.json to read. without it a rebuilt payload at a familiar path
+  // produces a plausible number attributed to the wrong artefact, with nothing erroring.
   struct stat PayloadStat {};
   if (::stat(Path, &PayloadStat) == 0) {
     std::printf("[host-layer] loaded %s (%lld bytes)\n", Path, static_cast<long long>(PayloadStat.st_size));
@@ -590,6 +616,7 @@ int HostLayer::RunMain(int argc, char** argv) {
   const char* LibDir = nullptr;
   const char* TmpDir = nullptr;
   std::vector<const char*> ExtraEnv;
+  std::vector<const char*> FexOptions;
   int ArgIndex = 1;
   for (; ArgIndex < argc; ++ArgIndex) {
     if (std::strcmp(argv[ArgIndex], "--spike") == 0) {
@@ -673,7 +700,7 @@ int HostLayer::RunMain(int argc, char** argv) {
     } else if (std::strcmp(argv[ArgIndex], "--vulkan-size") == 0 && ArgIndex + 1 < argc) {
       // the presentation size the guest is told the display is. it must match whatever the
       // client thinks its drawable is, or the client recreates its swapchain forever without
-      // ever erroring, which is how this was found. it applies only when there is no window:
+      // ever erroring — a silent hang rather than a failure. it applies only when there is no window:
       // with one, the size comes from the ANativeWindow and this flag is refused. under android
       // WSI the driver answers the question and none of it is consulted.
       unsigned Width = 0, Height = 0;
@@ -729,6 +756,15 @@ int HostLayer::RunMain(int argc, char** argv) {
     } else if (std::strcmp(argv[ArgIndex], "--env") == 0 && ArgIndex + 1 < argc) {
       // NAME=VALUE, appended to the guest environment. repeatable.
       ExtraEnv.push_back(argv[++ArgIndex]);
+    } else if (std::strcmp(argv[ArgIndex], "--fex") == 0 && ArgIndex + 1 < argc) {
+      // Name=Value against FEXCore's own option table, repeatable. this is how a JIT knob is
+      // chosen per run: FEX's usual routes to one are its config file and its FEX_ environment
+      // variables, and both are read by FEX's frontend rather than by FEXCore, so neither exists
+      // in a process that hosts the core as a library.
+      //
+      // the names are validated below rather than here, because resolving one needs the config
+      // subsystem initialised. what is checked here is only that there is something to validate.
+      FexOptions.push_back(argv[++ArgIndex]);
     } else {
       break;
     }
@@ -744,6 +780,7 @@ int HostLayer::RunMain(int argc, char** argv) {
                          "[--vulkan-profile] [--vulkan-dump <prefix>] "
                          "[--audio] [--audio-lib <so>] [--trace-audio] [--audio-watchdog] [--libs <dir>] "
                          "[--saf-mount <prefix>] "
+                         "[--fex Name=Value]... "
                          "[--tmp <dir>] [--env NAME=VALUE]... <x86-64-elf> [guest args...]\n");
     return 2;
   }
@@ -760,6 +797,35 @@ int HostLayer::RunMain(int argc, char** argv) {
     std::printf("[host-layer] --timestamps: guest stdout/stderr lines carry [+seconds.millis] since process start\n");
   }
   FEXCore::Config::Initialize();
+
+  // --fex, applied first so that the three values below always win. those three are not
+  // preferences: 32-bit mode silently halves the guest register file, the SMC mode has to agree
+  // with what the VMA tracker is told, and the interrupt fault page is what makes an asynchronous
+  // signal deliverable at all. a launch that names one of them gets the host layer's answer.
+  //
+  // an unknown name is refused rather than ignored. FEX's own loaders skip what they do not
+  // recognise, which suits a config file a user edits by hand; here the names arrive from a table
+  // in the app, so a typo that merely did nothing would look exactly like a knob that had no
+  // effect on this workload — and telling those two apart is the whole point of setting it.
+  for (const char* Option : FexOptions) {
+    const char* Equals = std::strchr(Option, '=');
+    if (!Equals || Equals == Option) {
+      std::fprintf(stderr, "[host-layer] --fex wants Name=Value, got '%s'\n", Option);
+      return 2;
+    }
+    const std::string_view Name(Option, Equals - Option);
+    const auto Resolved = ConfigOptionByName(Name);
+    if (!Resolved) {
+      std::fprintf(stderr, "[host-layer] --fex: no FEXCore option named '%.*s'\n", static_cast<int>(Name.size()), Name.data());
+      return 2;
+    }
+    // the value is passed through as written. Config::Set takes strings and FEXCore converts by
+    // the option's own type, so a bool wants "0" or "1" — the "none"/"mtrack"/"full" spellings and
+    // friends are handled by FEX's argument parser, which this does not use, exactly as the
+    // SMCCHECKS line below already notes.
+    FEXCore::Config::Set(*Resolved, Equals + 1);
+    std::printf("[host-layer] --fex %s\n", Option);
+  }
 
   // FEXCore defaults to 32-bit mode, and nothing complains if you leave it there: the decoder
   // takes its bitness from the CS descriptor, so 64-bit instructions still decode correctly.
@@ -826,7 +892,7 @@ int HostLayer::RunMain(int argc, char** argv) {
   // InitCore() unconditionally dereferences the signal delegator — it calls
   // SignalDelegation->SetConfig(...) with no null check — so one must be installed first or it
   // segfaults at +0x38. a plain instance is enough to get through init; it delivers nothing,
-  // which is what makes an unhandled guest fault fatal for now.
+  // which is what makes an unhandled guest fault fatal.
   FEXCore::SignalDelegator Signals;
   CTX->SetSignalDelegator(&Signals);
   GlobalSignals = &Signals;

@@ -1,7 +1,7 @@
 # runs the game once per SharpEmu build and reports what actually differed between them.
 #
 #   .\scripts\compare-builds.ps1                                     # every build on the device
-#   .\scripts\compare-builds.ps1 -Builds .\build\builds\parity-0.0.3-hotfix-2-b1 -Seconds 90
+#   .\scripts\compare-builds.ps1 -Builds .\build\builds\android-0.0.3-hotfix-2-b1 -Seconds 90
 #   .\scripts\compare-builds.ps1 -Game "Y:\games\Dead Cells [PPSA15552]"
 #
 # **-Builds, -Game and -Driver are paths on this machine**, each staged if the device does not
@@ -15,8 +15,8 @@
 #
 # **the payload's byte count is the control here**, the way the device identity is in
 # compare-drivers.ps1. two builds that report the same size are the same payload, whatever their
-# meta.json claimed, and a run attributed to the wrong artefact is the mrpurple-t29 trap: the
-# number looks fine and nothing errors.
+# meta.json claimed. a run attributed to the wrong artefact is the failure this guards: the number
+# looks fine and nothing errors, so nothing but the size ever says otherwise.
 #
 # what is reported per run:
 #   payload   the size the host layer read off the file it loaded
@@ -136,7 +136,7 @@ foreach ($entry in $buildList) {
     $meanRun = if ($runs) { [double]$runs.Matches[0].Groups[3].Value } else { $null }
 
     # the batching branch's own accounting, and it only exists when the build's meta.json defaulted
-    # SHARPEMU_BATCH_RENDER_PASSES on. its absence on `performance` is half the result. that branch
+    # SHARPEMU_BATCH_RENDER_PASSES on. its absence on the shipping build is half the result. that branch
     # is `perf/render-pass-batching` now, archived rather than maintained.
     $batching = ($lines | Select-String "render pass batching: (.+)$" | Select-Object -Last 1)
 

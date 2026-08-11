@@ -116,24 +116,26 @@ function Resolve-AppPackage {
 $script:SharpEmuJavaPackage = "com.mircowuffwuff.sharpemu"
 
 function Resolve-AppActivity {
-    # the component name to launch, "<application id>/<java package>.MainActivity".
+    # the component name to launch, "<application id>/<java package>.<class>". -Class picks which
+    # activity: the default MainActivity is a guest run, and GameListActivity is the app's own list,
+    # which is what a launch that runs no game wants.
     #
     # **the two halves are different things and only one of them moves.** aapt2's
     # --rename-manifest-package changes the application id and leaves the java package alone, so the
     # activity of the debug build is
     # com.mircowuffwuff.sharpemu.debug/com.mircowuffwuff.sharpemu.MainActivity. the shorthand
     # "<id>/.MainActivity" expands to <id>.MainActivity and resolves to nothing under any renamed id
-    # -- soak.ps1 shipped exactly that and only worked because the default used to be the one id
-    # where the halves coincide.
+    # -- and it works against the unrenamed one, where the two halves coincide, so the shorthand
+    # looks correct until something is renamed.
     #
-    # it lives here because five scripts were each spelling the java package out, which is the same
-    # duplication -Package had: correct everywhere today, and five things to miss on the day the
-    # java package moves. that rename also touches entry_jni.cpp's symbol names and the -Wl,-u in
+    # it lives here so that no script spells the java package out for itself: that is the same
+    # duplication -Package would be, correct everywhere today and one more thing to miss on the day
+    # the java package moves. that rename also touches entry_jni.cpp's symbol names and the -Wl,-u in
     # host/CMakeLists.txt, so it is not hypothetical bookkeeping.
-    param([string]$Package = "")
+    param([string]$Package = "", [string]$Class = "MainActivity")
 
     $Package = Resolve-AppPackage $Package
-    return "$Package/$script:SharpEmuJavaPackage.MainActivity"
+    return "$Package/$script:SharpEmuJavaPackage.$Class"
 }
 
 function Get-ApkArtefact {
@@ -206,10 +208,14 @@ function Deny-Candidate([bool]$strict, [string]$source, [string]$path, [string]$
     Write-Warning "[toolchain] skipping $path ($source): $reason."
 }
 
-function New-ToolchainFailure([string]$what, [string[]]$tried, [string]$needed) {
+# $fix names the way out. it is a parameter because the components fetch-toolchain.ps1 installs and
+# the ones git checks out are fixed by different commands, and an error naming the wrong one is worse
+# than an error naming none.
+function New-ToolchainFailure([string]$what, [string[]]$tried, [string]$needed, [string]$fix = "") {
     $lines = @("could not find $what.", "  needed: $needed", "  looked in:")
     foreach ($t in $tried) { $lines += "    $t" }
-    $lines += "  fix it by running .\scripts\fetch-toolchain.ps1, or point SHARPEMU_* at your own copy."
+    if ($fix) { $lines += "  $fix" }
+    else { $lines += "  fix it by running .\scripts\fetch-toolchain.ps1, or point SHARPEMU_* at your own copy." }
     $lines += "  see docs/repo-structure.md."
     return ($lines -join "`n")
 }
@@ -462,24 +468,38 @@ function Resolve-Toolchain {
     if ($need -contains "Fork") {
         $tried = @()
         $fork = $null
-        # the fork is a checkout you develop in, not something fetch-toolchain.ps1 installs, so it is
-        # looked for in the workspace only -- never inside the repository's own toolchain\.
+        # **the submodule is the default and a checkout of your own is the override.** the pin has to
+        # be the path an ordinary build takes, or nothing here ever notices it has gone stale and the
+        # first person to find out is somebody cloning this repository. this is the shape `go mod
+        # replace` and gclient's custom_deps use: the pin builds unless a local checkout is declared,
+        # and SHARPEMU_FORK is that declaration. the submodule is not where the fork is developed --
+        # point SHARPEMU_FORK at the checkout you commit in.
         foreach ($cand in @(
             @{ p = $env:SHARPEMU_FORK; src = "SHARPEMU_FORK"; strict = $true },
-            @{ p = (Join-Path $wsRoot "sharpemu"); src = "the workspace"; strict = $false })) {
+            @{ p = (Join-Path $script:SharpEmuRepoRoot "external\sharpemu"); src = "the submodule"; strict = $false })) {
             if (-not $cand.p) { continue }
             $tried += "$($cand.p)  ($($cand.src))"
             if (-not (Test-Path (Join-Path $cand.p "Directory.Build.props"))) {
-                Deny-Candidate $cand.strict $cand.src $cand.p "it has no Directory.Build.props, so it is not a SharpEmu checkout"
+                if ($cand.src -eq "the submodule") {
+                    $why = "it is not checked out, so run: git submodule update --init --recursive"
+                } else {
+                    $why = "it has no Directory.Build.props, so it is not a SharpEmu checkout"
+                }
+                Deny-Candidate $cand.strict $cand.src $cand.p $why
                 continue
             }
             $fork = $cand.p; $forkSource = $cand.src; break
         }
         if (-not $fork) {
-            throw (New-ToolchainFailure "the SharpEmu fork" $tried "a checkout of https://github.com/sharpemu-android/sharpemu")
+            $fix = "fix it by running: git submodule update --init --recursive"
+            $fix += "`n  or set SHARPEMU_FORK to a checkout of your own."
+            throw (New-ToolchainFailure "the SharpEmu fork" $tried "a checkout of https://github.com/sharpemu-android/sharpemu" $fix)
         }
         $tc.Fork = (Resolve-Path $fork).Path
-        if ($forkSource -ne "the workspace") { Note "fork from $forkSource : $($tc.Fork)" }
+        # **always named, unlike every other component.** two checkouts of one fork exist on a
+        # development machine by design, and which one a build was cut from is a question this
+        # project has already paid for once.
+        Note "fork from $forkSource : $($tc.Fork)"
     }
 
     return [PSCustomObject]$tc

@@ -19,6 +19,15 @@ plugins {
 val identityApplicationId: String? = (findProperty("sharpemuApplicationId") as String?)?.takeIf { it.isNotBlank() }
 val identityAppLabel: String = (findProperty("sharpemuAppLabel") as String?)?.takeIf { it.isNotBlank() } ?: "SharpEmu"
 
+// where the bundled SharpEmu build was staged, if one is being bundled at all.
+//
+// **it is a generated directory and never a source one.** app/build-app.ps1 populates it under
+// build/ from the build directory named by -BundleSharpEmu, and empties it when none was named, so
+// "which build is in this APK" is answered by one flag on one command rather than by whatever
+// happens to be sitting in app/src/main/assets. a development build of the app bundles nothing and
+// keeps its small APK without anyone deciding that it should.
+val bundleAssets: String? = (findProperty("sharpemuBundleAssets") as String?)?.takeIf { it.isNotBlank() }
+
 android {
     // **the java package, and it does not move.** the JNI entry points are named
     // Java_com_mircowuffwuff_sharpemu_HostLayer_*, host/CMakeLists.txt has a -Wl,-u keeping them
@@ -109,6 +118,10 @@ android {
             // the four .so files are produced by other steps into build/ and collected by
             // stageJniLibs below, rather than living in the source tree.
             jniLibs.srcDir(layout.buildDirectory.dir("jniLibs"))
+            // and the bundled SharpEmu build, when one was named. a directory that does not exist
+            // contributes nothing, which is the ordinary case: nothing is bundled unless
+            // -BundleSharpEmu said so.
+            bundleAssets?.let { assets.srcDir(it) }
         }
     }
 

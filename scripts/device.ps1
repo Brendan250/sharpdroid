@@ -96,9 +96,9 @@ function Get-DeviceFileSize([string]$Adb, [string]$Path) {
 #   - **omitting it means "whatever the device already has"**, per build, game and driver alike
 #
 # the second bullet is the one that matters. a locally rebuilt build keeps its directory name, so
-# "the leaf is already there" silently runs yesterday's bytes: exactly the wrong-artefact failure
-# that selecting by id was removed for, moved rather than fixed. the byte count is what this project
-# has always used to tell two artefacts apart, and it costs one `stat`.
+# "the leaf is already there" silently runs yesterday's bytes -- which is the same wrong-artefact
+# failure that refusing an id avoids, moved down a layer rather than fixed. the byte count is what
+# tells two artefacts apart, and it costs one `stat`.
 #
 # **each of these returns exactly one string**, and a caller should sanity-check it. a powershell
 # function returns everything written to its output stream, so a stray native command inside one of
@@ -107,17 +107,17 @@ function Get-DeviceFileSize([string]$Adb, [string]$Path) {
 # assigned or sent to Out-Null, and run.ps1 asserts the shape of what comes back.
 
 # a source that cannot be a PC path, explained rather than reported as a missing file. the two
-# mistakes worth naming are the ones this change creates: a build id, which used to work, and a
-# device path, which never did.
+# mistakes worth naming are a build id and a device path, because both look like something that ought
+# to work and neither is a path on this machine.
 function Deny-NotAPcPath([string]$Kind, [string]$Source, [string]$Hint) {
     if ($Source -match '^/(storage|data|sdcard)/') {
         throw ("'$Source' is a path on the device, and device paths are computed rather than typed.`n" +
                "  name the $Kind by its path on this machine and it gets staged for you.")
     }
     if ($Source -notmatch '[\\/]' -and -not [System.IO.Path]::IsPathRooted($Source)) {
-        throw ("'$Source' is a name, not a path. selecting by name was removed on 2026-08-05 because it`n" +
-               "  answered with the highest installed buildVersion, so a freshly staged b1 lost to an`n" +
-               "  existing b3 and the wrong artefact ran with nothing erroring.`n" +
+        throw ("'$Source' is a name, not a path. a name is not accepted: it would answer with the`n" +
+               "  newest packagedAt of that id, so a freshly staged build loses to an older one still`n" +
+               "  on the device and the wrong artefact runs with nothing erroring.`n" +
                "  $Hint")
     }
     throw "no $Kind at $Source"
@@ -129,7 +129,7 @@ function Deny-NotAPcPath([string]$Kind, [string]$Source, [string]$Hint) {
 # worth relying on.
 #
 # **the on-device name comes from meta.json, never from the source's own name.** a build may sit at
-# C:\wip\publish\linux-x64 or parity-b1.zip; its identity is `<id>-<version>-b<n>`, which is what the
+# C:\wip\publish\linux-x64 or a packaged zip; its identity is `<id>-<version>-<packagedAt>`, which is what the
 # app lists and what the staleness check reads.
 function Read-BuildSource([string]$Source, [string]$RepoRoot) {
     if (-not (Test-Path -LiteralPath $Source)) {
@@ -161,7 +161,7 @@ function Read-BuildSource([string]$Source, [string]$RepoRoot) {
         throw "$dir has no plugins/ - a build is a directory, and that is half of it"
     }
 
-    $slug = "$($meta.id)-$($meta.sharpemuVersion)-b$($meta.buildVersion)".ToLowerInvariant()
+    $slug = "$($meta.id)-$($meta.sharpemuVersion)-$($meta.packagedAt)".ToLowerInvariant()
     $slug = $slug -replace "\s+", "-"
     $slug = $slug -replace "[^a-z0-9._-]", "-"
     $slug = ($slug -replace "-+", "-").Trim("-")
@@ -319,7 +319,7 @@ function Resolve-StagedDriver([string]$Adb, [string]$Package, [string]$Source, [
     # exception to the rule so much as the rule's other half: what is on the device is selected by
     # what it is called there. run.ps1 has always read it this way. a name that is not there is an
     # error and never a fallback to stock, because a comparison silently run against the platform
-    # driver is the mrpurple-t29 trap.
+    # driver measures the same driver twice and reports a difference of zero as a result.
     if (-not (Test-DevicePath $Adb "$files/gpu-drivers/$Source")) {
         throw ("no driver called '$Source' on the device, and no file at that path either.`n" +
                "  stage one with .\scripts\stage-driver.ps1 -Driver <package.zip>, or omit it for the`n" +

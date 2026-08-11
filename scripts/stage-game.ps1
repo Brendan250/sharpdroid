@@ -27,8 +27,8 @@ param(
     #
     # **-Restage is the word, everywhere.** run.ps1 uses it for exactly this, and
     # -Force already means "rebuild what is up to date" on build-all.ps1 -- two meanings for one flag
-    # across scripts that get run in the same breath. kept as an alias because -Force is what this
-    # one was called until 2026-08-05.
+    # across scripts that get run in the same breath. -Force stays as an alias here, because this is
+    # the one script where it is the word a hand would reach for.
     [Alias("Force")]
     [switch]$Restage
 )

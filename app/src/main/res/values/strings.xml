@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  in-app text is cased as a UI normally is, unlike this project's prose, and it is **US English** -
+  "color", "behavior". the code around it keeps this project's own spelling, so a string named
+  setting_custom_colour reads "Theme color"; the name is never shown and the label always is.
+
+  app_name is deliberately absent: app/build.gradle.kts declares it with resValue, because a renamed
+  debug build has to carry a different label, and declaring it here too would be a duplicate
+  resource.
+-->
+<resources>
+
+    <!-- the app's own name rather than what the screen holds. it is the first screen, so it carries
+         the app's name; every screen behind it is named for its contents. -->
+    <string name="game_list_title">SharpEmu</string>
+
+    <!-- **it names no button and no gesture**, because the button is drawn directly underneath it and
+         says its own name. it is the folder manager's empty line as well, the two screens having the
+         same thing to report. -->
+    <string name="game_list_empty">No game folder has been added yet.</string>
+
+    <string name="folders_add">Add game folder</string>
+
+    <!-- what the picker answered, said out loud. a grant that was accepted and shows nothing is the
+         one outcome worth a sentence rather than a silence.
+
+         **a toast is two lines and it truncates without warning.** the folder that was picked can be
+         a long path, so the one message that has to say something past the name says it without one
+         - the log line names the folder exactly. -->
+    <string name="folder_added">Added %1$s</string>
+    <string name="folder_already_there">%1$s is already in the library</string>
+    <string name="folder_is_a_game">That folder is a game. Pick the folder that holds your game folders.</string>
+    <string name="folder_failed">Could not keep access to that folder</string>
+
+    <string name="folders_none">No game folder has been added yet.</string>
+    <string name="folders_remove_title">Remove folder?</string>
+    <string name="folders_remove_message">%1$s will be removed from the library and this app will give up access to it. The files are not touched.</string>
+    <string name="folders_remove">Remove</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- the all-files strings. the toggle itself is a row in Settings -> Data; this is the one case
+         that row cannot express, since it is what a tap on it reports when there is no platform
+         screen behind it. -->
+    <string name="all_files_unavailable">This device has no all-files setting to open</string>
+
+    <!-- ==========================================================================================
+         the settings scene.
+
+         a row's label says what the setting is, and nothing is prepended or appended to it. no row
+         is marked with where it came from: most of this scene is ours rather than upstream's, and a
+         mark the majority carries reads as the background rather than as a mark.
+         ========================================================================================== -->
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_open">Settings</string>
+
+    <string name="settings_app">App</string>
+    <string name="settings_app_summary">Modify the behavior and look of the app</string>
+    <string name="settings_emulation">Emulation</string>
+    <string name="settings_emulation_summary">How SharpEmu itself is run</string>
+    <string name="settings_graphics">Graphics</string>
+    <string name="settings_graphics_summary">Rendering and presentation</string>
+    <string name="settings_data">Data</string>
+    <string name="settings_data_summary">How this app reaches your files</string>
+
+    <string name="settings_group_sharpemu">SharpEmu</string>
+
+    <!-- the way back out of a choice, on a long press. it is worded as what it does rather than as
+         "clear", because what it restores is the app deciding rather than an empty value.
+
+         nothing on screen marks a row as set, so this is a gesture with no sign of itself. that was
+         the maintainer's call: the mark cost an indent on every row to hold a dot on one. -->
+    <string name="setting_use_default_title">Use the default?</string>
+    <!-- **it names no decider and no mechanism, deliberately.** who decides a cleared row differs by
+         row - the app, the payload, or FEXCore - and whether clearing it changes an argument vector
+         differs too, since the App section's rows never reach one. a sentence naming either was
+         wrong for some row on the screen it was shown from, so this one says the part that is true
+         of every row: the state it returns to is untouched, which is not the same as set to the
+         default value, and that distinction is what the whole precedence rule rests on. -->
+    <string name="setting_use_default_message">This setting goes back to its default, as if you had never changed it.</string>
+    <string name="setting_use_default">Use default</string>
+    <string name="save">Save</string>
+
+    <string name="setting_theme">Theme</string>
+    <string name="setting_theme_summary">Change the look of the app.</string>
+
+    <string name="setting_custom_colour">Theme color</string>
+    <string name="setting_custom_colour_summary">The color your theme is generated from.</string>
+    <string name="colour_preview">Preview</string>
+    <string name="colour_preview_value">Selected</string>
+
+    <string name="setting_fullscreen">Fullscreen mode</string>
+    <string name="setting_fullscreen_summary">Hide the status and navigation bars everywhere. Swipe from an edge to bring them back. A game is always fullscreen.</string>
+
+    <!-- the switch says what the state is, so the description says what the state means rather than
+         which one it currently is. -->
+    <string name="settings_group_game_files">Game files</string>
+
+    <!-- the row leads to the manager and the count is what it reports back, so the summary says what
+         a folder is for rather than repeating the count in words. -->
+    <string name="setting_folders">Game folders</string>
+    <string name="setting_folders_summary">The folders this app reads your games from.</string>
+    <!-- zero is its own string rather than the plural's "other". "0 folders" is a count where every
+         other row on this screen names a thing, and none is the one state worth reading as a state. -->
+    <string name="setting_folders_empty">None</string>
+    <plurals name="setting_folders_count">
+        <item quantity="one">%d folder</item>
+        <item quantity="other">%d folders</item>
+    </plurals>
+
+    <string name="setting_all_files">All files access</string>
+    <string name="setting_all_files_summary">Skip reading game files through the system file provider. May improve game file read performance.</string>
+
+    <string name="setting_strict">Strict dynlib resolution</string>
+    <string name="setting_strict_summary">Fail the launch when an imported symbol cannot be resolved, instead of continuing without it.</string>
+
+    <string name="settings_group_fexcore">FEXCore</string>
+    <string name="setting_fex_preset">FEXCore preset</string>
+    <string name="setting_fex_preset_summary">How faithfully guest code is translated. Some games may only work at certain presets.</string>
+    <!-- the ends of the scale name what it trades rather than the rungs sitting there, which the line
+         above the slider already names. -->
+    <string name="setting_fex_preset_low">Faithful</string>
+    <string name="setting_fex_preset_high">Fast</string>
+
+    <!-- ==========================================================================================
+         the build manager.
+
+         "build" is the emulator's own executable and everything beside it, which is not a word a
+         player has any reason to know - so every string here says what it is for rather than
+         assuming it. the version line is the identity a bug report needs.
+         ========================================================================================== -->
+
+    <string name="setting_build">SharpEmu build</string>
+    <string name="setting_build_summary">Which SharpEmu build runs your games. Import one, or stick to the bundled build.</string>
+    <!-- only reachable in a debug app with nothing bundled and nothing staged. a shipping app
+         always has the bundled build to name. -->
+    <string name="setting_build_none">No build on this device</string>
+    <string name="setting_build_missing">%1$s is no longer on this device</string>
+
+    <string name="build_list_empty">No SharpEmu builds on this device.\n\nTap Import to bring in a build zip. Builds staged to the app\'s external files under builds/ are listed here too.</string>
+
+    <!-- **Import rather than Install, on both managers.** nothing is installed anywhere: a zip is
+         read and its contents land in this app\'s own storage. "install" is also Android\'s word for
+         something else entirely, in an app whose users do install APKs and whose every script runs
+         adb install - and the code, the string names and the log line all say import.
+
+         one string for both managers, because they share the screen it sits on: two spellings of one
+         word is how the two drift apart. Delete is the same, and is the trash can\'s description as
+         well as the word on the button that confirms it. -->
+    <string name="manager_import">Import</string>
+    <string name="manager_delete">Delete</string>
+    <!-- version first because that is what a bug report is asked for. the commit is second and is
+         what actually tells two builds of one upstream version apart, which is the common case. the
+         build-number form is the fallback for a build that recorded no commit. -->
+    <string name="build_version_commit">v%1$s · %2$s</string>
+    <string name="build_version">v%1$s, packaged %2$d</string>
+    <!-- the version line with whoever produced the build after it, the separator a driver card
+         already uses for the same claim. -->
+    <string name="build_attribution">%1$s · %2$s</string>
+    <string name="build_unrunnable">This build declares host contract %1$d and this app cannot run it.</string>
+
+    <!-- one provenance badge per card, and it is always there: a build shipped inside the app, was
+         imported from a zip, or was staged from a PC. Outdated is the one badge beside it, and it
+         says the thing provenance cannot - this build is a SharpEmu version behind the one that
+         shipped inside the app, and the pinned card is newer.
+
+         **it is worded about the build and not about the user.** "Outdated" describes what is on the
+         device; anything phrased as an instruction would be wrong for somebody running an older
+         build on purpose, which is a normal thing to do here. -->
+    <string name="build_badge_bundled">Bundled</string>
+    <string name="build_badge_imported">Imported</string>
+    <string name="build_badge_staged">Staged</string>
+    <string name="build_badge_outdated">Outdated</string>
+
+    <string name="build_imported">Imported and selected %1$s</string>
+    <string name="build_now_selected">%1$s is now selected</string>
+
+    <string name="build_delete_title">Delete build?</string>
+    <string name="build_delete_message">%1$s will be removed from this device, along with any save data inside it.</string>
+    <string name="build_delete_message_staged">%1$s will be removed from this device. Staging it again brings it back.</string>
+    <string name="build_delete_failed">Could not delete that build</string>
+
+    <!-- every refusal names the file and says which of the checks it failed, because "that is not a
+         build" leaves somebody to guess between a wrapper directory, a missing plugins folder and a
+         driver package they picked by mistake. -->
+    <string name="build_import_too_small">%1$s is too small to be a SharpEmu build</string>
+    <string name="build_import_unreadable">Could not read %1$s as a zip</string>
+    <string name="build_import_is_a_driver">%1$s is a GPU driver package, not a SharpEmu build</string>
+    <string name="build_import_no_meta">%1$s has no meta.json at the root of the zip</string>
+    <string name="build_import_no_id">%1$s has a meta.json with no id in it</string>
+    <string name="build_import_contract">This build declares host contract %1$d and this app speaks %2$d to %3$d</string>
+    <string name="build_import_no_payload">The zip does not contain the payload its meta.json names, %1$s</string>
+    <string name="build_import_no_plugins">The zip has no plugins folder beside the payload, so audio and video would be missing</string>
+    <string name="build_import_already_there">That build is already imported as %1$s</string>
+    <string name="build_import_failed">Could not extract %1$s</string>
+
+    <!-- the build that shipped inside the app, becoming a directory. it happens once, on the first
+         game a user starts, and **a launch that succeeds says nothing at all** - the extraction is a
+         fraction of a second inside a launch that is already seconds of black screen, so these two
+         are what is left: the ways it can fail.
+
+         "SharpEmu" rather than "the build": at this moment the person has tapped a game and is
+         waiting, and what they are waiting for is the emulator being unpacked. the word "build" is
+         for the screen where one is chosen. -->
+    <!-- both numbers, because "not enough space" without them leaves somebody guessing how much to
+         clear - and the answer here is around 80 MB rather than gigabytes. -->
+    <string name="bundled_out_of_space">Not enough space to unpack SharpEmu. It needs %1$s and there is %2$s free.</string>
+    <string name="bundled_failed">Could not unpack the SharpEmu build that came with this app</string>
+
+    <!-- the panel the back button opens over a running game. "Exit game" rather than "Quit" or
+         "Close": it is the game that ends, and the word has to be unambiguous enough to be tapped
+         without a confirmation behind it - which there deliberately is not, because reaching this
+         button is already a back press and a deliberate tap. -->
+    <string name="overlay_exit">Exit game</string>
+
+    <string name="setting_internal_resolution">Internal resolution</string>
+    <string name="setting_internal_resolution_summary">Render offscreen targets below native resolution and upscale on present. Lower values trade image quality for GPU headroom.</string>
+
+    <!-- ==========================================================================================
+         the GPU driver manager.
+
+         "driver" is a word a player of an Android emulator does meet, because swapping one is how
+         half the community fixes a game - so these are shorter than the build manager's and assume
+         rather less explaining. what they never assume is turnip: the packages name themselves.
+         ========================================================================================== -->
+
+    <string name="settings_group_vulkan">Vulkan</string>
+
+    <string name="setting_driver">Graphics driver</string>
+    <string name="setting_driver_summary">Which Vulkan driver your games render through. Import one, or use the driver this device came with.</string>
+    <string name="setting_driver_missing">%1$s is no longer on this device</string>
+
+    <!-- the pinned row. it is named for what it is rather than for what it does, because "default"
+         would go stale the moment somebody chose another one and left it that way. -->
+    <string name="driver_system">System driver</string>
+    <string name="driver_system_version">Shipped with this device</string>
+    <string name="driver_system_description">The Adreno driver Android loads for every app. Every measurement in this project is taken on it.</string>
+    <string name="driver_badge_system">System</string>
+    <!-- the third provenance, and the reason every card has a badge rather than most of them. a
+         package is the device's own, or adb staged it, or it came in through the Import button -
+         and it was the last of those that had nothing to say, which made the badge look like a
+         decoration some cards happened to earn.
+
+         **"Imported" and not "Installed", which is why the button moved too.** the three badges are
+         three answers to one question - where did this come from - and they have to be in one tense
+         to read as a set. "installed" is a state rather than a provenance, and it describes a staged
+         package just as truly, which is the wobble the word carried from the start. -->
+    <string name="driver_badge_imported">Imported</string>
+
+    <string name="driver_version">%1$s · %2$s</string>
+    <string name="driver_unusable_min_api">This driver needs Android API %1$d and this device is API %2$d.</string>
+    <string name="driver_unusable_library">This package does not contain the library it names, %1$s.</string>
+
+    <string name="driver_imported">Imported and selected %1$s</string>
+    <string name="driver_now_system">Back to the system driver</string>
+
+    <string name="driver_delete_title">Delete driver?</string>
+    <string name="driver_delete_message">%1$s will be removed from this device.</string>
+    <string name="driver_delete_message_staged">%1$s will be removed from this device. That includes the copy staged from a PC, so staging it again brings it back.</string>
+    <string name="driver_delete_failed">Could not delete that driver</string>
+
+    <!-- every refusal says which check it failed, for the same reason the build manager's do: "that
+         is not a driver" leaves somebody guessing between a build zip they picked by mistake, a
+         package for a newer Android and a wrapper directory.
+
+         **and none of them names the file.** a toast is two lines and truncates without warning, and
+         a driver package's file name is routinely sixty characters - so a message that opened with
+         one lost the half that says what the thing is. the log line names the file exactly; the
+         person reading the toast just picked it and knows which one they meant. -->
+    <string name="driver_import_unreadable">Could not read that file as a zip</string>
+    <string name="driver_import_is_a_build">That is a SharpEmu build, not a GPU driver package</string>
+    <string name="driver_import_too_large">That file is far too large to be a GPU driver package</string>
+    <string name="driver_import_no_meta">That zip has no meta.json at its root</string>
+    <string name="driver_import_no_name">That package\'s meta.json has no name in it</string>
+    <string name="driver_import_no_library_name">That package\'s meta.json does not name a library</string>
+    <string name="driver_import_no_library">The zip does not contain the library its meta.json names, %1$s</string>
+    <string name="driver_import_min_api">That driver needs Android API %1$d and this device is API %2$d</string>
+    <string name="driver_import_reserved">%1$s is a reserved name</string>
+    <string name="driver_import_already_there">That driver is already imported as %1$s</string>
+    <string name="driver_import_failed">Could not extract that package</string>
+
+</resources>

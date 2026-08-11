@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  a manager screen: the SharpEmu build manager and the GPU driver manager, which are one screen with
+  a different thing on it.
+
+  a toolbar over a grid of cards, with the Import button floating over the bottom right and the list
+  padding itself by the button's height so the last card is reachable rather than sitting underneath
+  it. the title, the empty state and what a card holds come from the activity.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:orientation="vertical">
+
+    <!-- **the toolbar and the import bar are one band, and the bar is drawn inside it.** the bar is
+         about 3dp tall and it has to sit at the top of the content, which is exactly where the first
+         row of cards is: the list is pulled up 6dp, so its cards begin flush with the frame below and
+         a bar drawn there is a bar drawn over them. a strip of its own solves that and introduces a
+         worse one - the strip appears when an import starts and collapses when it ends, so the whole
+         list steps down and back up around something the user is waiting on.
+
+         over the toolbar it costs nothing either way. the toolbar's title is centred in it, so the
+         band's bottom edge is empty, and a bar that occupies it moves nothing at all: the list is
+         laid out against the band's height, which does not change. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:navigationIcon="@drawable/ic_back" />
+
+        <!-- an import is megabytes through a content provider, which is seconds with this screen in
+             front. at the bottom of the band it cannot be scrolled away and it cannot be mistaken
+             for part of a card.
+
+             selecting an item needs none of this: that writes a line and copies nothing. -->
+        <ProgressBar
+            android:id="@+id/progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:indeterminate="true"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- the settings scene's own padding, since these are its cards: the horizontal half holds
+             them off the screen edge and outsideOverlay keeps the scrollbar out of it. the bottom is
+             deeper than that scene's, by the height of the Import button - so the last card is
+             reachable rather than sitting underneath it.
+
+             **the top is smaller than the horizontal, and the card's own margin is why.** the gap
+             above the first row is this padding plus the 6dp each card carries, so matching the
+             horizontal 10dp would draw 16dp under the toolbar against the 12dp between two rows -
+             the first row below the rhythm of the list it starts. **it is the settings scene's
+             number**: this is that scene's grid with that scene's cards, and a reader who moves
+             between them sees one list rather than several.
+
+             **the negative top margin is against the toolbar rather than against the list.** the
+             toolbar is 64dp with its title centred in it, so 23dp of it is empty below the baseline
+             - which is most of the distance from the title to the first card, and none of it is
+             something the list's own padding can reach. 6dp back is the list borrowing a little of
+             that empty strip.
+
+             **this frame clips its children and the first row's corners are the limit that sets.**
+             the frame begins at the toolbar's bottom edge, so a list pulled far enough above it has
+             its first row cut flat rather than moved, while every row below keeps its corners. that
+             begins once the row would cross the frame's own top, which is 10dp of margin here - so
+             this is well inside it.
+
+             **it is on the list rather than on the frame around it**, so the progress bar and the
+             Import button stay where they are. the toolbar is drawn first, so the list draws over
+             the strip it borrows - which is why this is a few dp and not a few more: the title's
+             baseline is far enough above that scrolled cards pass under empty toolbar and never
+             under text.
+
+             **what is tuned is this view's own padding and margin, never the card's**: a card's
+             margin is half the gap between every pair of rows, so moving it moves the whole list to
+             change one edge. -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="-6dp"
+            android:clipToPadding="false"
+            android:paddingHorizontal="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="96dp"
+            android:scrollbarStyle="outsideOverlay"
+            android:scrollbars="vertical" />
+
+        <!-- **a manager whose list can be empty says so here, and one whose cannot never shows it.**
+             a device can hold no SharpEmu builds at all, where the system GPU driver is always a
+             card - so the text is the activity's rather than this file's.
+
+             **at the top rather than centred.** what it says is an instruction answered by the button
+             at the bottom right, so it belongs at the start of the space the list will fill rather
+             than floating in the middle of it - a line at the top reads as the top of the list it is
+             about to become, and the eye travels from it to the button instead of past it.
+
+             the top padding lands it about where the first card's own text would: the list pays 4dp
+             of padding and each card 6dp of margin and 14dp of padding above its first line. -->
+        <TextView
+            android:id="@+id/empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:paddingHorizontal="32dp"
+            android:paddingTop="@dimen/manager_empty_top"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+
+        <!-- the fade the list ends in. **it is above the Import button and below nothing else**, so
+             the button keeps its own edges and every card passes under it. -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/scrim_list_bottom" />
+
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/import_zip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="20dp"
+            android:text="@string/manager_import"
+            app:icon="@drawable/ic_add" />
+
+    </FrameLayout>
+
+</LinearLayout>

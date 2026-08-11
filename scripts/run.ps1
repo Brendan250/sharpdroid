@@ -3,10 +3,11 @@
 #   .\scripts\run.ps1
 #   .\scripts\run.ps1 -Game "Y:\games\Dead Cells [PPSA15552]"
 #   .\scripts\run.ps1 -SharpEmu C:\wip\publish\linux-x64      # a bare folder: SharpEmu + plugins/
-#   .\scripts\run.ps1 -SharpEmu .\build\builds\parity-0.0.3-hotfix-2-b1.zip
+#   .\scripts\run.ps1 -SharpEmu .\build\builds\android-0.0.3-hotfix-2-b1.zip
 #   .\scripts\run.ps1 -BuildSharpEmu                          # publish and package the fork first
 #   .\scripts\run.ps1 -Driver ..\Turnip_Gen8_V33.zip -Turbo
 #   .\scripts\run.ps1 -Seconds 90 -NoLogs                     # a timed run, summarised at the end
+#   .\scripts\run.ps1 -NoGame                                 # the app's own game list, no guest
 #
 # **it installs under its own application id.** com.mircowuffwuff.sharpemu.debug is a different app
 # to android: its own internal storage, its own external files directory, its own save data. so a
@@ -23,6 +24,12 @@
 # **with no -Game it takes one off the device**: Dreaming Sarah if it is there, because every
 # measurement in this project is against it, and otherwise any staged game. it says which it took.
 #
+# **-NoGame launches the app's own game list instead of a guest**, which is the run for looking at
+# the frontend. it starts GameListActivity rather than MainActivity, so nothing is resolved that only
+# a guest run needs: no game, and no build or driver unless you name one to stage. every extra the
+# other flags produce is read by a guest launch and by nothing else, so naming one alongside -NoGame
+# is refused rather than accepted and dropped.
+#
 # **everything you can name here is a path on this machine, and nothing is a name.** -Game, -SharpEmu
 # and -Driver take a PC path; the device path is computed from it and never typed. each one is staged
 # if the device does not already have those bytes and reused if it does -- **compared by size, not by
@@ -30,11 +37,10 @@
 # -Restage pushes over all three regardless. **omitting one means "whatever the device already has"**,
 # which is the common case and needs no path because nothing needs staging.
 #
-# that rule replaced selection by id on 2026-08-05. `--es sharpemu <id>` answered with the *newest*
-# build of that id, so a work-in-progress staged as b1 was silently ignored when a b3 was present --
-# a plausible artefact attributed to the wrong source, and the reason testing a new build used to
-# mean bumping -BuildVersion. **the app no longer accepts an id at all**, so this is one form rather
-# than two.
+# **a path rather than an id, and the app accepts nothing else.** an id names a family, so resolving
+# one means answering with the newest of it -- and a work-in-progress build then loses silently to an
+# older one still on the device, which is a plausible artefact attributed to the wrong source. one
+# form rather than two is also what stops the ambiguous one staying reachable.
 #
 # note for anyone editing this file: keep quoted strings ASCII. windows powershell reads this as
 # cp1252, where a UTF-8 em-dash ends in the byte 0x94 -- a right double quote -- and silently
@@ -45,6 +51,9 @@ param(
     # with an eboot.bin of the same size is reused unless -Restage. omitted: a game already on the
     # device -- Dreaming Sarah if it is there, otherwise any of them.
     [string]$Game = "",
+    # open the app's game list and run no guest. the frontend run: -SharpEmu and -Driver still stage
+    # what they name, and everything else a guest launch needs is skipped.
+    [switch]$NoGame,
     # a path to a build directory or zip. reused if the device already has that build with a payload
     # of the same size, staged otherwise. omitted: whatever is already staged for the debug app, and
     # if nothing is, it offers to publish and package the fork.
@@ -60,6 +69,10 @@ param(
     [string]$GuestEnv = "",
     [ValidateSet("", "none", "mtrack", "full")]
     [string]$Smc = "",
+    # the FEXCore JIT preset. omitted: whatever the settings scene stored, which is nothing on a
+    # fresh install -- and FEXCore's own defaults are what a run with no preset gets.
+    [ValidateSet("", "stability", "compatibility", "intermediate", "performance", "extreme")]
+    [string]$FexPreset = "",
     # run the host layer's 15 regression modes before deploying.
     [switch]$Check,
     # stop after this many seconds and summarise. 0 streams until the process exits or you Ctrl-C.
@@ -67,8 +80,8 @@ param(
     [switch]$NoLogs,
     [switch]$NoBuild,
     # push -Game, -SharpEmu and -Driver over what the device has, whatever their sizes say. rarely
-    # needed now that a size mismatch restages by itself; it is the escape hatch for the case sizes
-    # cannot see, which is two different dumps or builds that happen to be the same length.
+    # needed, since a size mismatch restages by itself; it is the escape hatch for the one case a
+    # byte count cannot see, which is two different dumps or builds of exactly the same length.
     [switch]$Restage,
     # which app to work against. **empty means the debug app**, com.mircowuffwuff.sharpemu.debug,
     # which is a separate app to android with its own storage and save data -- all development
@@ -82,6 +95,21 @@ param(
 
 $ErrorActionPreference = "Continue"
 
+# **refused rather than dropped.** every one of these is an extra MainActivity reads, and the game
+# list neither receives nor honours any of them - so accepting one here would start a screen that
+# quietly is not the run that was asked for.
+if ($NoGame) {
+    $guestOnly = @()
+    if ($Game)      { $guestOnly += "-Game" }
+    if ($Turbo)     { $guestOnly += "-Turbo" }
+    if ($GuestEnv)  { $guestOnly += "-GuestEnv" }
+    if ($Smc)       { $guestOnly += "-Smc" }
+    if ($FexPreset) { $guestOnly += "-FexPreset" }
+    if ($guestOnly.Count) {
+        throw ("-NoGame runs no guest, so " + ($guestOnly -join ", ") + " would have no effect. drop it, or drop -NoGame.")
+    }
+}
+
 $here = $PSScriptRoot
 . (Join-Path $here "toolchain.ps1")
 . (Join-Path $here "device.ps1")
@@ -90,7 +118,12 @@ $tc = Resolve-Toolchain -Need Adb -Quiet
 $adb = $tc.Adb
 $repoRoot = $tc.RepoRoot
 $files = Get-AppFilesDir $Package
-$activity = Resolve-AppActivity $Package
+# the list is an activity of the app's, a guest run is MainActivity in its own process. **an `if`
+# expression would be a parse error here**: windows powershell has no such thing, and this file is
+# read by it.
+$activityClass = "MainActivity"
+if ($NoGame) { $activityClass = "GameListActivity" }
+$activity = Resolve-AppActivity $Package -Class $activityClass
 
 function Step([string]$text) {
     Write-Host ""
@@ -136,6 +169,8 @@ if ($haveLibs.Count -lt 20) {
 # machine and gets staged if the device does not already have those bytes; omitted, so it is whatever
 # is already there, Dreaming Sarah first. every measurement script goes through the same function,
 # which is what stops the two halves of this project disagreeing about what "already staged" means.
+$gameName = ""
+if (-not $NoGame) {
 Step "game"
 $gameName = Resolve-StagedGame $adb $Package $Game -Restage:$Restage
 # **assert the shape of what came back.** a powershell function returns everything written to its
@@ -143,6 +178,7 @@ $gameName = Resolve-StagedGame $adb $Package $Game -Restage:$Restage
 # answer -- which has happened here before, with the whole of `dotnet publish`'s log returned as a
 # path. a game name is one line and has no newline in it.
 if (-not $gameName -or $gameName -match "[\r\n]") { throw "Resolve-StagedGame returned '$gameName', which is not one game name" }
+}
 
 # --- 5. the SharpEmu build ----------------------------------------------------------------------
 $buildsDir = "$files/builds"
@@ -154,7 +190,11 @@ if ($BuildSharpEmu -and $SharpEmu) { throw "-BuildSharpEmu and -SharpEmu both na
 # a question -- but only a question, because -BuildSharpEmu exists precisely so that rebuilding the
 # emulator is something you opt into rather than something that happens to you. answering Y just sets
 # the switch, so there is one packaging path below rather than two.
-if (-not $SharpEmu -and -not $BuildSharpEmu -and @(Get-DeviceListing $adb $buildsDir).Count -eq 0) {
+#
+# **a list launch is never asked**, because it runs no guest: a device with no build staged at all is
+# a perfectly good device to look at the frontend on, and a question whose only honest answers cost
+# minutes or abort the run would be one nobody wanted.
+if (-not $NoGame -and -not $SharpEmu -and -not $BuildSharpEmu -and @(Get-DeviceListing $adb $buildsDir).Count -eq 0) {
     Write-Host ""
     Write-Host "no SharpEmu build is staged for $Package, and none was given."
     Write-Host "  -SharpEmu <folder|zip>  stages one you already have"
@@ -217,39 +257,55 @@ if ($SharpEmu) {
     if ($isDir -and -not (Test-Path -LiteralPath (Join-Path $source "meta.json"))) {
         Step "give the publish tree an identity"
         Write-Host "$source has no meta.json, so it is being packaged as a dev build"
-        & (Join-Path $here "package-build.ps1") -FromArchive $source -Id dev -SharpEmuVersion dev -BuildVersion 1
+        & (Join-Path $here "package-build.ps1") -FromArchive $source -Id dev -SharpEmuVersion dev
         if (-not $?) { throw "packaging $source failed" }
         $SharpEmu = Join-Path $repoRoot "build\builds\dev-dev-b1"
     }
 }
 
-Step "the build"
-$buildPath = Resolve-StagedBuild $adb $Package $SharpEmu -Restage:$Restage
-# the same assertion the game gets, and here it is worth more: this string is about to be handed to
-# `am start`, where a device path that has picked up a second line launches something unintended or
-# nothing at all.
-if ($buildPath -notlike "$buildsDir/*" -or $buildPath -match "[\r\n]") {
-    throw "Resolve-StagedBuild returned '$buildPath', which is not one build directory under $buildsDir"
+# **resolving a build is what stages one**, so a list launch still comes through here when -SharpEmu
+# or -BuildSharpEmu named one -- it is only the resolution a launch needs that is skipped, and a list
+# launch names no build to run.
+$buildPath = ""
+if (-not $NoGame -or $SharpEmu) {
+    Step "the build"
+    $buildPath = Resolve-StagedBuild $adb $Package $SharpEmu -Restage:$Restage
+    # the same assertion the game gets, and here it is worth more: this string is about to be handed
+    # to `am start`, where a device path that has picked up a second line launches something
+    # unintended or nothing at all.
+    if ($buildPath -notlike "$buildsDir/*" -or $buildPath -match "[\r\n]") {
+        throw "Resolve-StagedBuild returned '$buildPath', which is not one build directory under $buildsDir"
+    }
 }
 
 # --- 6. the driver ------------------------------------------------------------------------------
 # named, it is a package on this machine or the name of one already on the device; omitted, it is the
 # platform's own Adreno driver. **stock is the absence of a name and not a name**, which is why there
 # is no sentinel here to spell.
-Step "the driver"
-$driverName = Resolve-StagedDriver $adb $Package $Driver -Restage:$Restage
-if ($driverName -match "[\r\n]") { throw "Resolve-StagedDriver returned '$driverName', which is not one driver name" }
-if (-not $driverName) { Write-Host "driver: the platform's own Adreno driver (-Driver to stage another)" }
+#
+# a list launch stages one it is given and says nothing when it is not: which driver the platform
+# would load is a fact about a guest run, and there is no guest run to report it for.
+$driverName = ""
+if (-not $NoGame -or $Driver) {
+    Step "the driver"
+    $driverName = Resolve-StagedDriver $adb $Package $Driver -Restage:$Restage
+    if ($driverName -match "[\r\n]") { throw "Resolve-StagedDriver returned '$driverName', which is not one driver name" }
+    if (-not $driverName) { Write-Host "driver: the platform's own Adreno driver (-Driver to stage another)" }
+}
 
 # --- 7. launch ----------------------------------------------------------------------------------
 Step "launch"
-$payloadSize = (& $adb shell "stat -c %s '$buildPath/SharpEmu' 2>/dev/null").Trim()
-Write-Host ("  build   {0}" -f $buildPath)
-Write-Host ("  payload {0} bytes" -f $payloadSize)
-Write-Host ("  game    {0}" -f $gameName)
+if ($buildPath) {
+    $payloadSize = (& $adb shell "stat -c %s '$buildPath/SharpEmu' 2>/dev/null").Trim()
+    Write-Host ("  build   {0}" -f $buildPath)
+    Write-Host ("  payload {0} bytes" -f $payloadSize)
+}
+if ($NoGame)     { Write-Host  "  screen  the game list - no guest runs" }
+else             { Write-Host ("  game    {0}" -f $gameName) }
 if ($driverName) { Write-Host ("  driver  {0}" -f $driverName) }
 if ($Turbo)      { Write-Host  "  turbo   on" }
 if ($GuestEnv)   { Write-Host ("  env     {0}" -f $GuestEnv) }
+if ($FexPreset)  { Write-Host ("  fex     {0}" -f $FexPreset) }
 
 # **one single-quoted command string, not a list of arguments.** every game directory is named
 # `Title [PPSAxxxxx]`, and passing that as its own argument loses the quoting somewhere between
@@ -257,10 +313,19 @@ if ($GuestEnv)   { Write-Host ("  env     {0}" -f $GuestEnv) }
 # `games/Dreaming/eboot.bin`. adb hands a single argument to the device shell verbatim, and single
 # quotes there survive both the space and the brackets. the staging scripts hit this same wall long
 # ago and solved it the same way.
-$cmd = "am start -n $activity --es sharpemu '$buildPath' --es game '$gameName'"
-if ($driverName) { $cmd += " --es driver '$driverName'" }
+#
+# **the list is started bare.** it takes no extras at all, and the app resolves a build, a driver and
+# a game from what the settings scene stored - which is the whole point of looking at it.
+$cmd = "am start -n $activity"
+if (-not $NoGame) { $cmd += " --es sharpemu '$buildPath' --es game '$gameName'" }
+if ($driverName -and -not $NoGame) { $cmd += " --es driver '$driverName'" }
 if ($GuestEnv)   { $cmd += " --es guestenv '$GuestEnv'" }
 if ($Smc)        { $cmd += " --es smc $Smc" }
+# lowercased on the way out. ValidateSet above accepts any casing and passes through what was
+# typed, so -FexPreset "Intermediate" would otherwise reach the app as a spelling its own table does
+# not hold -- and an id the app does not know is dropped in favour of the stored setting, which is a
+# run that silently is not the one asked for. the app lowercases too; this is the cheaper half.
+if ($FexPreset)  { $cmd += " --es fexpreset " + $FexPreset.ToLowerInvariant() }
 if ($Turbo)      { $cmd += " --ez turbo true" }
 
 & $adb shell am force-stop $Package

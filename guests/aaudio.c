@@ -18,9 +18,9 @@
 // **what makes this a test rather than a demonstration** is the last check. a stream that opens
 // and plays nothing succeeds at every call and accepts every buffer; the only thing that differs
 // is that the device never consumed anything. so the pass condition is AAudioStream_getFramesRead
-// advancing at the stream's own sample rate against a clock the guest reads itself — the same
-// guard the mrpurple-t29 driver taught us to want, where a run that silently did nothing reported
-// a splendid number.
+// advancing at the stream's own sample rate against a clock the guest reads itself. it is the same
+// guard a GPU driver package needs against failing to load and falling back to the platform's own:
+// without it, a run that silently does nothing reports a splendid number.
 
 #include <stdint.h>
 

@@ -82,9 +82,9 @@ void SetTrace(bool Enabled);
 // is seconds of `vkCreateGraphicsPipelines` that never repeat, and it would bury everything.
 void SetProfile(bool Enabled);
 
-// which half of CPUState's XMM union FEX is spilling to used to be set here; it is
-// GuestAbi::SetAvxRegisterFile in guest_abi.h now, because both thunks read arguments out of the
-// same register file and only one of them can own the answer.
+// which half of CPUState's XMM union FEX is spilling to is GuestAbi::SetAvxRegisterFile in
+// guest_abi.h, not here: both thunks read arguments out of the same register file, and only one
+// place can own that answer.
 
 // the host vulkan to load. defaults to the platform loader, "libvulkan.so", which is what
 // gives WSI and the stock adreno driver.
@@ -167,20 +167,19 @@ void SetWsiMode(WsiMode Mode);
 // means it can arrive before the guest starts and vanish while it is running.
 //
 // a window changes two things and only two. it is **authoritative for the extent**, which is what
-// finally retires the hand-matched 1920x1080 this used to need: a surface that disagrees with the client's
-// drawable makes the presenter recreate its swapchain forever without ever erroring, so the size
-// has to come from one place, and the only place that actually knows is here. and it gives
-// Present() somewhere to put the frame — before there was a window, a presented image was counted
-// and dropped.
+// removes any need to hand-match a size: a surface that disagrees with the client's drawable makes
+// the presenter recreate its swapchain forever without ever erroring, so the size has to come from
+// one place, and the only place that actually knows is here. and it gives Present() somewhere to
+// put the frame — with no window, a presented image is counted and dropped.
 void SetAndroidWindow(::ANativeWindow* Window);
 
 // where to write presented frames as PPMs, as "<prefix>-NNNNN.ppm". off unless asked for: it
 // costs a full device-to-host copy and a stall on the frames it captures.
 //
 // **headless WSI only.** under android WSI the swapchain images belong to the driver, and reading
-// one back would mean tracking handles we no longer own and forcing a usage bit onto a create info
-// that is the guest's. it was the tool for proving pixels existed when nothing was on screen;
-// there is a screen now, and `adb shell screencap` answers the same question better.
+// one back would mean tracking handles the thunk does not own and forcing a usage bit onto a create
+// info that is the guest's. it proves pixels exist when nothing reaches a screen; with a window,
+// `adb shell screencap` answers the same question more cheaply.
 void SetDumpPrefix(const char* Prefix);
 
 // counters, for the run summary.

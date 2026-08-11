@@ -21,12 +21,8 @@ import androidx.annotation.Keep
  * errno the syscall underneath should return. Everything else here is called from the app before a
  * guest exists.
  *
- * **A document id is built by concatenation, not by walking.** Resolving `sce_sys/param.json` by
- * querying for each component in turn is what a `DocumentFile` does, and it costs a fifth of a second
- * per path on a dump with 816 files in it because every level lists all of its children — where
- * appending to the parent's id is one query at any size. It assumes the id scheme the platform's own
- * external-storage provider uses, which holds for internal storage and for an SD card alike, and it
- * is the only reason this is fast enough to exist.
+ * **A document id is built by concatenation, not by walking**, which is [TreeDocument]'s rule and the
+ * only reason this is fast enough to exist.
  */
 @Keep
 object GuestFiles {
@@ -67,8 +63,7 @@ object GuestFiles {
     @JvmStatic
     fun mount(context: Context, treeUri: Uri, directoryName: String): Boolean {
         val contentResolver = context.applicationContext.contentResolver
-        val treeId = DocumentsContract.getTreeDocumentId(treeUri)
-        val id = if (directoryName.isEmpty()) treeId else "$treeId/$directoryName"
+        val id = TreeDocument.childId(TreeDocument.rootId(treeUri), directoryName)
 
         resolver = contentResolver
         tree = treeUri
@@ -94,10 +89,7 @@ object GuestFiles {
     private fun documentUri(relative: String): Uri? {
         val treeUri = tree ?: return null
         val id = rootId ?: return null
-        return DocumentsContract.buildDocumentUriUsingTree(
-            treeUri,
-            if (relative.isEmpty()) id else "$id/$relative",
-        )
+        return TreeDocument.uri(treeUri, TreeDocument.childId(id, relative))
     }
 
     /**
@@ -197,8 +189,7 @@ object GuestFiles {
     fun listChildren(relative: String): Array<String>? {
         val treeUri = tree ?: return null
         val id = rootId ?: return null
-        val parent = if (relative.isEmpty()) id else "$id/$relative"
-        val uri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parent)
+        val uri = TreeDocument.childrenUri(treeUri, TreeDocument.childId(id, relative))
         val columns = arrayOf(
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_MIME_TYPE,

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  one granted game folder, in the folder manager.
+
+  **the manager card's shape without the manager card's content.** a folder has no version, no
+  provenance to badge and nothing to select between - every folder in the list is equally in the
+  library - so the four-line card would be three empty lines and a radio that never means anything.
+  what carries across is the frame: the same corner radius, fill, outline and margins as the build and
+  driver cards, so a reader moving between the three screens sees one kind of list.
+
+  **the label is the document id and it can be long.** it scrolls rather than ellipsizing, for the
+  reason the manager card records: what identifies a folder is the whole of `<volume>:<path>`, and the
+  end of it is the half that says which folder.
+
+  the trash can is the row's only action, so it is the only thing here that takes a tap.
+-->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="6dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="?attr/colorSurfaceContainer"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="14dp">
+
+        <TextView
+            android:id="@+id/label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurface" />
+
+        <ImageButton
+            android:id="@+id/remove"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/folders_remove"
+            android:src="@drawable/ic_delete" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

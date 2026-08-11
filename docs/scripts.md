@@ -15,7 +15,7 @@ everything is a PowerShell script and there is no build system on top of them. t
 
 `fetch-toolchain.ps1` installs a JDK, the android SDK components and a .NET SDK **into this repository's own `toolchain/`**. it never touches a machine-wide install and never modifies `PATH`. already have your own? point `SHARPEMU_JDK`, `SHARPEMU_ANDROID_SDK`, `SHARPEMU_NDK` or `SHARPEMU_DOTNET` at it instead.
 
-**you also need a SharpEmu build to run.** `scripts/package-build.ps1` turns a publish of the [fork](https://github.com/sharpemu-android/sharpemu) — or any linux-x64 release archive — into a build the app can install, and `scripts/run.ps1 -BuildSharpEmu` does it for you.
+**you also need a SharpEmu build to run.** `scripts/package-build.ps1` turns a publish of the [fork](https://github.com/sharpemu-android/sharpemu) — or any linux-x64 release archive — into a build the app can run or import, and `scripts/run.ps1 -BuildSharpEmu` does it for you.
 
 ## the everyday loop
 
@@ -40,6 +40,8 @@ that is true of the whole set, not just the two that build an APK: **`run.ps1`, 
 | `-Package <id>` and/or `-Name <label>` | what you passed, the other from the manifest | |
 | `-Release` **and** either of those | what you passed — **`-Release` does nothing** | |
 
+**where the APK is written follows the application id, and `-OutName` is the one part of that a caller can set.** `Get-ApkArtefact` puts a renamed build at `build/app-<leaf>/sharpemu-android-<leaf>.apk`, where the leaf is the id's last component — so two application ids cannot overwrite each other's output, and every script predicts the path the same way. `-OutName` replaces that leaf, for the case where two builds share a last component and would otherwise collide.
+
 naming a build replaces the whole default pair rather than half of it, which is what makes `-Release` alongside `-Package` or `-Name` a no-op instead of something surprising: the alternative would hand `-Release -Name "SharpEmu Nightly"` the *debug* application id. the rule lives in `Resolve-AppIdentity` in `scripts/toolchain.ps1`, so `build-app.ps1` and `build-all.ps1` cannot disagree about it — including about where the APK is written, since two application ids must not overwrite each other's output.
 
 `run.ps1` passes the debug identity explicitly and is unaffected by `-Release`; it is a debug deploy loop by definition. give it `-Package` and `-Name` if you want it pointed somewhere else.
@@ -48,20 +50,22 @@ naming a build replaces the whole default pair rather than half of it, which is 
 .\scripts\run.ps1                                        # reuse what is already staged
 .\scripts\run.ps1 -Game "D:\games\Dead Cells [PPSA15552]"
 .\scripts\run.ps1 -SharpEmu C:\wip\publish\linux-x64     # a bare folder: SharpEmu + plugins/
-.\scripts\run.ps1 -SharpEmu .\build\builds\parity-0.0.3-hotfix-2-b1.zip
+.\scripts\run.ps1 -SharpEmu .\build\builds\android-0.0.3-hotfix-2-b1.zip
 .\scripts\run.ps1 -BuildSharpEmu                         # publish and package the fork first
 .\scripts\run.ps1 -Driver ..\Turnip_Gen8_V33.zip -Turbo
 .\scripts\run.ps1 -Seconds 90                            # a timed run, summarised at the end
 .\scripts\run.ps1 -Check                                 # run the regression set first
+.\scripts\run.ps1 -NoGame                                # the app's own game list, no guest
 ```
 
 | flag | |
 | --- | --- |
 | `-Game <path>` | a path to a game directory. its last component is the name on the device. **omitted, it picks one off the device** — see below |
+| `-NoGame` | open the app's game list and run no guest — see below |
 | `-SharpEmu <folder\|zip>` | a path to a build. **omitted, it reuses whatever is already staged** — see below |
 | `-BuildSharpEmu` | publish and package the fork checkout first |
 | `-Driver <path\|name>` | a path to a driver package, or the name of one already on the device. **omitted, the platform's own Adreno driver** |
-| `-Turbo`, `-GuestEnv`, `-Smc` | passed to the app as launch options |
+| `-Turbo`, `-GuestEnv`, `-Smc`, `-FexPreset` | passed to the app as launch options |
 | `-Seconds N` | run for N seconds, then stop and summarise. otherwise it follows the log until the process exits or you Ctrl-C |
 | `-Restage` | push `-Game`, `-SharpEmu` and `-Driver` over what the device has regardless of size |
 | `-NoBuild`, `-NoLogs`, `-Check` | |
@@ -72,23 +76,25 @@ naming a build replaces the whole default pair rather than half of it, which is 
 
 **omitting `-Game` picks one off the device.** `Dreaming Sarah` if it is staged, since every measurement in this project is against it and the match is loose (`*Dreaming Sarah*`, because the directory carries your own dump's title id); otherwise any staged game, chosen in sorted order so it is the same one every time; and if nothing is staged, it says so and stops. **the line it prints always says which it took and why**, because a run attributed to the wrong game is worse than no run.
 
+**`-NoGame` is the frontend run.** it starts `GameListActivity` instead of `MainActivity`, so the app opens on its list and no guest process is ever forked — which is what you want when the thing you are looking at is a screen rather than a game. it skips everything only a guest launch needs: no game is resolved, and no build or driver either unless you name one, so a device with nothing staged is a perfectly good device to open the frontend on and there is no question to answer. `-SharpEmu`, `-BuildSharpEmu` and `-Driver` still stage what they name. **the flags a guest reads are refused rather than dropped** — `-Game`, `-Turbo`, `-GuestEnv`, `-Smc` and `-FexPreset` all name something the list neither receives nor honours, so passing one alongside `-NoGame` stops with the reason instead of starting a run that quietly is not the one asked for. the log still follows, and its summary reports no frames, which is correct.
+
 ## you type a PC path, never a device path
 
-**this is one rule and it covers every script here.** it replaced selecting a build by name on 2026-08-05.
+**this is one rule and it covers every script here.**
 
 - **naming something means a path on this machine** — a build directory or zip, a game directory, a driver package. `-SharpEmu`, `-Game`, `-Driver`, `-Builds`, `-Drivers` and `-Build` all read this way, and **the path on the device is computed from it and never typed**
-- **it is staged if the device does not already have it, and reused if it does** — where "has it" compares the **payload's byte count**, not the name. on a mismatch it restages by itself and says why. `-Restage` pushes over it regardless, and is now the rarely-needed escape hatch for two artefacts that happen to be the same length
+- **it is staged if the device does not already have it, and reused if it does** — where "has it" compares the **payload's byte count**, not the name. on a mismatch it restages by itself and says why. `-Restage` pushes over it regardless, and is the escape hatch for the one case that defeats a byte count: two artefacts that happen to be the same length
 - **omitting it means "whatever the device already has"**, per build, game and driver alike. there is nothing to stage in that case and so nothing to name
 
-so `-Restage` is the word everywhere — not `-Force`, which already means "rebuild what is up to date" on `build-all.ps1`. `stage-game.ps1` still answers to `-Force` as an alias.
+so `-Restage` is the word everywhere — not `-Force`, which means "rebuild what is up to date" on `build-all.ps1`. `stage-game.ps1` answers to `-Force` as an alias.
 
-**the on-device name of a build comes from its `meta.json`**, `<id>-<version>-b<n>`, and never from what the directory or zip is called on your disk. that is also what labels a row in `soak.ps1` and a column in `compare-builds.ps1`, because a full device path would be the whole table.
+**the on-device name of a build comes from its `meta.json`**, `<id>-<version>-<packagedAt>`, and never from what the directory or zip is called on your disk. that is also what labels a row in `soak.ps1` and a column in `compare-builds.ps1`, because a full device path would be the whole table.
 
-**and the app no longer accepts a build id.** `--es sharpemu` takes an absolute path to a build directory, or nothing, which means the most recently staged build. an id is refused outright and starts nothing. it used to resolve to the **highest installed `buildVersion`** of that id — so a freshly staged `b1` was silently ignored while a `b3` existed, which is why testing a new build used to mean remembering to bump `-BuildVersion`. that is a plausible run attributed to the wrong artefact, with nothing erroring.
+**the app does not accept a build id.** `--es sharpemu` takes an absolute path to a build directory, or nothing, which means whatever the build manager settled on. **`--es sharpemu android` fails rather than resolving**, and that is the point: an id names a family and not a build, so resolving one means answering with the newest of it — and a freshly staged build then loses to a later-stamped one still lying around, which is a plausible run attributed to the wrong artefact with nothing erroring. a path cannot be ambiguous about which directory it meant.
 
-**`--es sharpemu parity` now fails rather than resolving, and `hostContract` did not move for it**, so there is no version signal explaining why. that is deliberate: the contract gates the *payload*, and a build packaged before this change is byte-for-byte compatible with the app after it. bumping it would refuse working builds by name — a false negative in the mechanism built to prevent false negatives. only the tooling ever used the id form.
+**`hostContract` does not gate that**, so a refusal carries no version signal explaining itself. that is deliberate: the contract gates the *payload*, and this is a rule on the launcher's side of the line that leaves every build byte-for-byte compatible either way. bumping it would refuse working builds by name — a false negative in the mechanism built to prevent false negatives.
 
-**the platform's own GPU driver is the absence of a name rather than a name.** it is not a file, so it cannot be a path; `stock` is gone as a sentinel from every script. for `compare-drivers.ps1` that means stock is the implicit control and is always run, and each `-Drivers` entry adds a driver to compare against it.
+**the platform's own GPU driver is the absence of a name rather than a name.** it is not a file, so it cannot be a path, and no script takes `stock` as a sentinel. for `compare-drivers.ps1` that means stock is the implicit control and is always run, and each `-Drivers` entry adds a driver to compare against it.
 
 ## building the pieces
 
@@ -102,7 +108,7 @@ so `-Restage` is the word everywhere — not `-Force`, which already means "rebu
 | `host/thunks/audio/build-guest-aaudio.ps1` | the same for 72 AAudio entry points |
 | `host/build.ps1` | **FEXCore for bionic plus the host layer**, as a JNI library and a shell binary. `-Clean`, `-BuildType`, `-ApiLevel` |
 | `guests/build-guests.ps1` | the nine x86-64 test guests `regression.sh` exercises the host layer with |
-| `app/build-app.ps1` | the APK, by driving gradle. `-Install`, `-Release`, `-Package <id>`, `-Name <label>`, `-Offline` — see [which app you are building](#which-app-you-are-building) |
+| `app/build-app.ps1` | the APK, by driving gradle. `-Install`, `-Release`, `-Package <id>`, `-Name <label>`, `-OutName <leaf>`, `-Offline`, `-BundleSharpEmu <build directory>` — see [which app you are building](#which-app-you-are-building) and [shipping a build inside the APK](#shipping-a-build-inside-the-apk) |
 
 the ordering is real rather than editorial — the host cmake project refuses without `build/adrenotools/libadrenotools.a`, `build-app.ps1` refuses without `libsharpemu-host-layer.so`, and `build-guests.ps1` refuses without the generated guest-side libraries.
 
@@ -114,6 +120,8 @@ the ordering is real rather than editorial — the host cmake project refuses wi
 .\host\thunks\vulkan\gen-thunk.ps1     # both halves, from the NDK's vulkan_core.h
 .\host\thunks\audio\gen-thunk.ps1      # both halves, from aaudio/AAudio.h
 ```
+
+**one more script is outside the pipeline on purpose.** `host/thunks/vulkan/build-probe.ps1` builds a host-side vulkan probe for bionic arm64 — it links nothing, takes two seconds, and answers questions about the *host's* vulkan rather than about the guest's, which is why it is not a step in `build-all.ps1`.
 
 ## putting things on a device
 
@@ -133,15 +141,35 @@ all of them take **`-Package <application id>`** to choose which app's storage t
 
 ```powershell
 .\scripts\package-build.ps1                       # from the fork branch that is checked out
-.\scripts\package-build.ps1 -Branch parity -BuildVersion 2
-.\scripts\package-build.ps1 -FromArchive .\sharpemu-0.0.3-hotfix-2-linux-x64.tar.gz -Id parity
-.\scripts\package-build.ps1 -FromArchive https://.../sharpemu-0.0.3-linux-x64.tar.gz -Id parity
+.\scripts\package-build.ps1 -Branch android       # packagedAt stamps itself
+.\scripts\package-build.ps1 -FromArchive .\sharpemu-0.0.3-hotfix-2-linux-x64.tar.gz -Id android
+.\scripts\package-build.ps1 -FromArchive https://.../sharpemu-0.0.3-linux-x64.tar.gz -Id android
 .\scripts\package-build.ps1 -FromArchive C:\wip\publish\linux-x64 -Id dev -SharpEmuVersion dev
 ```
 
 it produces a build **directory and zip** under `build/builds/` and stops there — `stage-build.ps1` puts one on a device. **`-FromArchive` needs no fork checkout, no .NET SDK and no git**, which is the path a third party takes; it accepts an archive by path or URL, or a bare publish directory. what it cannot do is record a commit, so `meta.json`'s `commit` is empty and `source` names where it came from instead.
 
 **what a build is, field by field, is [`build-format.md`](build-format.md)** — the `meta.json` schema, the `hostContract` generations and what a payload has to implement to satisfy one. read that rather than this one if you are packaging a build by hand or producing one the app has never seen.
+
+## shipping a build inside the APK
+
+```powershell
+.\app\build-app.ps1 -Release -BundleSharpEmu .\build\builds\android-0.0.3-hotfix-2-20260808015108
+```
+
+**exactly one build ships per APK, and naming one is the whole of how it gets there.** absent means no asset, so a development build of the app keeps its small APK and its staged builds without anyone deciding that it should — and the staging directory is emptied on every build that names none, so yesterday's bundle cannot ride along in today's.
+
+**there is deliberately no coupling to `-Release`.** a release APK with no build in it and a debug APK with one are both things you may want, and a rule tying the two together is a rule to get wrong. it is also explicit rather than "the newest thing under `build\builds\`": a release is rare, and an APK carrying a build nobody intended is the plausible-artefact-attributed-to-the-wrong-source failure that costs the most to find.
+
+what it checks before it packages anything, and again on the APK afterwards:
+
+- the directory has a `meta.json`, the payload that `meta.json` names, and a `plugins/` beside it
+- **`external/sharpemu` is recorded at the commit the build was cut from.** the submodule pointer is what makes an APK's contents reproducible from a clone, so bundling a build it does not name would publish an APK nothing can reconstruct. it is refused rather than warned about, and it also catches a build cut from a commit that was never pushed, since a submodule can only be moved to one it fetched. a build packaged with `-FromArchive` has no commit at all and is refused for the same reason
+- **its `hostContract` is in the app's own range**, read out of `SharpEmuBuild.java` rather than restated here. the bundled build cannot mismatch, since the two ship together — so a mismatch is a build-system bug, and catching it on this machine beats an APK that refuses its own build
+- names android's asset packer would silently drop are removed rather than listed. aapt2 ignores dot-prefixed assets without a word, and a file listing that names one describes a tree the APK does not contain
+- every line of the generated listing resolves to a real APK entry, and the payload, `plugins/`, `meta.json` and the listing are all present and non-empty
+
+the identity is **regenerated** rather than copied: `packagedAt` goes, since exactly one of this build exists and there is nothing to order it against, and the `commit` stays and becomes what tells the app whether an app update brought a new build. `build-format.md` has [the rest of it](build-format.md#the-build-that-ships-inside-the-apk).
 
 ## measuring
 
@@ -150,14 +178,14 @@ it produces a build **directory and zip** under `build/builds/` and stops there 
 | `scripts/soak.ps1` | **run the app many times and classify every run.** `-Builds <path>,<path>` and `-Arms` interleave, which is what makes a rate comparison survive the device warming up mid-soak. omitted, it soaks what is staged and says which |
 | `scripts/compare-builds.ps1` | one run per SharpEmu build, reporting payload size, fps and render passes per frame. omitted, `-Builds` compares every build on the device |
 | `scripts/compare-drivers.ps1` | one run per GPU driver, steady-state fps from frame 300 onwards. the platform's driver is the control and always runs; `-Build <path>` pins the SharpEmu build the comparison holds constant |
-| `scripts/compare-file-modes.ps1` | **one game reached both ways** — staged as a path, and through a directory grant. compares the guest's own file counts, which must be *identical*, then boot and fps. needs a grant the app already holds |
+| `scripts/compare-file-modes.ps1` | **one game reached every way it can be** — staged as a path, through a directory grant, and, with `-GamePath <path on the device>`, that same granted directory reached as an ordinary path, which is what all-files access buys. compares the guest's own file counts, which must be *identical*, then boot and fps. **needs a grant the app already holds** — add the folder your games are in from Settings -> Data -> Game folders, and stage the same game with `stage-game.ps1` so every arm has one. the third arm also needs All files access on, from the same section |
 | `scripts/device/` | `monitor.sh`, `cpuburn.sh` and `run-monitored.sh` — these run **on the device** |
 
 the first four launch an app that is already installed, and like everything else here they measure the **debug** app unless `-Package` says otherwise — which is the one `run.ps1` has been deploying, so a soak measures what you just built.
 
 **at low rates a clean streak proves nothing.** measure the rate, keep the arm you are comparing against selectable, and run both arms in the same sitting.
 
-**and alternating the arms is not the same as reversing their order.** alternate them and the same arm still goes first in every pair, which on a device that drifts downward as it warms makes "which arm" and "which position" indistinguishable — the one that goes first wins, and it looks like a result. `compare-file-modes.ps1` reverses the order on alternate pairs for exactly that reason, and prints the spread *within* each arm beside the difference *between* them, because a gap smaller than the noise is not a finding.
+**and alternating the arms is not the same as changing their order.** alternate them and the same arm still goes first in every round, which on a device that drifts downward as it warms makes "which arm" and "which position" indistinguishable — the one that goes first wins, and it looks like a result. `compare-file-modes.ps1` rotates the order one place each round for exactly that reason, so over as many rounds as there are arms each arm holds each position once, and it prints the spread *within* each arm beside the difference *between* them, because a gap smaller than the noise is not a finding.
 
 ## the two libraries
 

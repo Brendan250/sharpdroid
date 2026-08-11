@@ -60,8 +60,8 @@ SMCMode Mode();
  * PROT_EXEC never reaches the host kernel. FEX does not execute guest memory — it reads those
  * bytes and emits arm64 into its own code buffers — so nothing is lost by mapping guest text
  * read-only, and something is gained: an android app is denied `execute` on its own
- * app_data_file, so a guest ld.so mapping a library's text segment PROT_EXEC would be refused
- * outright once this stops running out of /data/local/tmp. dropping the bit here is what lets a
+ * app_data_file, so inside an app — which is where this runs — a guest ld.so mapping a library's
+ * text segment PROT_EXEC would be refused outright. dropping the bit here is what lets a
  * conventional dynamic linker work in a place that forbids executable file mappings.
  *
  * it lives here rather than in the syscall layer because the tracker has to reproduce it exactly

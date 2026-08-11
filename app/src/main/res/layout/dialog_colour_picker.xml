@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the colour picker.
+
+  **one rectangle: hue across, chroma down, at a per-hue tone.** three sliders were the first version,
+  a shade square with a hue bar the second, hue and *saturation* the third. these are the generator's
+  own axes rather than a conversion into them - see HctColour - and the field is painted in the
+  accents those positions produce, so choosing from it is choosing the colour the preview's Selected
+  line will be.
+
+  **the field matches the preview panel exactly**: match_parent height against the panel's own, and
+  the same corner radius, so the two read as one control and its result rather than as two widgets.
+
+  **the right half is the scheme the seed generates, drawn live.** it is not a mock-up: the colours
+  come from Material's own generator, the same one the theme is built with - see SchemePreview. the
+  screens *around* the dialog cannot repaint as the knob moves, because a scheme is resolved while a
+  hierarchy is inflated and repainting them means recreating the activity, which would close the
+  dialog doing the picking. this is what live can honestly mean here.
+
+  side by side because the device this is used on is held in landscape.
+
+  **a dialog caps the height of the view it is given**, and a column of fixed heights that overflows
+  it does not scroll or shrink - the last child is measured to nothing and simply is not there. the
+  swatch and the hex went missing exactly that way once, which is worth knowing before anything is
+  added back below the field.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="20dp">
+
+    <com.mircowuffwuff.sharpemu.HueChromaField
+        android:id="@+id/field"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1" />
+
+    <!-- the preview. every colour on it is set in code from the generated scheme; the values here
+         are only what it looks like before the first frame. -->
+    <LinearLayout
+        android:id="@+id/previewBackground"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/previewHeading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/colour_preview"
+            android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+        <LinearLayout
+            android:id="@+id/previewCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/previewTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_app"
+                android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+            <TextView
+                android:id="@+id/previewSummary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/settings_app_summary"
+                android:textAppearance="?attr/textAppearanceBodySmall" />
+
+            <TextView
+                android:id="@+id/previewAccent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/colour_preview_value"
+                android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -32,7 +32,10 @@ import java.util.Map;
  * live where the frontend's own build list will need them anyway, because two implementations of
  * one contract is one too many.
  */
-final class SharpEmuBuild {
+// public only so that the kotlin above it can name the type in a signature: a package-private class
+// cannot appear in a public declaration, and the build manager's list is made of these. every member
+// stays package-private, which is the visibility that was ever doing any work here.
+public final class SharpEmuBuild {
 
     private static final String TAG = "sharpemu";
 
@@ -68,29 +71,103 @@ final class SharpEmuBuild {
     static final int CONTRACT_MIN = 2;
     static final int CONTRACT_MAX = 2;
 
-    /** Where the build will be run from — always internal storage by the time this is returned. */
+    /**
+     * The one build that ships inside the APK, by the folder it extracts to.
+     *
+     * <p><b>It is not a build with an id among others, and that is the whole point of this name.</b>
+     * Exactly one build ships per APK, so there is never a question of which of ours is the default
+     * — it is this one, structurally and forever, which is what removed a per-release recommendation
+     * constant, a toggle and a badge. The list pins it at the top with no delete button, the way
+     * Eden pins the system GPU driver.
+     *
+     * <p><b>A plain word rather than a derived name, and that is what makes it collision-proof.</b>
+     * Every other folder here is {@code <id>-<sharpemuVersion>-<packagedAt>}, so no import can
+     * ever land on it and no sentinel is needed in the store: the setting holds this string like any
+     * other folder name, and per-game selection later stores it the same way.
+     *
+     * <p><b>Absent is a normal state.</b> The debug app does not bundle a build — the dev loop keeps
+     * its small APK and its staged builds — so this directory simply does not exist there, and
+     * {@link #mostRecent} is what a launch naming nothing falls back to.
+     */
+    static final String BUNDLED = "bundled";
+
+    /** Where the build will be run from — wherever it already is, since nothing is copied. */
     final File dir;
     final String folder;
     final String id;
     final String name;
     final String sharpemuVersion;
-    final int buildVersion;
+    /**
+     * When this build was packaged, {@code yyyyMMddHHmmss} as a number — and the key everything is
+     * ordered by, since higher is later is newer.
+     *
+     * <p><b>A time rather than a counter, and the field is named for what it is.</b> A counter has to
+     * be bumped by whoever packages, which makes it wrong exactly when it matters: two packages of
+     * one source both claiming to be the first. A packaging time assigns itself, cannot be forgotten,
+     * and answers "which of these two is newer" without a repository to consult.
+     *
+     * <p><b>A long, because {@code 20260808013800} does not fit in 32 bits.</b> It is deliberately a
+     * sortable integer rather than an ISO string or an epoch second: a person reading a directory
+     * listing can date it at a glance, and a machine can compare it without parsing.
+     */
+    final long packagedAt;
     final int hostContract;
     final String payload;
     final String notes;
+    /**
+     * The fork commit this payload was built from, or empty.
+     *
+     * <p><b>This is the field that tells two builds of one version apart.</b> {@code sharpemuVersion}
+     * is upstream's tag and our fork moves faster than upstream does, so two builds of one tag are
+     * routine and are indistinguishable by every other field a person sees. The commit is what tells
+     * them apart, which makes it the version of the build that ships — whose {@code packagedAt}
+     * is deliberately absent, because exactly one of it exists and there is nothing to order.
+     */
+    final String commit;
+    /**
+     * Who produced this build, or empty.
+     *
+     * <p><b>Not who wrote the emulator.</b> {@code sharpemuVersion} and {@link #commit} already say
+     * what the code is; this answers the question somebody holding two zips of one version has,
+     * which is whose zip each one is.
+     *
+     * <p><b>It is a claim and not a fact, unlike {@link #commit}.</b> A commit names something that
+     * can be checked against a repository; this is a string in a zip anybody can edit. So it is
+     * drawn and nothing else — no import rule reads it, and nothing is trusted because of it.
+     *
+     * <p>Empty on the build that ships inside the APK, which is the app's own and says so by being
+     * bundled, and on any build packaged before the field existed.
+     */
+    final String author;
     /** Guest environment this build wants defaulted on. The lowest-precedence source there is. */
     final Map<String, String> env;
+    /**
+     * True for the build that is still inside the APK: identified, and not yet a directory.
+     *
+     * <p><b>It exists so that one screen can be honest before one launch has happened.</b> The
+     * bundled build is pinned and selected the first time the build manager is opened, and at that
+     * moment nothing has extracted it — so {@link #runnable} asking whether its payload is a file
+     * would answer no, and the row would be drawn in red naming a contract that is perfectly fine.
+     * The payload is in the APK, where {@code app/build-app.ps1} checked it was before packaging.
+     *
+     * <p>Everything read back <i>after</i> extraction is an ordinary directory again, so this is
+     * false for every build a launch actually runs.
+     */
+    final boolean inApk;
 
-    private SharpEmuBuild(File dir, String folder, JSONObject json) {
+    private SharpEmuBuild(File dir, String folder, JSONObject json, boolean inApk) {
+        this.inApk = inApk;
         this.dir = dir;
         this.folder = folder;
         this.id = json.optString("id", folder);
         this.name = json.optString("name", this.id);
         this.sharpemuVersion = json.optString("sharpemuVersion", "0");
-        this.buildVersion = json.optInt("buildVersion", 0);
+        this.packagedAt = json.optLong("packagedAt", 0);
         this.hostContract = json.optInt("hostContract", 0);
         this.payload = json.optString("payload", "SharpEmu");
         this.notes = json.optString("notes", "");
+        this.commit = json.optString("commit", "");
+        this.author = json.optString("author", "");
         this.env = new LinkedHashMap<>();
         JSONObject e = json.optJSONObject("env");
         if (e != null) {
@@ -107,8 +184,14 @@ final class SharpEmuBuild {
 
     /** id, version, build number and contract — what the launch log has to say. */
     String identity() {
-        return name + " (" + id + " " + sharpemuVersion + " b" + buildVersion
+        return name + " (" + id + " " + sharpemuVersion
+                + (commit.isEmpty() ? " " + packagedAt : " " + shortCommit())
                 + ", contract " + hostContract + ")";
+    }
+
+    /** The commit, cut to what a person quotes in a bug report. Empty when there is none. */
+    String shortCommit() {
+        return commit.length() > 7 ? commit.substring(0, 7) : commit;
     }
 
     /**
@@ -117,13 +200,13 @@ final class SharpEmuBuild {
      *
      * <p><b>This is what "no {@code --es sharpemu}" means</b>, and it is the same rule the scripts
      * follow when you omit the flag: whatever the device already has. In a deploy loop "the one I
-     * last put there" is what is meant, and the alternative — the highest {@code buildVersion} — is
-     * exactly the footgun that selecting by id was removed for, since a freshly staged {@code b1}
-     * loses to a {@code b3} that is still lying around.
+     * last put there" is what is meant, and the alternative — the newest {@code packagedAt} — is
+     * exactly the footgun that answering by id carries, since a freshly staged build loses to a
+     * later-stamped one that is still lying around.
      *
      * <p>Staged wins over installed wholesale rather than by date. {@code adb} writes the staged
-     * directory, so it is the one that moves; an installed copy is a leftover of the id-resolution
-     * era, whose copy timestamp says when it was copied and not when its bytes were chosen.
+     * directory, so it is the one that moves; an installed copy's timestamp says when it was copied
+     * and not when its bytes were chosen.
      *
      * <p>It logs the directory it picked and how many it picked from. A run attributed to the wrong
      * artefact is this project's oldest failure, and the cure has always been saying which.
@@ -155,7 +238,7 @@ final class SharpEmuBuild {
         SharpEmuBuild best = null;
         long bestAt = Long.MIN_VALUE;
         for (File entry : entries) {
-            if (!entry.isDirectory()) {
+            if (!entry.isDirectory() || isReserved(entry)) {
                 continue;
             }
             SharpEmuBuild build = read(entry);
@@ -168,88 +251,43 @@ final class SharpEmuBuild {
     }
 
     /**
-     * Finds the newest build with this id, installs it onto internal storage if it is only staged,
-     * and returns it. Returns null and says why on every failure path — <b>never a fallback</b>.
+     * Resolves the folder name the build manager stored, and runs it where it is.
      *
-     * <p><b>Deliberately uncalled since 2026-08-05, and kept on purpose.</b> Nothing reaches this
-     * from a launch intent any more: {@code --es sharpemu} takes a path and {@link MainActivity}
-     * hands it to {@link #resolvePath}. The frontend is what will call this — it resolves a build a
-     * user chose by identity, from its own list, without firing an intent at itself, and the install
-     * step below is the one it needs. Deleting it would mean writing it again.
+     * <p><b>A folder name is the concrete identity, and that is why the setting holds one.</b> It is
+     * derived from {@code meta.json} — {@code <id>-<sharpemuVersion>-<packagedAt>} — so it names
+     * one build and not a family. {@link #BUNDLED} is the one folder that is not derived from
+     * anything, and it needs no sentinel beside it precisely because no derived name can collide
+     * with a plain word.
      *
-     * <p>Its own footgun is why the intent stopped using it: it answers with the <i>highest</i>
-     * {@code buildVersion} of that id, so a freshly staged {@code b1} is silently ignored while a
-     * {@code b3} exists. That is fine for a user picking from a list of one build per id, and it was
-     * not fine for a deploy loop.
+     * <p><b>Nothing is copied.</b> A build runs where it is: a staged one from external storage,
+     * where adb put it, and an imported or bundled one from the app's own directory, because that is
+     * where they had to land. Copying one onto internal storage would buy durability against
+     * re-staging, which is a thing only a developer can do and exactly the thing they mean to do —
+     * and {@code docs/build-format.md} records that the volume costs nothing measurable:
+     * 874–902 ms from external FUSE against 879–907 ms from internal.
      *
-     * @param internal {@code getFilesDir()/builds} — where builds are run from, and where nothing
-     *                 is ever deleted automatically.
-     * @param staged   {@code <external files>/builds} — where adb can write. In the PoC this is the
-     *                 stand-in for "bundled in the APK", and the step that follows it is the one the
-     *                 real frontend performs.
+     * <p>Null when it is gone — deleted from outside the app, or wiped with the external volume.
      */
-    static SharpEmuBuild resolve(String id, File internal, File staged) {
-        // An absolute path names one build directory and runs it where it lies — no id resolution,
-        // no copy onto internal storage. That is what a deploy loop wants: the internal install
-        // exists for durability, not because a payload has to be there, and a build
-        // running off external FUSE storage at 874–902 ms against 879–907 from internal.
-        //
-        // It also sidesteps the trap that id resolution has by design: `--es sharpemu parity`
-        // answers with the *newest* parity, so a work-in-progress staged as b1 is silently ignored
-        // when a b3 is present. A path cannot be ambiguous about which directory it meant.
-        if (id.startsWith("/")) {
-            return resolvePath(new File(id));
+    static SharpEmuBuild resolveFolder(String folder, File internal, File staged) {
+        File inInternal = new File(internal, folder);
+        if (inInternal.isDirectory()) {
+            return resolvePath(inInternal);
         }
-
-        List<SharpEmuBuild> installed = scan(internal, id);
-        List<SharpEmuBuild> available = scan(staged, id);
-
-        SharpEmuBuild best = newest(installed);
-        SharpEmuBuild bestStaged = newest(available);
-        // a newer staged build wins over an older installed one, which is what makes re-staging the
-        // same id with a bumped buildVersion the way to iterate.
-        if (best == null || (bestStaged != null && compare(bestStaged, best) > 0)) {
-            best = bestStaged;
+        File inStaged = new File(staged, folder);
+        if (inStaged.isDirectory()) {
+            return resolvePath(inStaged);
         }
-
-        if (best == null) {
-            Log.e(TAG, "[app] no build called '" + id + "'. looked in " + internal + " and " + staged
-                    + " — package one with scripts/package-build.ps1");
-            return null;
-        }
-
-        if (!accept(best)) {
-            return null;
-        }
-
-        // extract on first selection, not on install or update: the copy is 76 MB, and a build that
-        // is never chosen never costs anything. once chosen it stays, so "the new build broke my
-        // game and the old one is gone" cannot happen.
-        if (!best.dir.getAbsolutePath().startsWith(internal.getAbsolutePath())) {
-            File target = new File(internal, best.folder);
-            if (!install(best.dir, target)) {
-                return null;
-            }
-            best = read(target);
-            if (best == null) {
-                Log.e(TAG, "[app] installed " + id + " and could not read it back from " + target);
-                return null;
-            }
-            if (!accept(best)) {
-                return null;
-            }
-        }
-        return best;
+        Log.e(TAG, "[app] the chosen build '" + folder + "' is in neither " + internal
+                + " nor " + staged);
+        return null;
     }
 
     /**
-     * Runs a build directory where it lies. Same contract and payload checks as {@link #resolve},
-     * and deliberately no install step.
+     * Runs a build directory where it lies, checking its contract and its payload first.
      *
-     * <p><b>This is what {@code --es sharpemu} reaches now.</b> The internal install exists for
-     * durability rather than because a payload has to be there — a build running off
-     * external FUSE storage at 874–902 ms against 879–907 from internal — so a directory named
-     * outright is simply run.
+     * <p><b>This is what everything reaches now.</b> {@code --es sharpemu} hands it a path, the
+     * settings store hands it a folder resolved to one, and the bundled build is a directory like any
+     * other. Nothing is copied on the way: a build runs where it is.
      */
     static SharpEmuBuild resolvePath(File dir) {
         if (!dir.isDirectory()) {
@@ -266,8 +304,88 @@ final class SharpEmuBuild {
         if (!accept(build)) {
             return null;
         }
-        Log.i(TAG, "[app] running in place, not installed: " + dir);
         return build;
+    }
+
+    /** The build that shipped inside this APK, or null — which is the normal state in a debug app. */
+    static SharpEmuBuild bundled(File internal) {
+        File dir = new File(internal, BUNDLED);
+        if (!dir.isDirectory()) {
+            return null;
+        }
+        return read(dir);
+    }
+
+    /**
+     * True for a directory this list must not draw, which today is only the bundled one.
+     *
+     * <p>It is pinned above the list rather than in it, so without this it would appear twice — and
+     * {@link #mostRecent} would be able to answer with it, which would make "no build was named" mean
+     * something different the moment an APK started shipping one.
+     */
+    private static boolean isReserved(File dir) {
+        return BUNDLED.equals(dir.getName()) || dir.getName().endsWith(".partial");
+    }
+
+    /**
+     * Every readable build on the device except the bundled one, one entry per identity.
+     *
+     * <p><b>A build in both places is one entry and the app's own copy is the one returned.</b> Which
+     * volume it came from is not a property of the build, and a list showing the same identity twice
+     * would be asking the user to choose between two spellings of one thing.
+     *
+     * <p>Ordering, badges and grouping are {@code BuildLibrary}'s: this answers what is there.
+     */
+    static List<SharpEmuBuild> list(File internal, File staged) {
+        Map<String, SharpEmuBuild> byFolder = new LinkedHashMap<>();
+        collect(staged, byFolder);
+        // installed second, so it replaces the staged copy of the same folder rather than losing to
+        // it. same identity either way — the folder name is derived from meta.json.
+        collect(internal, byFolder);
+        return new ArrayList<>(byFolder.values());
+    }
+
+    private static void collect(File root, Map<String, SharpEmuBuild> into) {
+        File[] entries = root.listFiles();
+        if (entries == null) {
+            return;
+        }
+        for (File entry : entries) {
+            // **{@link #isReserved} and not just {@code .partial}**, or the bundled build is drawn
+            // twice the moment it has been unpacked — once pinned above the list and once in the
+            // group its id and version put it in. It was invisible until something bundled a build,
+            // because until then the directory it names does not exist.
+            if (!entry.isDirectory() || isReserved(entry)) {
+                continue;
+            }
+            SharpEmuBuild build = read(entry);
+            if (build != null) {
+                into.put(build.folder, build);
+            }
+        }
+    }
+
+    /** True once this build is on internal storage, which is where a selected build is run from. */
+    boolean isInstalled(File internal) {
+        return dir.getAbsolutePath().startsWith(internal.getAbsolutePath() + File.separator);
+    }
+
+    /**
+     * Whether this build could be launched at all: a contract this app speaks, and its payload
+     * present. The build manager draws an entry that fails this rather than hiding it, because a
+     * build somebody imported and cannot run should say why on the screen it was imported from.
+     */
+    boolean runnable() {
+        return hostContract >= CONTRACT_MIN && hostContract <= CONTRACT_MAX
+                && (inApk || payloadFile().isFile());
+    }
+
+    /** Removes a build directory outright. Nothing here is recoverable and nothing here is unique. */
+    static boolean delete(File dir) {
+        deleteTree(dir);
+        boolean gone = !dir.exists();
+        Log.i(TAG, "[app] " + (gone ? "deleted " : "could not delete ") + dir);
+        return gone;
     }
 
     /** The two things that make a build runnable: a contract this app speaks, and its payload. */
@@ -286,25 +404,18 @@ final class SharpEmuBuild {
         return true;
     }
 
-    private static List<SharpEmuBuild> scan(File root, String id) {
-        List<SharpEmuBuild> found = new ArrayList<>();
-        File[] entries = root.listFiles();
-        if (entries == null) {
-            return found;
-        }
-        for (File entry : entries) {
-            if (!entry.isDirectory()) {
-                continue;
-            }
-            SharpEmuBuild build = read(entry);
-            if (build != null && build.id.equals(id)) {
-                found.add(build);
-            }
-        }
-        return found;
+    /**
+     * The identity of a build that is still inside the APK, named by where it will extract to.
+     *
+     * <p>{@code BundledBuild} reads the asset's {@code meta.json} and calls this; nothing else has
+     * any business constructing a build whose directory does not exist yet.
+     */
+    static SharpEmuBuild fromAsset(File target, JSONObject json) {
+        return new SharpEmuBuild(target, target.getName(), json, true);
     }
 
-    private static SharpEmuBuild read(File dir) {
+    /** A build directory's identity, or null if it has no readable {@code meta.json}. */
+    static SharpEmuBuild read(File dir) {
         File meta = new File(dir, "meta.json");
         if (!meta.isFile()) {
             return null;
@@ -321,161 +432,31 @@ final class SharpEmuBuild {
                     read += n;
                 }
             }
-            return new SharpEmuBuild(dir, dir.getName(), new JSONObject(new String(raw, StandardCharsets.UTF_8)));
+            return new SharpEmuBuild(dir, dir.getName(),
+                    new JSONObject(new String(raw, StandardCharsets.UTF_8)), false);
         } catch (Exception e) {
             Log.e(TAG, "[app] could not read " + meta, e);
             return null;
         }
     }
 
-    private static SharpEmuBuild newest(List<SharpEmuBuild> builds) {
-        SharpEmuBuild best = null;
-        for (SharpEmuBuild build : builds) {
-            if (best == null || compare(build, best) > 0) {
-                best = build;
-            }
-        }
-        return best;
-    }
-
-    private static int compare(SharpEmuBuild a, SharpEmuBuild b) {
+    /** Orders two builds: their SharpEmu versions first, then the build number within one. */
+    static int compare(SharpEmuBuild a, SharpEmuBuild b) {
         int v = compareVersions(a.sharpemuVersion, b.sharpemuVersion);
         if (v != 0) {
             return v;
         }
-        return Integer.compare(a.buildVersion, b.buildVersion);
+        return Long.compare(a.packagedAt, b.packagedAt);
     }
 
     /**
      * Orders two {@code sharpemuVersion} strings.
      *
-     * <p><b>Not lexicographically</b>, which would put {@code 0.0.10} below {@code 0.0.9}, and
-     * SharpEmu's own versions already carry suffixes like {@code -hotfix-2}. The leading dotted
-     * numbers are compared numerically, and a suffix orders <i>below</i> a bare version of the same
-     * numbers — {@code 0.0.3-hotfix-2} is a 0.0.3, not something after it.
-     *
-     * <p>Third-party builds are why this is a real comparator rather than an assumption about our
-     * own version strings.
+     * <p>The rule is {@link Versions}, which is a file of its own because it is not semver and reads
+     * like a mistake to anybody who expects it to be.
      */
     static int compareVersions(String a, String b) {
-        String coreA = core(a);
-        String coreB = core(b);
-        String[] partsA = coreA.isEmpty() ? new String[0] : coreA.split("\\.");
-        String[] partsB = coreB.isEmpty() ? new String[0] : coreB.split("\\.");
-        for (int i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-            long na = i < partsA.length ? parse(partsA[i]) : 0;
-            long nb = i < partsB.length ? parse(partsB[i]) : 0;
-            if (na != nb) {
-                return na < nb ? -1 : 1;
-            }
-        }
-
-        String suffixA = a.substring(coreA.length());
-        String suffixB = b.substring(coreB.length());
-        if (suffixA.isEmpty() != suffixB.isEmpty()) {
-            return suffixA.isEmpty() ? 1 : -1;
-        }
-        // two suffixes of the same shape: their own numbers first, so hotfix-10 beats hotfix-2.
-        String[] numsA = suffixA.split("\\D+");
-        String[] numsB = suffixB.split("\\D+");
-        for (int i = 0; i < Math.max(numsA.length, numsB.length); i++) {
-            long na = i < numsA.length ? parse(numsA[i]) : 0;
-            long nb = i < numsB.length ? parse(numsB[i]) : 0;
-            if (na != nb) {
-                return na < nb ? -1 : 1;
-            }
-        }
-        return suffixA.compareTo(suffixB);
-    }
-
-    /** The leading {@code 1.2.3} of a version string, without whatever follows it. */
-    private static String core(String v) {
-        int i = 0;
-        int lastDigit = -1;
-        while (i < v.length()) {
-            char c = v.charAt(i);
-            if (c >= '0' && c <= '9') {
-                lastDigit = i;
-            } else if (c != '.') {
-                break;
-            }
-            i++;
-        }
-        return lastDigit < 0 ? "" : v.substring(0, lastDigit + 1);
-    }
-
-    private static long parse(String s) {
-        try {
-            return s.isEmpty() ? 0 : Long.parseLong(s);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-    /**
-     * Copies a staged build onto internal storage.
-     *
-     * <p><b>Internal storage is a durability decision here, not a technical requirement, and the
-     * distinction matters.</b> The GPU driver must be internal because the linker refuses to
-     * {@code dlopen} a library from a volume other apps can write. The payload has no such
-     * constraint — it is read into anonymous memory, never {@code dlopen}'d, never executed as a
-     * file. So nobody should later "optimise" this copy away on the grounds that the driver's
-     * reason does not apply.
-     */
-    private static boolean install(File source, File target) {
-        long started = System.currentTimeMillis();
-        // a half-finished copy that looks complete is worse than no copy: install beside, then
-        // swap, so an interrupted install leaves nothing that resolve() would find.
-        File partial = new File(target.getParentFile(), target.getName() + ".partial");
-        deleteTree(partial);
-        deleteTree(target);
-        if (!partial.mkdirs()) {
-            Log.e(TAG, "[app] could not create " + partial);
-            return false;
-        }
-        try {
-            long bytes = copyTree(source, partial);
-            if (!partial.renameTo(target)) {
-                Log.e(TAG, "[app] could not move " + partial + " to " + target);
-                deleteTree(partial);
-                return false;
-            }
-            Log.i(TAG, "[app] installed " + source.getName() + " (" + bytes + " bytes) to " + target
-                    + " in " + (System.currentTimeMillis() - started) + " ms");
-            return true;
-        } catch (Exception e) {
-            Log.e(TAG, "[app] could not install " + source, e);
-            deleteTree(partial);
-            return false;
-        }
-    }
-
-    private static long copyTree(File source, File target) throws Exception {
-        long bytes = 0;
-        File[] entries = source.listFiles();
-        if (entries == null) {
-            return 0;
-        }
-        for (File entry : entries) {
-            File to = new File(target, entry.getName());
-            if (entry.isDirectory()) {
-                if (!to.isDirectory() && !to.mkdirs()) {
-                    throw new Exception("could not create " + to);
-                }
-                bytes += copyTree(entry, to);
-            } else {
-                try (InputStream in = new FileInputStream(entry);
-                     OutputStream out = new FileOutputStream(to)) {
-                    byte[] buffer = new byte[1 << 16];
-                    int n;
-                    while ((n = in.read(buffer)) > 0) {
-                        out.write(buffer, 0, n);
-                        bytes += n;
-                    }
-                }
-            }
-        }
-        return bytes;
+        return Versions.compare(a, b);
     }
 
     private static void deleteTree(File file) {

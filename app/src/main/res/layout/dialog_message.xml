@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the body text of a dialog that asks a question and has nothing else in it.
+
+  **the padding here is placing text inside a panel with a 48dp floor.** Material's dialog layout
+  gives both the message panel and the custom-view panel `minHeight="48dp"`, and a line of body text
+  is about 20dp - so whatever is short leaves the remainder as blank *below* it, where the button
+  bar's own 14dp is then added. that is why a one-line question has a band under it taller than the
+  question, and why the dialog does not get shorter when a two-line message loses a line: two lines
+  still fit inside the floor.
+
+  so the top padding is not decoration. it moves the text down into a box whose height is fixed
+  anyway, spending some of the slack above the sentence instead of leaving all of it below. 16dp is
+  what Material puts under a title when it places a spacer there, which is the gap this stands in
+  for - a custom view gets `titleDividerNoCustom` set to gone.
+
+  **it is deliberately not raised further to close the gap underneath.** doing so buys a smaller gap
+  below only by growing the one above, and the two are not worth the same: the space under a title
+  is part of how a dialog reads, while the space over its buttons is just leftover.
+
+  **shrinking the button bar's own padding is not the answer either**, though it is the obvious next
+  reach. that value is hard-coded as a dimension rather than read from a theme attribute, so the
+  only way to change it is to redeclare the name for the whole app - and the dialogs that carry a
+  control instead of a sentence never had the floor's leftover under them, so they lose the padding
+  outright and their buttons crowd what is above them.
+
+  the appearance is Material's dialog body deliberately: this replaces where the text sits, not how
+  it looks, and a dialog whose message was a different size from every other dialog's would be a
+  worse bug than the gap.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/message"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="16dp"
+    android:textAppearance="?attr/textAppearanceBodyMedium"
+    android:textColor="?attr/colorOnSurfaceVariant"
+    tools:text="This setting goes back to its default, as if you had never changed it." />
