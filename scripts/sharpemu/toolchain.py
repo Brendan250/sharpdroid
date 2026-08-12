@@ -109,9 +109,20 @@ class Toolchain:
 
     @property
     def android_sdk(self):
+        """the SDK root, identified by any one package inside it rather than by a chosen one.
+
+        **the marker cannot be `platform-tools` alone.** every SDK package is installed by running
+        `sdkmanager --sdk_root=<this>`, so a root that only counts as one once a package is inside
+        it is a root that can never acquire its first package -- and the fetch would refuse on an
+        empty machine while succeeding on every machine that already had an SDK.
+
+        either name identifies a root: `cmdline-tools` is what the fetch unpacks before it can run
+        `sdkmanager` at all, and an SDK acquired any other way has `platform-tools` whether or not
+        it was given the command-line tools.
+        """
         return self._piece(
             "android sdk", "SHARPEMU_ANDROID_SDK", paths.TOOLCHAIN / "android-sdk",
-            marker=Path("platform-tools"))
+            marker=(Path("cmdline-tools"), Path("platform-tools")))
 
     @property
     def ndk(self):
@@ -307,12 +318,20 @@ class Toolchain:
         return rows
 
     def _piece(self, label, override_name, default, marker=None):
+        """one piece, from its override or from `toolchain/`, and a refusal naming it if absent.
+
+        `marker` is what proves the directory is the thing rather than merely a directory of that
+        name. **several may be given, and any one of them is enough** -- that is for a directory
+        whose contents arrive in stages, where insisting on a particular one would make the piece
+        unresolvable until after something that needs it resolved has run.
+        """
         cached = self._resolved.get(label)
         if cached is not None:
             return cached
         override = os.environ.get(override_name) if override_name else None
         path = Path(override) if override else default
-        if not path.exists() or (marker is not None and not (path / marker).exists()):
+        markers = (marker,) if isinstance(marker, (str, Path)) else tuple(marker or ())
+        if not path.exists() or (markers and not any((path / one).exists() for one in markers)):
             if override:
                 raise Refusal("{} does not point at a usable {}: {}".format(
                     override_name, label, path))
