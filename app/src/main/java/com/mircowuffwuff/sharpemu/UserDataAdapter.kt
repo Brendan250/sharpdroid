@@ -6,6 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.widget.TooltipCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.color.MaterialColors
+// the colour roles are Material's own attributes, and this module's R does not carry them: a
+// non-transitive R class holds what the module itself declares and nothing a library does.
+import com.google.android.material.R as MaterialR
 import com.mircowuffwuff.sharpemu.databinding.ItemUserDataCardBinding
 
 /**
@@ -61,6 +65,17 @@ class UserDataAdapter(
         binding.name.setText(item.kind.title)
         binding.description.setText(item.kind.description)
         binding.figures.text = figures(holder, item)
+        // **the accent marks the answer to the card, and an absence is not one.** it is the same
+        // distinction a settings row draws between a chosen value and "None" -- see SettingsAdapter's
+        // ScreenHolder, whose note about setting the colour on both branches applies here for the
+        // same reason: a holder is recycled, and the colour of the card it was last bound to would
+        // otherwise stay on it.
+        binding.figures.setTextColor(
+            MaterialColors.getColor(
+                binding.figures,
+                if (absent(item)) MaterialR.attr.colorOnSurfaceVariant else MaterialR.attr.colorPrimary,
+            )
+        )
 
         val actions = actionsFor(item.kind)
         listOf(binding.action1, binding.action2, binding.action3).forEachIndexed { index, button ->
@@ -80,6 +95,17 @@ class UserDataAdapter(
             TooltipCompat.setTooltipText(button, context.getString(action.label))
             button.setOnClickListener { onAction(item.kind, action) }
         }
+    }
+
+    /**
+     * Whether this card has nothing to report — no bytes, or for the settings no row off its default.
+     *
+     * It is what decides the figures line's colour, and it is deliberately the same question the line
+     * itself answers in words: the two cannot disagree.
+     */
+    private fun absent(item: UserDataItem): Boolean = when (item.kind) {
+        UserDataItem.Kind.SETTINGS -> (item.count ?: 0) == 0
+        else -> item.bytes == 0L
     }
 
     /**

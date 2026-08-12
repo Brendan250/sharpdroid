@@ -68,9 +68,14 @@
 
             <!-- **the size, in the accent, because it is what the card was opened to find out.** it is
                  the one line here that changes between one visit and the next, and it is drawn the way
-                 a settings row draws a chosen value: the answer to the row, in the colour that marks
+                 a settings row draws a chosen value: the answer to the card, in the colour that marks
                  an answer. what is empty says so in words rather than showing "0 B", which reads as a
-                 measurement that failed. -->
+                 measurement that failed.
+
+                 **and a card with nothing to report takes the body colour instead**, which is the same
+                 thing a settings row does with "None": an absence is not an answer, so it is not
+                 painted as one. the colour is set per card in UserDataAdapter rather than here, since
+                 only the adapter knows which of the two a card is. -->
             <TextView
                 android:id="@+id/figures"
                 android:layout_width="match_parent"
