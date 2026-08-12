@@ -141,10 +141,9 @@ object FexPreset {
      * The stored spelling of an id, or null for one this build does not know.
      *
      * **Case-insensitive, and that is not politeness.** These ids are typed by hand into `am start`
-     * and into a script's own parameter, and PowerShell's `ValidateSet` accepts any casing while
-     * passing through what was typed — so `Intermediate` reaches the app as written. Matching it
-     * exactly would drop it, fall back to the stored setting, and produce a run that silently was not
-     * the one asked for. Every rung is lowercase ASCII, so the root locale is the right one and the
+     * and into a script's own argument, and what reaches the app is whatever was typed — so
+     * `Intermediate` arrives capitalised. Matching exactly would drop it, fall back to the stored
+     * setting, and produce a run that silently was not the one asked for. Every rung is lowercase ASCII, so the root locale is the right one and the
      * turkish dotless i cannot reach this.
      */
     @JvmStatic

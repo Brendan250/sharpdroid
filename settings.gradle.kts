@@ -1,7 +1,7 @@
 // the gradle build. one module, :app.
 //
 // **the android SDK is not discovered by gradle here.** local.properties is written by
-// app/build-app.ps1 from whatever scripts/toolchain.ps1 resolved, so gradle is handed the same SDK
+// scripts/build-apk.py from whatever the toolchain resolver resolved, so gradle is handed the same SDK
 // every other script in this repository uses rather than finding its own through ANDROID_HOME. that
 // is the whole point of the resolver: a machine with two SDKs installed must not have the app step
 // silently disagree with the native step about which one it built against.

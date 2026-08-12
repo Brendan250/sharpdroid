@@ -30,7 +30,7 @@ object BundledBuild {
 
     private const val TAG = "sharpemu"
 
-    /** The asset directory the APK carries the build in. `app/build-app.ps1` populates it. */
+    /** The asset directory the APK carries the build in. `scripts/build-apk.py` populates it. */
     private const val ASSETS = "sharpemu"
 
     /**
@@ -163,7 +163,7 @@ object BundledBuild {
      * to notice when the APK starts carrying a different one.
      *
      * What it cannot see is a payload rebuilt from a dirty fork tree at the same commit.
-     * `package-build.ps1` warns when it packages one, which is where that belongs.
+     * `scripts/package-build.py` warns when it packages one, which is where that belongs.
      */
     private fun isStale(context: Context, target: File, assetMeta: JSONObject): Boolean {
         val diskMeta = File(target, "meta.json")

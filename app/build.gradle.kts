@@ -1,11 +1,11 @@
 // the APK.
 //
-// **drive this through app/build-app.ps1 rather than calling gradle directly.** the script resolves
-// the SDK and JDK through scripts/toolchain.ps1, writes local.properties from what it found, and
+// **drive this through scripts/build-apk.py rather than calling gradle directly.** the script resolves
+// the SDK and JDK through the toolchain resolver, writes local.properties from what it found, and
 // passes the identity this build should carry. gradle on its own would find its own SDK through
 // ANDROID_HOME, which is exactly the disagreement the resolver exists to prevent.
 //
-// the native libraries are NOT built here. host/build.ps1 and scripts/build-adrenotools.ps1 produce
+// the native libraries are NOT built here. scripts/build-host.py and scripts/build-adrenotools.py produce
 // them into build/, and stageJniLibs below collects the four that go in the APK.
 
 plugins {
@@ -14,16 +14,16 @@ plugins {
     alias(libs.plugins.kotlin.parcelize)
 }
 
-// the identity, as app/build-app.ps1 resolved it. absent means the manifest's own -- which is what
-// -Release asks for -- so these are properties rather than defaults with a value.
+// the identity, as scripts/build-apk.py resolved it. absent means the manifest's own -- which is what
+// asking for the release identity gets -- so these are properties rather than defaults with a value.
 val identityApplicationId: String? = (findProperty("sharpemuApplicationId") as String?)?.takeIf { it.isNotBlank() }
 val identityAppLabel: String = (findProperty("sharpemuAppLabel") as String?)?.takeIf { it.isNotBlank() } ?: "SharpEmu"
 
 // where the bundled SharpEmu build was staged, if one is being bundled at all.
 //
-// **it is a generated directory and never a source one.** app/build-app.ps1 populates it under
-// build/ from the build directory named by -BundleSharpEmu, and empties it when none was named, so
-// "which build is in this APK" is answered by one flag on one command rather than by whatever
+// **it is a generated directory and never a source one.** scripts/build-apk.py populates it under
+// build/ from the build directory that was named, and empties it when none was, so
+// "which build is in this APK" is answered by one argument on one command rather than by whatever
 // happens to be sitting in app/src/main/assets. a development build of the app bundles nothing and
 // keeps its small APK without anyone deciding that it should.
 val bundleAssets: String? = (findProperty("sharpemuBundleAssets") as String?)?.takeIf { it.isNotBlank() }
@@ -31,8 +31,8 @@ val bundleAssets: String? = (findProperty("sharpemuBundleAssets") as String?)?.t
 android {
     // **the java package, and it does not move.** the JNI entry points are named
     // Java_com_mircowuffwuff_sharpemu_HostLayer_*, host/CMakeLists.txt has a -Wl,-u keeping them
-    // from being garbage-collected, and scripts/toolchain.ps1 spells it out for every launch
-    // command. renaming this breaks the native link and every am start at once.
+    // from being garbage-collected, and every launch command spells it out in full. renaming this
+    // breaks the native link and every am start at once.
     namespace = "com.mircowuffwuff.sharpemu"
     compileSdk = 35
 
@@ -62,7 +62,7 @@ android {
     // **a throwaway debug key, and it must be this one.** the installed debug app on a development
     // device was signed with it; a different key -- including gradle's own ~/.android/debug.keystore
     // -- makes adb install -r fail with INSTALL_FAILED_UPDATE_INCOMPATIBLE and costs an uninstall,
-    // which takes the app's save data with it. app/build-app.ps1 generates it on demand.
+    // which takes the app's save data with it. scripts/build-apk.py generates it on demand.
     signingConfigs {
         getByName("debug") {
             storeFile = file("debug.keystore")
@@ -73,8 +73,8 @@ android {
     }
 
     buildTypes {
-        // **only the debug build type is ever assembled**, including for -Release. the two senses of
-        // "release" are deliberately not the same thing here: -Release means the manifest's own
+        // **only the debug build type is ever assembled**, including for the release identity. the two
+        // senses of "release" are deliberately not the same thing here: it means the manifest's own
         // application id and label, not an optimised non-debuggable build. that is also where
         // android:debuggable="true" went -- the debug type sets it, and hardcoding it in the
         // manifest is a lint error under AGP.
@@ -119,8 +119,8 @@ android {
             // stageJniLibs below, rather than living in the source tree.
             jniLibs.srcDir(layout.buildDirectory.dir("jniLibs"))
             // and the bundled SharpEmu build, when one was named. a directory that does not exist
-            // contributes nothing, which is the ordinary case: nothing is bundled unless
-            // -BundleSharpEmu said so.
+            // contributes nothing, which is the case whenever a build was told to ship no SharpEmu
+            // build at all.
             bundleAssets?.let { assets.srcDir(it) }
         }
     }
@@ -172,7 +172,7 @@ val adrenotoolsHookSos = listOf(
 
 // the STL.
 //
-// app/build-app.ps1 passes the path it resolved, because scripts/toolchain.ps1 is what decides
+// scripts/build-apk.py passes the path it resolved, because the toolchain resolver is what decides
 // which NDK this repository builds against and the answer must not differ between the native step
 // and this one. the search below is the fallback for opening the project in Android Studio and
 // hitting build, and it deliberately globs every installed NDK rather than asking for
@@ -211,10 +211,10 @@ val stageJniLibs by tasks.registering(Sync::class) {
 
     doFirst {
         if (!hostLayerSo.isFile) {
-            throw GradleException("$hostLayerSo not found. run .\\host\\build.ps1 first.")
+            throw GradleException("$hostLayerSo not found. run: py scripts/build-host.py")
         }
         adrenotoolsHookSos.firstOrNull { !it.isFile }?.let {
-            throw GradleException("$it not found. run .\\scripts\\build-adrenotools.ps1 first.")
+            throw GradleException("$it not found. run: py scripts/build-adrenotools.py")
         }
         if (stlSo == null) {
             throw GradleException(

@@ -148,7 +148,7 @@ public final class SharpEmuBuild {
      * bundled build is pinned and selected the first time the build manager is opened, and at that
      * moment nothing has extracted it — so {@link #runnable} asking whether its payload is a file
      * would answer no, and the row would be drawn in red naming a contract that is perfectly fine.
-     * The payload is in the APK, where {@code app/build-app.ps1} checked it was before packaging.
+     * The payload is in the APK, where {@code scripts/build-apk.py} checked it was before packaging.
      *
      * <p>Everything read back <i>after</i> extraction is an ordinary directory again, so this is
      * false for every build a launch actually runs.
@@ -220,7 +220,7 @@ public final class SharpEmuBuild {
         }
         if (best == null) {
             Log.e(TAG, "[app] no build in " + staged + " or " + internal
-                    + " — stage one with scripts/stage-build.ps1, or name one with --es sharpemu <path>");
+                    + " — stage one with scripts/stage.py, or name one with --es sharpemu <path>");
             return null;
         }
         Log.i(TAG, "[app] no build named, so the most recently " + where + " one: " + best.dir);
@@ -292,13 +292,13 @@ public final class SharpEmuBuild {
     static SharpEmuBuild resolvePath(File dir) {
         if (!dir.isDirectory()) {
             Log.e(TAG, "[app] no build directory at " + dir
-                    + " — stage one with scripts/stage-build.ps1");
+                    + " — stage one with scripts/stage.py");
             return null;
         }
         SharpEmuBuild build = read(dir);
         if (build == null) {
             Log.e(TAG, "[app] " + dir + " has no readable meta.json, so it has no identity"
-                    + " — package it with scripts/package-build.ps1");
+                    + " — package it with scripts/package-build.py");
             return null;
         }
         if (!accept(build)) {

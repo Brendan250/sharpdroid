@@ -137,10 +137,11 @@ the java side is three static methods taking a relative path: an open, a stat, a
 
 ## measuring it yourself
 
-```powershell
-.\scripts\compare-file-modes.ps1
-```
+**`--trace-files <prefix>` on the host layer, or `--ez tracefiles true` on the app**, counts everything above under one directory; under a mount, pass the mount. run the same game every way it can be reached and the counts can be put side by side, which is the only thing that keeps this a measurement rather than an opinion. **the counts must be identical** — a game reached three ways is one game, and a difference in them means one arm is not doing what the others are.
 
-runs one game every way it can be reached, alternating, **with the order rotated one place each round** — because this device drifts downward as it warms, and alternating alone leaves whichever arm goes first in every round winning by about half a frame per second that is not real. it compares the path-taking counts, which must be identical, then reports boot and frame rate with the spread *within* each arm beside the difference *between* them. `-GamePath <the game's own path on the device>` adds the third arm, which needs all-files access switched on.
+two things about the comparison, both paid for:
 
-underneath it is `--trace-files <prefix>` on the host layer, or `--ez tracefiles true` on the app, which counts everything above under one directory; under a mount, pass the mount. every way of reaching one game then produces counts that can be put side by side, which is the only thing that keeps this a measurement rather than an opinion.
+- **alternate the arms, and rotate which one goes first each round.** this device drifts downward as it warms, so alternating alone leaves whichever arm runs first in every round winning by about half a frame per second that is not real
+- **report the spread *within* each arm beside the difference *between* them.** a difference smaller than the noise inside one arm is not a difference
+
+the third arm — the game's own path, reached directly — needs all-files access switched on.

@@ -16,7 +16,7 @@ the APK: seven activities. `GameListActivity` is what the launcher icon opens an
 
 ## the build
 
-**the app is a gradle build**, on AGP with the kotlin plugin, and `app/build-app.ps1` is the entry point rather than a wrapper that may be skipped: it resolves the SDK and JDK through `scripts/toolchain.ps1` and writes `local.properties` from what it found, so the app step and the native step cannot build against different SDKs. [`repo-structure.md`](repo-structure.md) has why gradle is here at all and [`scripts.md`](scripts.md) has the flags.
+**the app is a gradle build**, on AGP with the kotlin plugin, and `scripts/build-apk.py` is the entry point rather than a wrapper that may be skipped: it resolves the SDK and JDK through the toolchain resolver and writes `local.properties` from what it found, so the app step and the native step cannot build against different SDKs. [`repo-structure.md`](repo-structure.md) has why gradle is here at all and [`scripts.md`](scripts.md) has the arguments.
 
 **the dependency set is modelled on Eden's android frontend** — Material3, RecyclerView, ConstraintLayout, SAF through `documentfile`, `preference`, Navigation, SwipeRefreshLayout, Coil — and the versions are Eden's too, because the UI is modelled on Eden's and reading one of its adapters against ours is worth more than being on the newest of everything. Eden's shipping frontend is view-based with `viewBinding` rather than Compose, and this one follows it. `gradle/libs.versions.toml` is the single declaration.
 
@@ -57,7 +57,7 @@ the APK carries the dex files, the host layer's `.so`, `libc++_shared.so` and th
 
 **they ship unstripped, deliberately**, which costs about 7 MB on a build only ever installed over adb and keeps a native backtrace from being a list of addresses. AGP strips by default and is currently failing to, so it is pinned with `keepDebugSymbols` rather than left to an accident.
 
-`build-app.ps1` asserts every expected entry is present before it reports success, because an APK missing its dex installs and then dies at `ClassNotFoundException` and one missing the native library dies at `UnsatisfiedLinkError` — both a long way from the packaging step that caused it. a missing adrenotools hook is worse than either, since adrenotools then falls back to the stock driver quietly and a driver comparison measures the same driver twice.
+`build-apk.py` asserts every expected entry is present before it reports success, because an APK missing its dex installs and then dies at `ClassNotFoundException` and one missing the native library dies at `UnsatisfiedLinkError` — both a long way from the packaging step that caused it. a missing adrenotools hook is worse than either, since adrenotools then falls back to the stock driver quietly and a driver comparison measures the same driver twice.
 
 ## the guest's own process
 
@@ -77,7 +77,7 @@ the APK carries the dex files, the host layer's `.so`, `libc++_shared.so` and th
 
 | | |
 | --- | --- |
-| **staged** | a directory under the app's own external `games/`, written by `scripts/stage-game.ps1`. this is the arm every measurement in the project was taken on |
+| **staged** | a directory under the app's own external `games/`, written by `scripts/stage.py`. this is the arm every measurement in the project was taken on |
 | **granted** | a directory inside a folder tree the user picked, in the folder manager or from the empty list. [`guest-files.md`](guest-files.md) describes what the guest then pays for reading one, which was measured rather than assumed |
 
 **a game is a directory holding an `eboot.bin`, and both halves of that are tested on either volume.** an empty directory left behind by a half-finished staging run is not a game, and offering it would mean the host layer reporting the failure a scan could have avoided. it is the same test the staging script applies before it copies anything.
@@ -124,7 +124,7 @@ what it changes is one thing, and only for a game inside a folder the user alrea
 | the path | derived from the document id — `<volume>:<relative>`, where `primary` is the device's own external storage and anything else is `/storage/<volume id>` |
 | **and checked** | the derived directory must hold an `eboot.bin`, the same test the scan applies. a mapping that is wrong would otherwise be a game whose every file is missing, which reads as a corrupt dump rather than as a bad path — so a failed check logs what it tried and falls back to the grant |
 
-what it buys is a standing comparison: one library reachable two ways on the same build, which is what keeps the measured cost of the provider honest as the code changes underneath it. `scripts/compare-file-modes.ps1` runs all three and compares what the guest asked of each.
+what it buys is a standing comparison: one library reachable two ways on the same build, which is what keeps the measured cost of the provider honest as the code changes underneath it.
 
 the artwork is loaded by coil rather than decoded in the bind, and it is the recycling that decides it: `icon0.png` is a quarter of a megabyte, so decoding it on the main thread would stutter a scroll, and decoding it on a worker means a row that scrolled away before the bitmap arrived must not receive it. coil takes a `File` and a `content://` uri alike, which is why a granted dump's artwork needs no decoding or copying of the app's own — and why an absent icon is not checked for first, since it draws the same placeholder a failed decode does.
 
@@ -300,7 +300,7 @@ five rungs from most faithful to fastest — Stability, Compatibility, Intermedi
 
 **exactly one build ships inside each APK**, and it is pinned at the top under *Included with the app*, with a *Bundled* badge and no delete button - the way Eden pins the system GPU driver. that is the whole reason this screen has no *recommended* anything: there is never a question of which of ours is the default, so there is no per-release constant to keep current, no toggle in front of it and no badge that could disagree with a launch. **a development build of the app bundles none**, so the pinned row is simply absent there, and that is a normal state rather than a fault.
 
-**the pinned row is drawn from the APK's own asset and not from a directory**, because on a fresh install there is no directory: the bundled build is unpacked by the first launch that resolves to it. this screen and the settings row above it both have to name it before that has happened - it is selected, and it is what a launch would run - so both read the asset's `meta.json`. it is also why it is not drawn as unrunnable while its payload is still inside the APK, which is where `build-app.ps1` checks it is before it packages one.
+**the pinned row is drawn from the APK's own asset and not from a directory**, because on a fresh install there is no directory: the bundled build is unpacked by the first launch that resolves to it. this screen and the settings row above it both have to name it before that has happened - it is selected, and it is what a launch would run - so both read the asset's `meta.json`. it is also why it is not drawn as unrunnable while its payload is still inside the APK, which is where `build-apk.py` checks it is before it packages one.
 
 everything below the pinned row is grouped by `id` and `sharpemuVersion` and sorted newest first, by the same comparator a launch resolves with. two badges: **Latest** on the newest build of each id, and **Staged** on one that lives on external storage because `adb` put it there. **the badges are computed from the functions the launcher uses rather than from a rule restated on the screen** - a badge that says one thing while a launch does another is worse than no badge, because that screen is where somebody checks after a run came out wrong.
 

@@ -151,7 +151,7 @@ object BuildImport {
      * refused for having no `plugins/` folder — a message naming a cause that is not the cause, on
      * the one screen where a wrong diagnosis is expensive.
      *
-     * `scripts/package-build.ps1` produces conforming zips; this is for the ones it did not make.
+     * `scripts/package-build.py` produces conforming zips; this is for the ones it did not make.
      */
     private fun normalise(name: String): String = name.replace('\\', '/')
 

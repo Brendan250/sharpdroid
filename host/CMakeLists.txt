@@ -157,7 +157,7 @@ add_library(host-layer-core STATIC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan_thunk.cpp")
 # --- libadrenotools ----------------------------------------------------------------------
 #
-# built separately by scripts\build-adrenotools.ps1 rather than added as a subdirectory here, and the
+# built separately by scripts/build-adrenotools.py rather than added as a subdirectory here, and the
 # reason is the STL. the hook libraries are dlopened into an *isolated* linker namespace, so they
 # are built against c++_static and carry their own; this build uses c++_shared. one ANDROID_STL
 # setting cannot be two things, so the two builds stay two builds and only the static archives
@@ -177,7 +177,7 @@ endif()
 if (NOT EXISTS "${ADRENOTOOLS_BUILD}/libadrenotools.a")
   message(FATAL_ERROR
     "libadrenotools is not built. run:\n"
-    "  .\\scripts\\build-adrenotools.ps1")
+    "  py scripts/build-adrenotools.py")
 endif()
 
 add_library(adrenotools STATIC IMPORTED)
@@ -196,9 +196,9 @@ target_include_directories(host-layer-core PUBLIC
   "${CMAKE_BINARY_DIR}/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/src"
   # the generated half of the vulkan thunk. the guest half of the same generator output is
-  # assembled separately into libvulkan.so.1 by thunks/vulkan/build-guest-vulkan.ps1.
+  # assembled separately into libvulkan.so.1 by scripts/build-thunks.py.
   "${CMAKE_CURRENT_SOURCE_DIR}/thunks/vulkan/generated"
-  # and the same for audio, into libaaudio.so by thunks/audio/build-guest-aaudio.ps1. note that
+  # and the same for audio, into libaaudio.so by scripts/build-thunks.py. note that
   # libaaudio is *not* linked: the host half dlsyms it, because eleven of its 72 entry points are
   # __INTRODUCED_IN(29..36) and this builds at API 28.
   "${CMAKE_CURRENT_SOURCE_DIR}/thunks/audio/generated")

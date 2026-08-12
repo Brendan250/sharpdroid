@@ -28,7 +28,7 @@ so staging `libasound.so.2` buys a library that fails at its first `open()`, and
 
 ## the two halves
 
-`host/thunks/audio/gen-thunk.ps1` generates both from the NDK's `aaudio/AAudio.h`, together, in one pass, from one list — the vulkan generator with a different regex, a different magic number and a different header. neither half is hand-editable, and they have to agree on a command id for every entry point:
+`scripts/gen-thunks.py` generates both from the NDK's `aaudio/AAudio.h`, together, in one pass, from one list — the vulkan generator with a different regex, a different magic number and a different header. neither half is hand-editable, and they have to agree on a command id for every entry point:
 
 | | |
 | --- | --- |
@@ -64,7 +64,7 @@ there is **no attach call and no `.init_array`**. vulkan needs the guest to hand
 
 ### the guest library
 
-`host/thunks/audio/build-guest-aaudio.ps1` assembles the stubs into an x86-64 `libaaudio.so`, staged into `guest-libs/x86_64/` alongside glibc rather than built into anything — it is what the guest's own ld.so finds on `LD_LIBRARY_PATH` when the payload's `DllImport("libaaudio.so")` is resolved.
+`scripts/build-thunks.py` assembles the stubs into an x86-64 `libaaudio.so`, staged into `guest-libs/x86_64/` alongside glibc rather than built into anything — it is what the guest's own ld.so finds on `LD_LIBRARY_PATH` when the payload's `DllImport("libaaudio.so")` is resolved.
 
 **it links nothing at all** — no libc, no crt, no `DT_NEEDED` — which is why the NDK's x86-64 clang can build it even though that target is bionic and the guest set is glibc. what comes out is 72 stubs and a `DT_SONAME`, and glibc's loader has no opinion about either.
 
@@ -205,4 +205,4 @@ it is `-nostdlib` like every other guest here, which means no libm — so the 44
 
 it also asks for an error callback, so the refusal path is exercised rather than merely written, and it plays in two phases with a pause between them long enough for the audio server to give up on a silent client — so going quiet and coming back is part of what passes.
 
-`scripts/regression.ps1` runs it among the host layer's other modes, **with a negative control**: the same guest without `--audio`, which must fail, because that is what says the pass is the thunk working rather than something else providing audio. [`scripts.md`](scripts.md) has the commands.
+`scripts/regression.py` runs it among the host layer's other modes, **with a negative control**: the same guest without `--audio`, which must fail, because that is what says the pass is the thunk working rather than something else providing audio. [`scripts.md`](scripts.md) has the commands.

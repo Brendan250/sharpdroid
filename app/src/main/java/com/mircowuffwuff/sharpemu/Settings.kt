@@ -20,7 +20,7 @@ import android.content.SharedPreferences
  * not a default. So a row that has never been touched contributes nothing to the argument vector,
  * and [MainActivity] sees an absence this file had no hand in.
  *
- * That is what keeps `scripts/run.ps1` uncompromised. It is also why every accessor here answers a
+ * That is what keeps `scripts/run.py` uncompromised. It is also why every accessor here answers a
  * nullable, and why there is a [clear] rather than only a setter: "use the default" has to be
  * reachable from the UI, or a row is a one-way door.
  *

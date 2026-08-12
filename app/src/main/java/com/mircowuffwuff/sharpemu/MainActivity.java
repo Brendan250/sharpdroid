@@ -90,7 +90,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * Which staged GPU driver to inject, or null for the stock Adreno one.
      *
      * <p>A folder name: a package the driver manager imported, or one staged under
-     * {@code <external files>/gpu-drivers/} by {@code scripts/stage-driver.ps1}. Both spellings
+     * {@code <external files>/gpu-drivers/} by {@code scripts/stage.py}. Both spellings
      * resolve through {@link GpuDriver}, so a driver a script names and one a user chose are the
      * same code path.
      *
@@ -459,7 +459,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * {@code dlopen}s it, and the linker refuses a library from anywhere another app could have
      * written it — which is what {@code /storage/emulated/0} is. So a package the driver manager
      * imported already lives on internal storage and needs nothing, while one staged by
-     * {@code scripts/stage-driver.ps1} is copied to where the linker will take it. External storage
+     * {@code scripts/stage.py} is copied to where the linker will take it. External storage
      * is also FUSE-backed and this is 15 MB, which is the second reason not to load one in place.
      *
      * <p><b>A package that is gone falls back to the system driver rather than failing the launch.</b>
@@ -557,7 +557,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                     + buildPath + "' is a name. an id is not accepted: it names a family rather than"
                     + " a build, so resolving one answers with the highest packagedAt of it and can"
                     + " run a different build to the one that was just staged. stage one with"
-                    + " scripts/stage-build.ps1 and pass the path it prints, or pass nothing for the"
+                    + " scripts/stage.py and pass the path it prints, or pass nothing for the"
                     + " build the manager settled on");
             return null;
         } else {
@@ -734,14 +734,14 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 Log.e(TAG, "[app] missing: " + staged.getAbsolutePath()
                         + (gameName.startsWith("/")
                         ? " — that path is not readable. is all-files access still on?"
-                        : " — stage it with scripts/stage-game.ps1"));
+                        : " — stage it with scripts/stage.py"));
                 return;
             }
         }
         for (File needed : new File[] {payload, AppStorage.guestLibs(root)}) {
             if (!needed.exists()) {
                 Log.e(TAG, "[app] missing: " + needed.getAbsolutePath()
-                        + " — stage it with scripts/stage-game.ps1 or scripts/stage-guest-libs.ps1");
+                        + " — stage it with scripts/stage.py or scripts/stage.py");
                 return;
             }
         }

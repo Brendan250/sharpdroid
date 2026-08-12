@@ -17,11 +17,11 @@ import java.io.File
  */
 object AppStorage {
 
-    /** Game directories, each holding an `eboot.bin`. Staged by `scripts/stage-game.ps1`. */
+    /** Game directories, each holding an `eboot.bin`. Staged by `scripts/stage.py`. */
     @JvmStatic
     fun games(externalRoot: File): File = File(externalRoot, "games")
 
-    /** Staged SharpEmu builds, as packaged by `scripts/package-build.ps1`. */
+    /** Staged SharpEmu builds, as packaged by `scripts/package-build.py`. */
     @JvmStatic
     fun stagedBuilds(externalRoot: File): File = File(externalRoot, "builds")
 

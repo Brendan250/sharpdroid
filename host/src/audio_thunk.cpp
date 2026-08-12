@@ -33,7 +33,7 @@ enum CommandId : uint32_t {
 };
 
 // the signatures, generated rather than taken from the header's own declarations — see
-// host/thunks/audio/gen-thunk.ps1 for why (availability attributes, and eleven entry points that are not
+// scripts/gen-thunks.py for why (availability attributes, and eleven entry points that are not
 // in the API 28 stub library at all).
 #include "aaudio_protos.inc"
 

@@ -18,7 +18,7 @@ import java.io.File
  *
  * The two places are not alike and neither replaces the other:
  *
- * - **staged**, under the app's own external files, written by `scripts/stage-game.ps1`. This is the
+ * - **staged**, under the app's own external files, written by `scripts/stage.py`. This is the
  *   arm every measurement in the project was taken on, and it stays reachable exactly as it was
  * - **granted**, inside a directory tree the user picked. `docs/guest-files.md` describes what the
  *   guest then pays for reading one, which was measured rather than assumed: nothing above the noise

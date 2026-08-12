@@ -4,7 +4,7 @@ what a SharpEmu build is, what its `meta.json` says, and what a payload has to d
 
 **this is the document a third-party build has to satisfy.** the app refuses a build it does not recognise, and the refusal is the point: every failure this format exists to prevent is a silent one. a payload that ignores `SHARPEMU_HOST_AUDIO` renders perfectly, makes no sound, and reports no error anywhere — which arrives as "the emulator has no audio" and names the wrong component entirely.
 
-`scripts/package-build.ps1` produces builds and [`scripts.md`](scripts.md) documents how to drive it. nothing here requires that script: everything below is the format itself, and a build assembled by hand that holds to it is a build.
+`scripts/package-build.py` produces builds and [`scripts.md`](scripts.md) documents how to drive it. nothing here requires that script: everything below is the format itself, and a build assembled by hand that holds to it is a build.
 
 ## a build is a directory, not a file
 
@@ -60,7 +60,7 @@ the app reads the first eight, `author` and `commit`, and ignores `source`. they
 
 **`author` is who produced the build, and not who wrote the emulator.** `sharpemuVersion` and `commit` already say what the code is; this answers the question somebody holding two zips of one version actually has, which is whose zip each one is. it is drawn on the build list after the version, where a GPU driver card puts the same claim.
 
-**and it is a claim rather than a fact, which is where it differs from `commit`.** a commit names something checkable against a repository; this is a string in a zip anybody can edit. so nothing reads it but the screen — no import rule consults it, nothing is trusted because of it, and a build with an author nobody recognises is refused for no reason it would not have been refused for anyway. `scripts/package-build.ps1 -Author` is how one is set; it is never derived from `git log`, which names whoever wrote the last commit and would credit an upstream contributor for a package they never made the moment the fork merges upstream.
+**and it is a claim rather than a fact, which is where it differs from `commit`.** a commit names something checkable against a repository; this is a string in a zip anybody can edit. so nothing reads it but the screen — no import rule consults it, nothing is trusted because of it, and a build with an author nobody recognises is refused for no reason it would not have been refused for anyway. `scripts/package-build.py --author` is how one is set; it is never derived from `git log`, which names whoever wrote the last commit and would credit an upstream contributor for a package they never made the moment the fork merges upstream.
 
 **`sharpemuVersion` orders by SharpEmu's own release order, which is not semver, and the app implements that order rather than assuming one.** the released versions run `0.0.1`, `0.0.2`, `0.0.2-beta.2` … `0.0.2-beta.5`, `0.0.3`, `0.0.3-hotfix-1`, `0.0.3-hotfix-2`, `0.0.3-release.2` — so **a bare version comes first and suffixed ones follow it**, where semver says a suffixed version precedes the bare one. the dotted numbers compare numerically, then a bare version sorts before any suffix of the same numbers, then suffix labels compare alphabetically and their own numbers numerically, so `hotfix-2` precedes `hotfix-10`. `Versions.java` is the rule and says all of this beside the code, because anybody reading it against semver will think it is inverted.
 
@@ -120,7 +120,7 @@ what is worth defaulting here is a knob that is genuinely a property of the buil
 
 ## producing a build without a fork checkout
 
-`scripts/package-build.ps1 -FromArchive <path|url> -Id <id>` takes a published `linux-x64` tree — a `.tar.gz`, a `.zip`, or a bare publish directory — and gives it an identity. **it needs no fork clone, no .NET SDK and no git**, which is the path a third party takes and the one any CI job would take. what it cannot do is record a commit, so `commit` is empty and `source` names the archive.
+`scripts/package-build.py --from-archive <path|url> --id <id>` takes a published `linux-x64` tree — a `.tar.gz`, a `.zip`, or a bare publish directory — and gives it an identity. **it needs no fork clone, no .NET SDK and no git**, which is the path a third party takes and the one any automated job would take. what it cannot do is record a commit, so `commit` is empty and `source` names the archive.
 
 the payload is *found* inside the archive rather than assumed at a fixed depth, since whether there is a wrapper directory depends on who packed it: the archive is searched recursively for a file named `SharpEmu` with a `plugins/` beside it, and the layout it was found in is named in the log. more than one candidate is an error rather than a guess. that search is what fixes the payload's name in this mode — a build whose `payload` field is something else has to be assembled by hand.
 
@@ -162,7 +162,7 @@ the payload is *found* inside the archive rather than assumed at a fixed depth, 
 
 `contents` exists for two things an APK asset cannot otherwise answer: how large the unpacking is before it starts, and which names are directories — `AssetManager` reports names without kinds, so telling a file from a directory otherwise means opening each one and reading a failure as "directory".
 
-**a name android's asset packer will not ship is not in the tree.** aapt2 applies a default ignore pattern to `assets/` — dot-prefixed names among them — without saying so, so `app/build-app.ps1` removes those before it writes the listing and then checks every line of the listing against the APK it produced. a listing that names a file the APK does not have is a launch that aborts part-way through unpacking.
+**a name android's asset packer will not ship is not in the tree.** aapt2 applies a default ignore pattern to `assets/` — dot-prefixed names among them — without saying so, so `scripts/build-apk.py` removes those before it writes the listing and then checks every line of the listing against the APK it produced. a listing that names a file the APK does not have is a launch that aborts part-way through unpacking.
 
 ## how a build is selected
 

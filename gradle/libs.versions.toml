@@ -8,7 +8,7 @@
 #
 # toolchain.json remains the source of truth for the *toolchains* (NDK, JDK, build-tools, platform).
 # this file is the source of truth for what the app compiles against. the two overlap in exactly one
-# place, the compile and target SDK, and app/build-app.ps1 asserts they agree rather than trusting
+# place, the compile and target SDK, and scripts/build-apk.py asserts they agree rather than trusting
 # that somebody updated both.
 
 [versions]

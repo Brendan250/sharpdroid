@@ -38,7 +38,7 @@ sealed class GameSource {
     /** `sce_sys/param.json`, or null when there is none. The caller closes it. */
     abstract fun openParam(): InputStream?
 
-    /** A game staged into the app's own external files by `scripts/stage-game.ps1`. */
+    /** A game staged into the app's own external files by `scripts/stage.py`. */
     class Staged(val directory: File) : GameSource() {
 
         override val folder: String get() = directory.name

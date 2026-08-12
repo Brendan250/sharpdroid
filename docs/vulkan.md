@@ -14,7 +14,7 @@ it rides in on the syscall boundary [`host-layer.md`](host-layer.md) describes, 
 
 ## the two halves
 
-`host/thunks/vulkan/gen-thunk.ps1` generates both from the NDK's `vulkan_core.h`, together, in one pass, from one list. neither is hand-editable, and they have to agree on a command id for every entry point:
+`scripts/gen-thunks.py` generates both from the NDK's `vulkan_core.h`, together, in one pass, from one list. neither is hand-editable, and they have to agree on a command id for every entry point:
 
 | | |
 | --- | --- |
@@ -46,7 +46,7 @@ the host **checks the table's shape rather than trusting it**: every entry is ve
 
 ### the guest library
 
-`host/thunks/vulkan/build-guest-vulkan.ps1` assembles the stubs into an x86-64 `libvulkan.so.1`, staged into `guest-libs/x86_64/` alongside glibc rather than built into anything — it is what the guest's own ld.so finds on `LD_LIBRARY_PATH` when .NET asks for vulkan. a bare `libvulkan.so` is copied beside it, because Silk.NET asks for the versioned soname and anything probing by bare soname asks for the other.
+`scripts/build-thunks.py` assembles the stubs into an x86-64 `libvulkan.so.1`, staged into `guest-libs/x86_64/` alongside glibc rather than built into anything — it is what the guest's own ld.so finds on `LD_LIBRARY_PATH` when .NET asks for vulkan. a bare `libvulkan.so` is copied beside it, because Silk.NET asks for the versioned soname and anything probing by bare soname asks for the other.
 
 **it links nothing at all** — no libc, no crt, no `DT_NEEDED` — which is why the NDK's x86-64 clang can build it even though that target is bionic and the guest set is glibc. what comes out is 623 stubs, an `.init_array` entry and a `DT_SONAME`, and glibc's loader has no opinion about any of that.
 
@@ -274,6 +274,6 @@ frames presented, calls thunked and calls unresolved are reported in the run sum
 | `vkrender.c` | guest x86-64 code makes the GPU actually execute something, and the result is read back and checked |
 | `vkswap.c` | acquire, render and present as a *loop*, with the semaphores and fences a real client uses |
 
-they run as a shell binary with no window anywhere, so **the regression set exercises the invented window system rather than the real one**. `scripts/regression.ps1` runs them among the host layer's other modes; [`scripts.md`](scripts.md) has the commands.
+they run as a shell binary with no window anywhere, so **the regression set exercises the invented window system rather than the real one**. `scripts/regression.py` runs them among the host layer's other modes; [`scripts.md`](scripts.md) has the commands.
 
 `host/thunks/vulkan/host_vk_probe.c` sits underneath all of it — a host-side probe with no FEXCore and no guest, which answers what vulkan looks like from a bionic arm64 binary at all: whether the platform loader hands one a working instance and device, which extensions exist, and what the driver reports itself as. it links nothing and dlopens everything, which is also how the thunk reaches vulkan.

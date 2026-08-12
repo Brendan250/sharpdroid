@@ -1,25 +1,29 @@
-# all local output: the native build, the APK, packaged builds, soak logs, screenshots.
+# all local output: the native build, the APK, packaged builds, run logs.
 /build/
 
-# toolchains fetched by tools/fetch-toolchain.ps1. the declaration is toolchain.json, which IS
+# toolchains fetched by scripts/fetch-toolchain.py. the declaration is toolchain.json, which IS
 # committed; this is where it gets materialised. same relationship as package.json to node_modules.
 /toolchain/
 
 # the staged x86-64 guest libraries. these are Debian glibc, libstdc++ and openssl binaries and
-# are LGPL; guest-libs/fetch-guest-libs.ps1 fetches them, and they are not redistributed here.
+# are LGPL; scripts/fetch-guest-libs.py fetches them, and they are not redistributed here.
 /guest-libs/x86_64/
 /guest-libs/bin/
 
-# a throwaway debug signing key. app/build-app.ps1 generates one on demand, so there is no reason
+# a throwaway debug signing key. scripts/build-apk.py generates one on demand, so there is no reason
 # to publish one.
 /app/debug.keystore
 
 # gradle's own project-local cache and daemon state. there is no way to redirect it from inside the
 # build the way build/ is redirected, so it is ignored where it lands.
 /.gradle/
-# written by app/build-app.ps1 from whatever scripts/toolchain.ps1 resolved. it holds an absolute
+# written by scripts/build-apk.py from whatever the toolchain resolver found. it holds an absolute
 # SDK path, which is true on exactly one machine.
 /local.properties
+
+# python's compiled bytecode, written beside the scripts whenever one imports the shared package.
+__pycache__/
+*.pyc
 
 # editors and platform junk
 .vs/

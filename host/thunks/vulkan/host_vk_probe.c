@@ -7,7 +7,7 @@
 //     driver, so this is where we find out what a swapchain would need)
 //   - what the driver reports itself as, so a turnip injection later is visibly different
 //
-// build with host/thunks/vulkan/build-probe.ps1; it links nothing, everything is dlopen'd, which is
+// build with scripts/build-host.py --probe; it links nothing, everything is dlopen'd, which is
 // also how the thunk will reach vulkan later.
 #include <dlfcn.h>
 #include <stdio.h>

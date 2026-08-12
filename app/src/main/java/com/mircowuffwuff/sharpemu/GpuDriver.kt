@@ -10,7 +10,7 @@ import java.util.Locale
  * A GPU driver package: a directory holding a Vulkan `.so` and the `meta.json` that names it.
  *
  * **The format is adrenotools', not ours.** It is what every turnip package on the internet already
- * ships and what `scripts/stage-driver.ps1` unpacks, so a driver a user has for another emulator
+ * ships and what `scripts/stage.py` unpacks, so a driver a user has for another emulator
  * imports here unchanged. Nothing in this app knows that turnip's library is called
  * `libvulkan_freedreno.so` — `libraryName` says, and two of the packages this project tests with
  * call it something else entirely.
