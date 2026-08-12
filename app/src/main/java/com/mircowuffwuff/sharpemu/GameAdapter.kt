@@ -1,6 +1,7 @@
 package com.mircowuffwuff.sharpemu
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
@@ -32,6 +33,11 @@ class GameAdapter(
         // nothing on a name that fits, since android animates only when the text is wider than the
         // view, and on a grid of covers the few that overflow are the few worth reading.
         holder.binding.name.isSelected = true
+        // **staged is the only provenance that says so**, and it is set per bind because a recycled
+        // tile keeps whatever the previous game left on it. see item_game.xml for why a granted game
+        // wears nothing.
+        holder.binding.badge.visibility =
+            if (game.source is GameSource.Staged) View.VISIBLE else View.GONE
         // the title id is parsed and carried and is deliberately not drawn: a name is what a person
         // picks a game by, and every log line and script names the id itself. see item_game.xml.
         holder.binding.root.setOnClickListener { onLaunch(game) }

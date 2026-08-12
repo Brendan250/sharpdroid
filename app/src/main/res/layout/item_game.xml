@@ -68,20 +68,64 @@
             app:layout_constraintTop_toTopOf="parent"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.SharpEmu.Tile" />
 
-        <TextView
-            android:id="@+id/name"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:ellipsize="marquee"
-            android:marqueeRepeatLimit="marquee_forever"
-            android:singleLine="true"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="?attr/colorOnSurface"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/icon"
-            tools:text="Dreaming Sarah" />
+            app:layout_constraintTop_toBottomOf="@id/icon">
+
+            <!-- **the managers' badge, in front of the name rather than above it.** the pill, the
+                 word and both colours are the ones a staged driver and a staged build wear - see
+                 item_manager_card.xml and the Badge style - so one provenance reads the same
+                 wherever it is drawn. the colours are attributes here and set in code there because
+                 this badge has one value to say and those have three.
+
+                 **it is the only provenance with a badge, and it is hidden rather than blank on the
+                 rest.** where a manager card labels every item, a game reached through a granted
+                 folder is how a person gets to their own library - so a badge on every card would be
+                 a pill on every cover to say "ordinary". this marks the exception.
+
+                 **it sits between the two answers vertical alignment offers, because both are
+                 visibly wrong here.** the row's own default is a baseline, and the pill hangs low on
+                 it - a badge is a block and not a word, so aligning the letters inside it aligns the
+                 wrong thing. centring the boxes instead rides high, since the 16sp name reserves
+                 descent under itself that the 11sp badge does not. so the row is centred and the
+                 badge is nudged down by half the distance between the two.
+
+                 **the nudge is a top margin and it moves the badge by all of itself.** a centred
+                 child is placed by its box and then offset by its margins, rather than centred with
+                 them, so 1dp here is 1dp on screen and not half of one. the bottom margin the style
+                 carries is cleared for the same reason it exists - it separates a badge from the
+                 line under it, and there is nothing under this one - which is also what leaves this
+                 one free to mean something. -->
+            <TextView
+                android:id="@+id/badge"
+                style="@style/Badge"
+                android:layout_marginBottom="0dp"
+                android:layout_marginTop="1dp"
+                android:backgroundTint="?attr/colorSurfaceContainerHighest"
+                android:text="@string/build_badge_staged"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textColor="?attr/colorOnSurface"
+                tools:text="Dreaming Sarah" />
+
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
