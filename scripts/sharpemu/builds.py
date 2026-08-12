@@ -23,10 +23,6 @@ from .shell import Refusal, write_text
 # the app's declaration of which contracts it speaks.
 _CONTRACT_SOURCE = paths.APP / "src" / "main" / "java" / "com" / "mircowuffwuff" / "sharpemu" / "SharpEmuBuild.java"
 
-# the one build that ships inside an APK is a plain word rather than a derived name, which is what
-# makes it collision-proof against every `<id>-<version>-<packagedAt>` beside it.
-BUNDLED_FOLDER = "bundled"
-
 # absent fields and what they mean, straight out of the format document.
 _DEFAULTS = {
     "name": None,        # the id

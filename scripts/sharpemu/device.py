@@ -19,7 +19,7 @@ import shlex
 import time
 from pathlib import Path
 
-from .shell import Refusal, capture, run, say, size
+from .shell import Refusal, capture, run, say
 
 # the java package. the JNI entry points are named after it, the native link has an undefined-symbol
 # reference keeping them alive, and every launch command spells it out. it does not move.
@@ -38,10 +38,6 @@ DEBUG_LABEL = "SharpEmu Debug"
 # its build, its driver and its diagnostic flags named per launch. the launcher activity is the list.
 GUEST_ACTIVITY = JAVA_PACKAGE + ".MainActivity"
 LIST_ACTIVITY = JAVA_PACKAGE + ".GameListActivity"
-
-# the directories the app keeps on external storage, which is the volume adb can write and the app
-# can read. the names are the app's; this is the other end of the same rule.
-EXTERNAL_DIRECTORIES = ("games", "builds", "gpu-drivers", "guest-libs")
 
 # where a build the app does not own is staged, and where the shell binary goes -- which belongs to
 # no app, which is why it is the one thing with no application id.
@@ -381,7 +377,3 @@ def quote(remote):
 def _parent(remote):
     remote = str(remote).rstrip("/")
     return remote.rsplit("/", 1)[0] if "/" in remote else "/"
-
-
-def report_size(label, count):
-    say("  {}: {}".format(label, size(count) if count is not None else "unknown"))

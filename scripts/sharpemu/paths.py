@@ -18,7 +18,6 @@ APP = ROOT / "app"
 HOST = ROOT / "host"
 GUESTS = ROOT / "guests"
 GUEST_LIBS = ROOT / "guest-libs"
-DOCS = ROOT / "docs"
 TOOLCHAIN = ROOT / "toolchain"
 TOOLCHAIN_JSON = ROOT / "toolchain.json"
 

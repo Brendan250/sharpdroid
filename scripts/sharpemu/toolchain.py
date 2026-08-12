@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 from . import paths
-from .shell import Refusal, capture, warn
+from .shell import Refusal, warn
 
 # the floor, checked in one place. 3.9 is where `dict | dict`, `list[str]` in annotations and the
 # `zoneinfo` module arrive; nothing here needs any of them, so the floor is really "old enough that
@@ -410,11 +410,3 @@ def which(name):
     from shutil import which as _which
     found = _which(name)
     return Path(found) if found else None
-
-
-def capture_version(program, *args):
-    """a program's own version string, for the toolchain listing. never fatal."""
-    try:
-        return capture([program] + list(args), check=False).strip().splitlines()[0]
-    except Exception:
-        return "unknown"
