@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sharpemu import builds, device, paths, vocabulary
 from sharpemu import toolchain as tc
 from sharpemu.shell import (Refusal, capture, ensure, fresh, main, produced, run, say, size, step,
-                            wipe, write_text)
+                            tree_size, wipe, write_text)
 from sharpemu.vocabulary import Parser
 
 # what the app's own asset packer silently drops out of `assets/`. they are dropped here instead, so
@@ -158,7 +158,7 @@ def stage_bundle(toolchain, wanted, package):
     write_bundle_meta(build, asset)
     count = builds.write_contents(asset, asset / "contents")
 
-    total = sum(p.stat().st_size for p in asset.rglob("*") if p.is_file())
+    total = tree_size(asset)
     say("  bundling {} {} {}, contract {}".format(
         build.id, build.version, build.commit or "no commit", build.contract))
     say("  {} in {} files, from {}".format(size(total), count, paths.relative(build.directory)))

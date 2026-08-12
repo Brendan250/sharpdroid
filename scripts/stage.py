@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from sharpemu import builds, device, paths, vocabulary
 from sharpemu import toolchain as tc
-from sharpemu.shell import Refusal, fresh, main, read_text, say, size, step, wipe
+from sharpemu.shell import Refusal, fresh, main, read_text, say, size, step, tree_size, wipe
 from sharpemu.vocabulary import Parser
 
 
@@ -189,7 +189,7 @@ def stage_game(attached, files, source, restage):
         say("  the device has a {} eboot.bin and this one is {} -- restaging".format(
             size(landed), size(local)))
 
-    total = sum(path.stat().st_size for path in source.rglob("*") if path.is_file())
+    total = tree_size(source)
     say("  {} -- {}".format(source.name, size(total)))
     say("  -> {}".format(target))
     attached.remove(target)

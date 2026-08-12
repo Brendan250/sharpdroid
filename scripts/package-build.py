@@ -40,7 +40,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sharpemu import builds, paths
 from sharpemu import toolchain as tc
 from sharpemu.shell import (Refusal, capture, ensure, fresh, main, produced, run, say, size, step,
-                            warn, wipe, write_text)
+                            tree_size, warn, wipe, write_text)
 from sharpemu.vocabulary import Parser
 
 # the launcher-to-payload interface generation. the build format document is where this is defined;
@@ -407,8 +407,7 @@ def package(toolchain, arguments, identity, publish):
 
     say("")
     say("  payload    {}".format(size(packaged.payload_size())))
-    say("  directory  {}".format(size(sum(p.stat().st_size for p in staging.rglob("*")
-                                          if p.is_file()))))
+    say("  directory  {}".format(size(tree_size(staging))))
     say("  zip        {}  {}".format(size(archive.stat().st_size), paths.relative(archive)))
     say("  commit     {}".format(meta["commit"] or "none, packaged from an archive"))
     if meta["env"]:
