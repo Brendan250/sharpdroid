@@ -107,7 +107,17 @@ object AppStorage {
      */
     @JvmStatic
     fun pipelineCache(filesDir: File, titleId: String): File =
-        File(File(File(user(filesDir), "pipeline_cache"), titleId), "vulkan-pipeline-cache.bin")
+        File(File(pipelineCacheRoot(filesDir), titleId), "vulkan-pipeline-cache.bin")
+
+    /**
+     * The level every title's cache sits under.
+     *
+     * Nothing points a variable at it — [pipelineCache] names a blob and the emulator is given that —
+     * but it is what the User data screen measures and what clearing the cache removes, and both of
+     * those want the whole of it rather than one title's.
+     */
+    @JvmStatic
+    fun pipelineCacheRoot(filesDir: File): File = File(user(filesDir), "pipeline_cache")
 
     /**
      * The guest's `/hostapp` mount — `SHARPEMU_HOSTAPP_DIR`.

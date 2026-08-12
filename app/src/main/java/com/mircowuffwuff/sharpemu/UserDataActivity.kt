@@ -1,0 +1,429 @@
+package com.mircowuffwuff.sharpemu
+
+import android.app.ActivityManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.text.format.DateUtils
+import android.text.format.Formatter
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.GridLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.mircowuffwuff.sharpemu.databinding.ActivityManagerBinding
+import com.mircowuffwuff.sharpemu.databinding.DialogMessageBinding
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.Executors
+
+/**
+ * The User data screen: what the emulator has written that belongs to the person using it.
+ *
+ * Reached from **Settings → User data**, whose card opens this directly rather than a list of rows
+ * holding one row that opens it.
+ *
+ * **The manager screen again** — the same toolbar over the same grid, as the build, driver and folder
+ * managers are. What is listed is not a package and none of the importing applies, but a grid of
+ * things with actions on each is the shape those three already are, and a fourth that looked
+ * different would be a fourth thing to learn.
+ *
+ * **The whole of it is the first card rather than a pair of toolbar actions**, which is what makes the
+ * most common thing anybody comes here for the most visible thing on the screen. It is also what lets
+ * it state a size: a toolbar action is a word, where a card carries the figure that says how much is
+ * about to move.
+ *
+ * **Neither is the floating button the other managers carry.** That slot would sit on top of the last
+ * card's own buttons — this screen's list is four cards that never scroll, so the space a manager's
+ * list reserves under itself is space this one does not have.
+ *
+ * **Every button that destroys something confirms first, and the two exports do not.** An export
+ * writes one file into a place the user picked and touches nothing else; a confirmation there would
+ * be a question with no stake in it, and a screen that asks about everything teaches people to stop
+ * reading. Both imports confirm, because both replace something already on the device.
+ */
+class UserDataActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityManagerBinding
+    private lateinit var adapter: UserDataAdapter
+    private lateinit var drawnWith: String
+    private val worker = Executors.newSingleThreadExecutor()
+
+    /** Which card's button opened the picker. Read when it answers, and only then. */
+    private var pending: UserDataItem.Kind? = null
+
+    /**
+     * The two pickers, registered at construction as the contract requires — this activity can be
+     * recreated while a picker is in front of it, and a launcher registered later than `onCreate` has
+     * nothing to deliver a result to.
+     */
+    private val exportTo =
+        registerForActivityResult(ActivityResultContracts.CreateDocument(ZIP)) { out ->
+            val kind = pending
+            pending = null
+            if (out != null && kind != null) export(kind, out)
+        }
+
+    private val importFrom = registerForActivityResult(ActivityResultContracts.OpenDocument()) { zip ->
+        val kind = pending
+        pending = null
+        if (zip != null && kind != null) offerImport(kind, zip)
+    }
+
+    override fun onCreate(state: Bundle?) {
+        Theme.apply(this)
+        drawnWith = Theme.signature(this)
+        super.onCreate(state)
+        binding = ActivityManagerBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        SystemBars.apply(this, binding.root)
+
+        binding.toolbar.setTitle(R.string.settings_user_data)
+        binding.toolbar.setNavigationOnClickListener { finish() }
+
+        adapter = UserDataAdapter(emptyList(), this::act)
+        binding.list.layoutManager =
+            GridLayoutManager(this, resources.getInteger(R.integer.settings_section_columns))
+        binding.list.adapter = adapter
+
+        // **no empty state.** the four cards are always there: a device with nothing saved yet still
+        // has save data as a thing that exists and is empty, and each card says so on its own line.
+        binding.importZip.visibility = View.GONE
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (Theme.recreateIfStale(this, drawnWith)) return
+        SystemBars.apply(this, binding.root)
+        refresh()
+    }
+
+    override fun onDestroy() {
+        worker.shutdown()
+        super.onDestroy()
+    }
+
+    /**
+     * Measures on the worker and draws on the main thread.
+     *
+     * The settings count is read here rather than inside the measurement: it is a handful of
+     * `SharedPreferences` lookups against a store the framework already holds in memory, where the
+     * directories beside it are a recursive walk of the disk.
+     */
+    private fun refresh() {
+        val files = filesDir
+        val changed = Settings.of(this).changedFromDefault()
+        worker.execute {
+            val items = UserDataItem.measure(files, changed)
+            runOnUiThread { if (!isFinishing) adapter.submit(items) }
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // what a button does
+
+    private fun act(kind: UserDataItem.Kind, action: UserDataAdapter.Action) = when (action) {
+        UserDataAdapter.Action.EXPORT -> {
+            pending = kind
+            exportTo.launch(suggestedName(kind))
+        }
+        UserDataAdapter.Action.IMPORT -> {
+            pending = kind
+            // the zip mime type rather than everything, so the picker greys out what cannot be one.
+            importFrom.launch(arrayOf(ZIP, "application/octet-stream"))
+        }
+        UserDataAdapter.Action.DELETE -> confirmDelete(kind)
+        UserDataAdapter.Action.RESET -> confirmReset()
+    }
+
+    private fun suggestedName(kind: UserDataItem.Kind): String {
+        val stamp = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        val what = if (kind == UserDataItem.Kind.EVERYTHING) "everything" else "savedata"
+        return "sharpemu-$what-$stamp.zip"
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // export
+
+    private fun export(kind: UserDataItem.Kind, out: Uri) = busy {
+        val bytes = when (kind) {
+            UserDataItem.Kind.EVERYTHING -> UserDataArchive.exportEverything(this, out)
+            else -> UserDataArchive.exportSaveData(this, out)
+        }
+        runOnUiThread {
+            done()
+            if (bytes == null) {
+                toast(getString(R.string.user_data_export_failed))
+            } else {
+                toast(getString(R.string.user_data_exported, formatted(bytes)))
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // import
+
+    /**
+     * Reads the archive's manifest, then asks.
+     *
+     * **The manifest is what refuses a mismatch**, and the refusal names the archive rather than the
+     * button: somebody who picked the wrong file wants to know what they picked.
+     */
+    private fun offerImport(kind: UserDataItem.Kind, zip: Uri) = busy {
+        val manifest = UserDataArchive.read(this, zip)
+        runOnUiThread {
+            done()
+            val wanted = if (kind == UserDataItem.Kind.EVERYTHING) {
+                UserDataArchive.Kind.EVERYTHING
+            } else {
+                UserDataArchive.Kind.SAVE_DATA
+            }
+            if (manifest == null) {
+                toast(getString(R.string.user_data_import_not_ours))
+                return@runOnUiThread
+            }
+            if (manifest.kind != wanted) {
+                toast(getString(R.string.user_data_import_wrong_kind, describe(manifest.kind)))
+                return@runOnUiThread
+            }
+            val message = getString(
+                if (kind == UserDataItem.Kind.EVERYTHING) {
+                    R.string.user_data_import_everything_message
+                } else {
+                    R.string.user_data_import_saves_message
+                },
+                provenance(manifest),
+            )
+            ask(R.string.user_data_import_title, message, R.string.action_import) {
+                runImport(kind, zip)
+            }
+        }
+    }
+
+    /** *"exported 5 days ago"*, or a date where the clock disagrees. */
+    private fun provenance(manifest: UserDataArchive.Manifest): String {
+        val now = System.currentTimeMillis()
+        // a device whose clock is behind the one that wrote the archive would otherwise be told the
+        // file was exported in three days' time, which reads as a bug in the archive rather than in
+        // the clock. a plain date is the honest answer there.
+        val when_ = if (manifest.exportedAt in 1 until now) {
+            DateUtils.getRelativeTimeSpanString(
+                manifest.exportedAt, now, DateUtils.MINUTE_IN_MILLIS
+            ).toString()
+        } else {
+            SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(manifest.exportedAt))
+        }
+        // the version the archive was written by is read and kept, and it is deliberately not shown:
+        // what somebody deciding whether to import can act on is how old the file is.
+        return getString(R.string.user_data_provenance, when_)
+    }
+
+    private fun runImport(kind: UserDataItem.Kind, zip: Uri) = busy {
+        // **the bytes restored, which is the same measurement the export that wrote them reported.**
+        // neither counts the manifest, so a round trip says the same number twice.
+        val bytes = when (kind) {
+            UserDataItem.Kind.EVERYTHING -> UserDataArchive.importEverything(this, zip)
+            else -> UserDataArchive.importSaveData(this, zip)
+        }
+        runOnUiThread {
+            done()
+            if (bytes == null) {
+                toast(getString(R.string.user_data_import_failed))
+                return@runOnUiThread
+            }
+            if (kind == UserDataItem.Kind.EVERYTHING) {
+                // **the toast is posted before the process ends, and it is what says the import
+                // worked.** the screen this was pressed from is about to disappear, so nothing on it
+                // can carry the news - and an app that simply vanishes reads as a crash rather than
+                // as a success. a text toast is drawn by the system rather than by this app, so it
+                // survives the process that asked for it.
+                toast(getString(R.string.user_data_imported, formatted(bytes)))
+                // **the process has to end here, and it is not cosmetic.** SharedPreferences is
+                // cached per process: the framework is still holding the settings this import just
+                // replaced on disk, and the next write of any row would put the old ones back over
+                // the imported file. restarting is what makes the imported store the one that is
+                // read. the delay is the toast's, so it is enqueued and on screen before the process
+                // it was posted from goes away.
+                after { restart() }
+            } else {
+                toast(getString(R.string.user_data_imported, formatted(bytes)))
+                refresh()
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // delete and reset
+
+    private fun confirmDelete(kind: UserDataItem.Kind) = when (kind) {
+        UserDataItem.Kind.EVERYTHING -> confirmWipe()
+        UserDataItem.Kind.SAVE_DATA -> ask(
+            R.string.user_data_delete_saves_title,
+            getString(R.string.user_data_delete_saves_message),
+            R.string.action_delete,
+        ) { wipe(AppStorage.saveData(filesDir)) }
+        else -> ask(
+            R.string.user_data_delete_shaders_title,
+            getString(R.string.user_data_delete_shaders_message),
+            R.string.action_delete,
+        ) { wipe(AppStorage.pipelineCacheRoot(filesDir)) }
+    }
+
+    private fun wipe(directory: File) = busy {
+        val ok = directory.deleteRecursively() || !directory.exists()
+        runOnUiThread {
+            done()
+            toast(getString(if (ok) R.string.user_data_deleted else R.string.user_data_delete_failed))
+            refresh()
+        }
+    }
+
+    /**
+     * The whole install, in two questions.
+     *
+     * **Two dialogs doing different jobs, rather than the same one twice.** A repeated *Are you
+     * sure?* teaches the rhythm and gets clicked through; what earns a second tap is the second
+     * question saying something the first did not. The first names what goes, counted and measured
+     * from the card's own figure. The second names what it costs — that there is no undo, and that
+     * **the app closes the moment it is pressed**, which arrives as a crash if nobody said so.
+     */
+    private fun confirmWipe() {
+        val total = adapter.everythingSize()
+        ask(
+            R.string.user_data_wipe_title,
+            getString(R.string.user_data_wipe_message, formatted(total)),
+            R.string.action_delete,
+        ) {
+            ask(
+                R.string.user_data_wipe_final_title,
+                getString(R.string.user_data_wipe_final_message),
+                R.string.user_data_wipe_confirm,
+            ) { wipeEverything() }
+        }
+    }
+
+    /**
+     * Back to the just-installed state, by the platform's own route.
+     *
+     * **`clearApplicationUserData` rather than a recursive delete of ours**, and the reason is the
+     * `SharedPreferences` cache again: this app cannot remove a file the framework is still holding
+     * in memory and have the removal stick. The platform can, because it ends the process as part of
+     * the same call. That is also what makes it match the words — it is uninstall and reinstall,
+     * including the external files directory, so anything staged from a PC goes with it.
+     *
+     * **The all-files permission is the one thing it does not take, which is measured rather than
+     * assumed.** `MANAGE_EXTERNAL_STORAGE` is an app op rather than an ordinary runtime permission,
+     * and it is still granted after the data directory is gone. So it is an exception here exactly as
+     * it is to a settings reset — in both cases because this app never held it in the first place;
+     * [AllFiles] reads the platform live and stores nothing.
+     *
+     * Nothing runs after this. There is no toast and no screen to return to.
+     */
+    private fun wipeEverything() {
+        // said before the call rather than after it, because there is no after: the platform ends
+        // this process as part of clearing the data. see [runImport] on why a text toast outlives
+        // the app that posted it.
+        toast(getString(R.string.user_data_wiped))
+        after {
+            val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            if (!manager.clearApplicationUserData()) {
+                toast(getString(R.string.user_data_delete_failed))
+            }
+        }
+    }
+
+    /**
+     * Runs [work] once the toast just posted is up.
+     *
+     * **A toast is enqueued rather than drawn**, so a process that ends in the same breath as posting
+     * one can go away before the system has shown it. This is the gap between the two, and it is the
+     * only thing standing between a message and the process it describes the end of.
+     */
+    private fun after(work: () -> Unit) =
+        binding.root.postDelayed(work, TOAST_LEAD_MS)
+
+    private fun confirmReset() = ask(
+        R.string.user_data_reset_title,
+        getString(R.string.user_data_reset_message),
+        R.string.action_reset,
+    ) {
+        val settings = Settings.of(this)
+        // **through the store's own API rather than by deleting the file**, for the reason the
+        // everything import restarts the process: a preferences file removed underneath the framework
+        // is a file the framework rewrites from memory the next time anything is set.
+        settings.clearAll()
+        // **and the grants are released rather than merely forgotten.** android caps how many
+        // persisted uri permissions an app may hold, so a folder dropped from the list without
+        // releasing its grant is one held against that cap forever, by nothing.
+        GameLibrary.trees(this).forEach { GameLibrary.remove(this, it) }
+        toast(getString(R.string.user_data_reset_done))
+        // the theme is among what just went back to its default, and this is the screen it is drawn
+        // on - the same restart the theme row itself takes.
+        Theme.reapply(this)
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // the plumbing
+
+    /**
+     * Runs [work] on the worker with the toolbar's progress bar up.
+     *
+     * The bar is the one in `activity_manager.xml`, drawn inside the toolbar band so that starting it
+     * moves nothing: an import is megabytes through a content provider, which is seconds with this
+     * screen in front.
+     */
+    private fun busy(work: () -> Unit) {
+        binding.progress.visibility = View.VISIBLE
+        worker.execute(work)
+    }
+
+    private fun done() {
+        binding.progress.visibility = View.GONE
+    }
+
+    private fun ask(title: Int, message: String, confirm: Int, then: () -> Unit) {
+        // the message is a view rather than setMessage, for dialog_message.xml's reason: a short
+        // question otherwise leaves a band of empty dialog under it taller than the question.
+        val view = DialogMessageBinding.inflate(LayoutInflater.from(this))
+        view.message.text = message
+        MaterialAlertDialogBuilder(this)
+            .setTitle(title)
+            .setView(view.root)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(confirm) { _, _ -> then() }
+            .show()
+    }
+
+    private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+
+    private fun formatted(bytes: Long): String = Formatter.formatShortFileSize(this, bytes)
+
+    private fun describe(kind: UserDataArchive.Kind): String = getString(
+        if (kind == UserDataArchive.Kind.EVERYTHING) {
+            R.string.user_data_everything
+        } else {
+            R.string.user_data_saves
+        }
+    )
+
+    /** Relaunches into the game list and ends this process, so nothing cached outlives the import. */
+    private fun restart() {
+        val intent = packageManager.getLaunchIntentForPackage(packageName)
+            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        if (intent != null) startActivity(intent)
+        finishAffinity()
+        Runtime.getRuntime().exit(0)
+    }
+
+    private companion object {
+        const val ZIP = "application/zip"
+
+        /** Long enough for a posted toast to reach the screen, short enough not to read as a stall. */
+        const val TOAST_LEAD_MS = 400L
+    }
+}

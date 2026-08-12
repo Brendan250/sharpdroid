@@ -36,6 +36,52 @@ class Settings private constructor(private val prefs: SharedPreferences) {
     /** Back to "the app decides", which is not the same as writing the default in. */
     fun clear(key: String) = prefs.edit().remove(key).apply()
 
+    /**
+     * Every row back to untouched, at once.
+     *
+     * **Through the store rather than by deleting its file**, and that is not a style preference:
+     * `SharedPreferences` is cached per process, so a file removed underneath the framework is one
+     * the framework rewrites from memory the moment anything else is set. `clear()` is the only
+     * removal that both the disk and the copy in memory agree about.
+     *
+     * **It does not touch the all-files permission, and there is nothing here that could.** That row
+     * stores no key — [AllFiles] reads the platform live on every look — so it is an exception to
+     * this by construction rather than by an exclusion somebody has to remember.
+     */
+    fun clearAll() = prefs.edit().clear().apply()
+
+    /**
+     * How many rows are on something other than their default.
+     *
+     * **It compares values rather than counting what is set, and the two are not the same number.**
+     * A row the user opened and put back on the value it already had is set — it reaches a launch,
+     * an export carries it, and *Reset* clears it — but it is not a row that differs from the
+     * default, and a card reporting it would tell somebody three things had changed when the app
+     * behaves exactly as it shipped. What the User data screen states is the *state*, so this
+     * answers about the state.
+     *
+     * **The driver has two spellings of one answer** — absent and [GpuDriver.SYSTEM] both mean the
+     * driver the device shipped with — so it is asked rather than compared. Everything else has one
+     * default and one way to say it.
+     */
+    fun changedFromDefault(): Int {
+        var count = 0
+        if (theme?.let { it != THEME_DEFAULT } == true) count++
+        if (customColour?.let { it != CUSTOM_COLOUR_DEFAULT } == true) count++
+        if (fullscreen == true) count++
+        if (strictDynlib == true) count++
+        if (fexPreset?.let { it != FexPreset.DEFAULT } == true) count++
+        if (renderScale?.let { it != RENDER_SCALES[0] } == true) count++
+        // **absence is the default and the bundled build is a choice, even though a launch resolves
+        // the two to the same payload.** what separates them is that nothing writes this key by
+        // itself: a fresh install stores nothing, and BuildsActivity.select returns early on the row
+        // that is already selected - so the only way to hold [SharpEmuBuild.BUNDLED] here is to have
+        // been on another build and come back, which is a choice like any other.
+        if (build != null) count++
+        if (!GpuDriver.isSystem(driver)) count++
+        return count
+    }
+
     // ------------------------------------------------------------------------------------------
     // App
 

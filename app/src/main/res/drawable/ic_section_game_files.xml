@@ -1,5 +1,11 @@
 <!--
-  the Data section: the folders this app has been let into.
+  the Game files section: the folders this app has been let into.
+
+  **the folder belongs to this section rather than to User data, and the two are not interchangeable.**
+  a folder is a place on the device that somebody pointed the app at - which is what this section is, a
+  list of grants that can be revoked. what User data holds is storage the app owns, that a file manager
+  cannot see and that nobody navigates to; it reads as folder-shaped only because the word "files" is
+  nearby.
 
   the section icons are Material's own shapes, at Material Symbols' 960 viewport, and are tinted with
   the theme's primary colour by the layout rather than here - a vector carrying a colour of its own is

@@ -85,6 +85,15 @@
             android:exported="false" />
 
         <!--
+          the User data screen, opened by its own card on the settings scene rather than by a row.
+          not exported for a sharper version of the reason above: every button on it either hands a
+          person's save data out or takes theirs away.
+        -->
+        <activity
+            android:name=".UserDataActivity"
+            android:exported="false" />
+
+        <!--
           **a process of its own, and it is the guest's exit that asks for it.** a guest calling
           exit_group ends the process it is in - that is what the syscall means, and the host layer
           answers it with _exit because the other guest threads are inside translated code and

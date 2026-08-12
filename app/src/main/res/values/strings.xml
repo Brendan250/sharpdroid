@@ -60,8 +60,15 @@
     <string name="settings_emulation_summary">How SharpEmu itself is run</string>
     <string name="settings_graphics">Graphics</string>
     <string name="settings_graphics_summary">Rendering and presentation</string>
-    <string name="settings_data">Data</string>
-    <string name="settings_data_summary">How this app reaches your files</string>
+    <!-- **two sections rather than one, and the split is input against output.** what this one holds
+         is things somebody already owns, living elsewhere on the device, reached by a grant that can be
+         revoked. what the next one holds is what the emulator produced, in storage the app owns. the
+         verbs are different too - grant and revoke against export, import and delete - and so is the
+         errand: one is opened when a game does not appear, the other when a phone is being replaced. -->
+    <string name="settings_game_files">Game files</string>
+    <string name="settings_game_files_summary">Where this app reads your games from</string>
+    <string name="settings_user_data">User data</string>
+    <string name="settings_user_data_summary">Everything this emulator stores and writes</string>
 
     <string name="settings_group_sharpemu">SharpEmu</string>
 
@@ -92,9 +99,109 @@
     <string name="setting_fullscreen">Fullscreen mode</string>
     <string name="setting_fullscreen_summary">Hide the status and navigation bars everywhere. Swipe from an edge to bring them back. A game is always fullscreen.</string>
 
-    <!-- the switch says what the state is, so the description says what the state means rather than
-         which one it currently is. -->
-    <string name="settings_group_game_files">Game files</string>
+    <!-- **the whole of it leads and the parts follow.** the first card is what most people came to
+         move, so it says its own total and carries the buttons for it; the cards under it are for
+         somebody who wants one part, and each states a size of its own so the nesting is legible. -->
+    <string name="user_data_everything">Everything</string>
+    <!-- short enough to clear three icons, and it spends the room it has on the one thing the title
+         does not already say: the settings travel with the files. -->
+    <string name="user_data_everything_description">Fully replaces all data.</string>
+    <string name="user_data_everything_empty">Nothing stored yet</string>
+    <string name="user_data_saves">Save data</string>
+    <string name="user_data_saves_description">Your progress across titles.</string>
+    <string name="user_data_saves_empty">Nothing saved yet</string>
+    <string name="user_data_shaders">Disk shader cache</string>
+    <string name="user_data_shaders_description">Compiled as you play and rebuilt if deleted.</string>
+    <string name="user_data_shaders_empty">Nothing compiled yet</string>
+    <string name="user_data_settings">Settings</string>
+    <!-- short enough to clear three icons. a card carrying the most of them has the least room for a
+         description, and this is the one where the two meet. -->
+    <string name="user_data_settings_description">Every choice you have made here.</string>
+    <!-- **how much of this app is no longer stock, rather than a size.** the store is a few hundred
+         bytes whatever is in it, so a figure in kB would be a true number answering nothing anybody
+         opened this card to ask. zero is its own line: "0 settings changed" is a count where the
+         sentence beside it is a state, and a fresh install is the one state worth naming. -->
+    <string name="user_data_settings_default">Everything is at its default</string>
+    <plurals name="user_data_settings_changed">
+        <item quantity="one">%d setting changed</item>
+        <item quantity="other">%d settings changed</item>
+    </plurals>
+
+    <!-- size first, because it is what the card was opened to find out.
+
+         **titles on every card that counts, never games.** saves and the shader cache are both keyed
+         by title id, so the two are one kind of thing counted twice, and a second word for it would
+         read as a distinction that is not there. -->
+    <string name="user_data_figures">%1$s · %2$s</string>
+    <plurals name="user_data_titles">
+        <item quantity="one">%d title</item>
+        <item quantity="other">%d titles</item>
+    </plurals>
+
+    <!-- what a screen reader announces for a card's button: the action, then what it acts on. the
+         glyph is the whole button, so without the card's name an Export read out of order says
+         nothing about what is being exported. -->
+    <string name="user_data_action">%1$s %2$s</string>
+
+    <!-- ==========================================================================================
+         what the User data buttons say when they act.
+
+         **only the buttons that destroy something ask first.** an export writes one file into a place
+         the user picked and touches nothing else, so a question there has no stake in it - and a
+         screen that asks about everything teaches people to stop reading the questions.
+         ========================================================================================== -->
+
+    <string name="user_data_exported">Exported %1$s</string>
+    <string name="user_data_export_failed">Could not write that file</string>
+
+    <string name="user_data_import_title">Import this archive?</string>
+    <!-- **the refusal names what the file is, not what the button wanted.** somebody who picked the
+         wrong archive is trying to work out which one they picked. -->
+    <string name="user_data_import_not_ours">That is not a SharpEmu export</string>
+    <string name="user_data_import_wrong_kind">That is a %1$s export. Import it from the %1$s card.</string>
+    <string name="user_data_import_everything_message">Everything on this device is replaced by what the archive holds; your saves, your shader cache, your imported builds and drivers, and every setting.\n%1$s</string>
+    <string name="user_data_import_saves_message">A title in the archive replaces the same title on this device. Titles the archive does not mention are left alone.\n%1$s</string>
+    <string name="user_data_provenance">Exported %1$s.</string>
+    <!-- the same figure the export that wrote the archive reported, so a round trip says one number
+         twice. neither side counts the manifest. -->
+    <string name="user_data_imported">Imported %1$s</string>
+    <string name="user_data_import_failed">Could not read that archive. Nothing was changed.</string>
+
+    <string name="user_data_delete_saves_title">Delete all save data?</string>
+    <string name="user_data_delete_saves_message">Every title\'s progress is removed from this device. If you have not exported it, it is gone.</string>
+    <string name="user_data_delete_shaders_title">Delete the shader cache?</string>
+    <!-- the one delete on this screen that costs nothing permanent, and the message says so plainly
+         rather than borrowing the gravity of the two around it. -->
+    <string name="user_data_delete_shaders_message">Games rebuild their shaders as you play, so the next session stutters more than usual.</string>
+    <string name="user_data_deleted">Deleted</string>
+    <string name="user_data_delete_failed">Could not delete that</string>
+
+    <!-- **two questions doing different jobs, rather than one asked twice.** a repeated "are you
+         sure?" teaches the rhythm and gets clicked through; what earns the second tap is the second
+         question saying something the first did not. the first names what goes, measured. the second
+         names what it costs - and that the app closes on the press, which reads as a crash if nobody
+         said so first. -->
+    <string name="user_data_wipe_title">Delete everything?</string>
+    <string name="user_data_wipe_message">This gets rid of every save, the entire shader cache, every build and GPU driver you imported, every setting, and every game folder you granted.</string>
+    <string name="user_data_wipe_final_title">This cannot be undone</string>
+    <string name="user_data_wipe_final_message">Nothing here can be recovered unless you exported it first.</string>
+    <string name="user_data_wipe_confirm">Delete everything</string>
+    <!-- posted as the app is going away, and it is the only thing that separates a wipe that worked
+         from a crash. it names the outcome rather than the action, because by the time it is read
+         there is no screen left to relate an action to. -->
+    <string name="user_data_wiped">All data has been deleted successfully</string>
+
+    <string name="user_data_reset_title">Reset all settings?</string>
+    <!-- it names the game folders because that is the one part somebody would not expect from the
+         word "settings", and the one part that costs a trip through the picker to put back. -->
+    <string name="user_data_reset_message">Every setting returns to its default value and any game folders you granted are dropped.</string>
+    <string name="user_data_reset_done">Settings reset</string>
+
+    <!-- the name of a card's button - its tooltip, and half of the line above. not drawn. -->
+    <string name="action_export">Export</string>
+    <string name="action_import">Import</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_reset">Reset</string>
 
     <!-- the row leads to the manager and the count is what it reports back, so the summary says what
          a folder is for rather than repeating the count in words. -->

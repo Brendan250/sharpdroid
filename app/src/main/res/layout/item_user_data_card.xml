@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  one card on the User data screen: save data, the shader cache, the logs, the settings.
+
+  **the manager screen's shell, and not the manager screen's card.** the toolbar, the grid, the fade
+  and the frame around them are shared verbatim - see activity_manager.xml - and the same rounded
+  rectangle, fill, outline, corner radius and 6dp margin are repeated here so the two read as one list
+  drawn twice. what is not shared is the inside: a manager card leads with a radio and opens with a
+  provenance badge, and neither has anything true to say here. nothing on this screen is selected, and
+  where a save file came from is not a question - it came from playing. a badge slot filled with the
+  only word available would be the rule that file states, broken in its own shape.
+
+  **the actions sit in the space the text already occupies rather than in a row beneath it**, which is
+  what keeps the card three lines tall instead of four blocks tall. it is also what makes a trailing
+  icon work here where it does not in a settings list: a card is a container, so the gap between the
+  text and the buttons is bounded by something drawn on screen, where a row on a landscape panel
+  strands them several hundred pixels apart with nothing between.
+
+  **the glyphs take the body colour, not the accent.** the manager cards' own trash can is drawn in
+  colorOnSurfaceVariant and this is the same card in the same grid, so a person who has deleted a GPU
+  driver already knows what these are. it also leaves the accent meaning one thing: the figures line is
+  the answer the card was opened for, and controls painted the same colour would compete with it.
+
+  **every card is the same three lines**, so the icon rows land level across a grid row. a description
+  long enough to wrap would break that, which is why it does not.
+-->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="6dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="?attr/colorSurfaceContainer"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp">
+
+    <!-- **paddingEnd is 14dp against the 18dp everywhere else, and it is the button's own box being
+         given back.** a 48dp target around a 24dp glyph carries 12dp of its own on each side, and a
+         Material Symbol leaves about 4dp more inside its viewport - so a column left at the card's
+         padding would sit visibly further in than the text above it. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="18dp"
+        android:paddingEnd="14dp"
+        android:paddingVertical="22dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="?attr/colorOnSurface" />
+
+            <!-- **the size, in the accent, because it is what the card was opened to find out.** it is
+                 the one line here that changes between one visit and the next, and it is drawn the way
+                 a settings row draws a chosen value: the answer to the row, in the colour that marks
+                 an answer. what is empty says so in words rather than showing "0 B", which reads as a
+                 measurement that failed. -->
+            <TextView
+                android:id="@+id/figures"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorPrimary" />
+
+            <!-- one line, and a long one scrolls rather than wrapping. two cards share a grid row and
+                 are each as tall as their own content, so a description that takes two lines on one of
+                 them pushes its icons below the other's. it is the rule item_manager_card.xml states,
+                 for the same reason. -->
+            <TextView
+                android:id="@+id/description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+        </LinearLayout>
+
+        <!-- three buttons declared and the unused ones hidden, rather than built per card: a holder is
+             recycled, and views added on bind would have to be taken away again on the next one.
+
+             **an export arrow and an import arrow are what Eden puts on the same two actions**, so the
+             pair is already what somebody arriving from another emulator reads. they still have to be
+             decoded the first time, which is what the tooltip and the content description are for -
+             see UserDataAdapter.
+
+             **the toolbar's own item background, which is what the back arrow above wears.** the
+             borderless one draws a ripple with no bounds at all: on a 48dp button it expands to a
+             circle wider than the button and washes across the card. this one is sized to the item,
+             so the press looks the same here as it does on the arrow. -->
+        <ImageButton
+            android:id="@+id/action1"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/actionBarItemBackground"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+        <ImageButton
+            android:id="@+id/action2"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/actionBarItemBackground"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+        <ImageButton
+            android:id="@+id/action3"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/actionBarItemBackground"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

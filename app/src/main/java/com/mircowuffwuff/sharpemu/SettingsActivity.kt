@@ -46,9 +46,17 @@ class SettingsActivity : AppCompatActivity() {
         binding.sections.layoutManager =
             GridLayoutManager(this, resources.getInteger(R.integer.settings_section_columns))
         binding.sections.adapter = SectionAdapter(Section.shown) { section ->
+            // **a section is usually a list of rows and does not have to be.** User data is a manager
+            // screen, the shape the build, driver and folder managers already use, so its card opens
+            // that directly rather than a list holding one row that opens it.
+            val screen = section.screen
             startActivity(
-                Intent(this, SettingsSectionActivity::class.java)
-                    .putExtra(SettingsSectionActivity.EXTRA_SECTION, section.name)
+                if (screen == null) {
+                    Intent(this, SettingsSectionActivity::class.java)
+                        .putExtra(SettingsSectionActivity.EXTRA_SECTION, section.name)
+                } else {
+                    Intent(this, screen)
+                }
             )
         }
     }
@@ -71,7 +79,13 @@ class SettingsActivity : AppCompatActivity() {
      * The label and the summary are string resources, so what appears on screen is the app's own
      * cased text rather than the enum's name.
      */
-    enum class Section(val title: Int, val summary: Int, val icon: Int) {
+    enum class Section(
+        val title: Int,
+        val summary: Int,
+        val icon: Int,
+        /** The screen this card opens, or null for the ordinary list of rows. */
+        val screen: Class<out AppCompatActivity>? = null,
+    ) {
         APP(R.string.settings_app, R.string.settings_app_summary, R.drawable.ic_section_app),
         EMULATION(
             R.string.settings_emulation,
@@ -83,7 +97,17 @@ class SettingsActivity : AppCompatActivity() {
             R.string.settings_graphics_summary,
             R.drawable.ic_section_graphics,
         ),
-        DATA(R.string.settings_data, R.string.settings_data_summary, R.drawable.ic_section_data);
+        GAME_FILES(
+            R.string.settings_game_files,
+            R.string.settings_game_files_summary,
+            R.drawable.ic_section_game_files,
+        ),
+        USER_DATA(
+            R.string.settings_user_data,
+            R.string.settings_user_data_summary,
+            R.drawable.ic_section_user_data,
+            UserDataActivity::class.java,
+        );
 
         companion object {
             /**
@@ -93,7 +117,7 @@ class SettingsActivity : AppCompatActivity() {
              * since 1.9 — a member shadowing it compiles with a deprecation warning and then means
              * something different from what it reads as.
              */
-            val shown = listOf(APP, EMULATION, GRAPHICS, DATA)
+            val shown = listOf(APP, EMULATION, GRAPHICS, GAME_FILES, USER_DATA)
         }
     }
 

@@ -97,7 +97,11 @@ class SettingsSectionActivity : AppCompatActivity() {
         SettingsActivity.Section.APP -> appRows()
         SettingsActivity.Section.EMULATION -> emulationRows()
         SettingsActivity.Section.GRAPHICS -> graphicsRows()
-        SettingsActivity.Section.DATA -> dataRows()
+        SettingsActivity.Section.GAME_FILES -> gameFilesRows()
+        // User data is a manager screen of its own, so its card never opens this activity. a
+        // hand-written intent still can, and an empty list is what it gets - the same answer the
+        // section guard in onCreate gives a name that is not a section at all.
+        SettingsActivity.Section.USER_DATA -> emptyList()
     }
 
     private fun appRows(): List<SettingRow> {
@@ -281,11 +285,18 @@ class SettingsSectionActivity : AppCompatActivity() {
     }
 
     /**
-     * The Data section: where games are read from, and how.
+     * The Game files section: where games are read from, and how.
      *
      * **All-files access is here rather than in App**: App is the look and behaviour of the app, and
      * how it reaches a game's files is a data concern. The folder manager is the other half of that
-     * same question — which folders the app may read — so the two share a subsection.
+     * same question — which folders the app may read — so the two belong together.
+     *
+     * **Everything here is about files somebody else already owns**, living elsewhere on the device
+     * and reached by a grant that can be revoked. What the emulator itself writes is User data, which
+     * is a section of its own for that reason.
+     *
+     * **No subsection label.** Every row in the section is the section's own subject now, and a
+     * heading repeating the screen's title above the only group on it labels nothing.
      *
      * **The folder row is unconditional and the all-files row is not, and that ordering is the point.**
      * `MANAGE_EXTERNAL_STORAGE` needs API 30 and `minSdk` is 28, so this section builds a list rather
@@ -296,7 +307,7 @@ class SettingsSectionActivity : AppCompatActivity() {
      * cannot set it: it is granted in android's own settings and nowhere else, so the row shows the
      * state and a tap opens the screen that changes it.
      */
-    private fun dataRows(): List<SettingRow> {
+    private fun gameFilesRows(): List<SettingRow> {
         // **a count rather than the folders themselves.** the build row names one build and the
         // driver row one package, because there is one of each; there is any number of folders, and
         // a row that listed them would be the screen behind it drawn badly on one line.
@@ -306,7 +317,6 @@ class SettingsSectionActivity : AppCompatActivity() {
         // it is followed by drawing a list rather than a number.
         val folders = GameLibrary.trees(this).size
         val rows = mutableListOf<SettingRow>(
-            SettingRow.Header(R.string.settings_group_game_files),
             SettingRow.Screen(
                 // nothing stored: this is a place to go rather than a value that was chosen.
                 key = null,
