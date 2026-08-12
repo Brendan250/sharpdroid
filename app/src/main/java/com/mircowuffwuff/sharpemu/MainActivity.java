@@ -700,6 +700,9 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             Log.e(TAG, "[app] no external files directory");
             return;
         }
+        // where everything the emulator writes for the person using it goes. never null, unlike the
+        // external root, which is why it is not checked.
+        File files = getFilesDir();
 
         File payload = resolvePayload(root);
         if (payload == null) {
@@ -717,14 +720,23 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // all-files access is on. the second is deliberately not a mode of its own -- it is this one,
         // pointed somewhere else.
         String guestGame;
-        File staged = new File(gameName.startsWith("/")
-                ? new File(gameName) : new File(AppStorage.games(root), gameName), "eboot.bin");
+        File gameDirectory = gameName.startsWith("/")
+                ? new File(gameName) : new File(AppStorage.games(root), gameName);
+        File staged = new File(gameDirectory, "eboot.bin");
+        // the title id the emulator will resolve for this dump, read the same way it reads it — see
+        // Game.emulatorTitleId. it names the pipeline cache's directory below, which is the emulator's
+        // to name everywhere except here, so it is read rather than inferred from the folder.
+        String titleId;
         if (safGameName != null && !safGameName.isEmpty()) {
             if (!mountSafGame()) {
                 return;
             }
             guestGame = GuestFiles.MOUNT + "/eboot.bin";
+            // through the mount, since a granted game has no path to open. it is there by now: the
+            // mount above is what established it, and it is the same provider the guest will read.
+            titleId = Game.emulatorTitleId(GuestFiles.openMountedParam(), safGameName);
         } else {
+            titleId = Game.emulatorTitleId(new GameSource.Staged(gameDirectory).openParam(), gameName);
             guestGame = staged.getAbsolutePath();
             if (!staged.exists()) {
                 // named by what would fix it, and the two forms fail for different reasons. a name
@@ -800,7 +812,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // the --vulkan-* family are properties of the host layer's correctness, and a payload able
         // to ask for --smc none is a payload able to break the thing running it.
         Map<String, String> env = new LinkedHashMap<>(buildEnv);
-        // the settings scene's contribution, between the build's defaults and the four below. it is
+        // the settings scene's contribution, between the build's defaults and the eight below. it is
         // empty unless a row was actually touched.
         env.putAll(settingsEnv);
         // the first is load-bearing: without it the SMC tracker cannot see CoreCLR's JIT writes and
@@ -820,16 +832,26 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // the guest does not, so the size travels from here rather than being agreed by two
         // separately hand-set defaults.
         env.put("SHARPEMU_HOST_WINDOW_SIZE", surfaceWidth + "x" + surfaceHeight);
-        // and a fifth that asks nothing of a payload, the way DOTNET_EnableWriteXorExecute does.
-        // SharpEmu puts save data in user/savedata/ next to its own executable unless this names
-        // somewhere else — so without it, re-staging a build destroys that build's saves, and the
-        // bundled build would lose them on every app update. a payload too old to know the variable
-        // simply keeps the old behaviour, which is why the contract number does not move for it.
+        // and then the ones that move the emulator's own user directory out of the build it is
+        // running. SharpEmu is portable software and resolves all four of these next to its own
+        // executable; on android that executable sits in a directory the app re-stages, re-unpacks
+        // and deletes, so anything written beside it has a lifetime nobody chose. each variable is
+        // upstream's own and each is read only when it is set, so a payload too old to know one
+        // keeps the portable behaviour for that one — which is why the contract number does not
+        // move for any of them. AppStorage.user is where they point and why.
         //
-        // **one set for the app, not one per build.** a save belongs to the game rather than to the
-        // binary that wrote it: keying it by build would make trying another build look like losing
-        // a save, and switching back look like getting it returned.
-        env.put("SHARPEMU_SAVEDATA_DIR", AppStorage.saveData(root).getAbsolutePath());
+        // the layout under them is the emulator's own in every case. it keys save data itself, from
+        // the title id it reads out of the dump; the pipeline cache's variable takes a file rather
+        // than a root, so that one key is read here instead — the same field, the same sanitising.
+        //
+        // these ask nothing of a payload, the way DOTNET_EnableWriteXorExecute does, and they are
+        // written after the settings map for the same reason the three above are: a build's env or
+        // a settings row may not quietly relocate somebody's saves.
+        env.put("SHARPEMU_SAVEDATA_DIR", AppStorage.saveData(files).getAbsolutePath());
+        env.put("SHARPEMU_VK_PIPELINE_CACHE_PATH",
+                AppStorage.pipelineCache(files, titleId).getAbsolutePath());
+        env.put("SHARPEMU_HOSTAPP_DIR", AppStorage.hostApp(files).getAbsolutePath());
+        env.put("SHARPEMU_DEVLOG_APP_DIR", AppStorage.devLogApp(files).getAbsolutePath());
         for (String assignment : guestEnv) {
             int eq = assignment.indexOf('=');
             if (eq < 1) {

@@ -178,10 +178,25 @@ the payload is *found* inside the archive rather than assumed at a fixed depth, 
 
 **versions are compared numerically, not lexicographically.** `0.0.10` is above `0.0.9`, and a suffix orders *below* a bare version of the same numbers — `0.0.3-hotfix-2` is a `0.0.3`, not something after it — with two suffixes of the same shape ordered by their own numbers, so `hotfix-10` beats `hotfix-2`. third-party builds are why that is a real comparator rather than an assumption about our own version strings.
 
-## save data lives outside every build directory
+## a build directory holds only what was staged into it
 
-SharpEmu resolves save data to `user/savedata/<title id>/` **next to its own executable**, following its portable-data convention, unless `SHARPEMU_SAVEDATA_DIR` names somewhere else.
+SharpEmu is portable software: save data, the vulkan pipeline cache and a title's own log mounts all resolve under `user/` **next to its own executable**, and the desktop updater treats that directory as the one an update must not replace. on android there is no such promise to make — a build directory is re-staged from a PC, re-unpacked from the APK on an app update, and deleted from the build manager — so anything written beside the payload has a lifetime nobody chose.
 
-**the launcher names somewhere else, and that is what makes a build disposable.** saves go to `<external files>/savedata/`, outside every build directory, so re-staging a build does not replace its saves and the bundled build does not lose them when an app update replaces it. it is **one set for the app rather than one per build**: a save belongs to the game and not to the binary that wrote it, so keying it per build would make trying another build look like losing a save and switching back look like getting it returned.
+**so the launcher points each of them at the app's own `user/` directory instead, and that is what makes a build disposable.** four variables, all of them the emulator's own:
 
-**it is a fifth launcher variable and the contract number does not move for it.** a payload too old to know it keeps the portable-data behaviour, so no existing build is refused by name — which would be a false negative in the mechanism built to prevent false negatives.
+| | |
+| --- | --- |
+| `SHARPEMU_SAVEDATA_DIR` | `<internal files>/user/savedata/`, with the emulator's own `<title id>/` underneath |
+| `SHARPEMU_VK_PIPELINE_CACHE_PATH` | `<internal files>/user/pipeline_cache/<title id>/vulkan-pipeline-cache.bin` — the blob itself, since that is what the variable names |
+| `SHARPEMU_HOSTAPP_DIR` | `<internal files>/user/game_logs/hostapp/` |
+| `SHARPEMU_DEVLOG_APP_DIR` | `<internal files>/user/game_logs/devlog/app/` |
+
+`user/game_logs/<title id>/` has no variable of its own and needs none: the emulator reaches that level only through the two mounts above, and each consults its own variable first. `/download0` is already outside `user/` — it follows `TMPDIR`, which a launch points at internal storage anyway.
+
+**save data is one set for the app rather than one per build**: a save belongs to the game and not to the binary that wrote it, so keying it per build would make trying another build look like losing a save and switching back look like getting it returned.
+
+**the layout under each variable is the emulator's own, including the per-title level of the pipeline cache.** the emulator keys save data itself, from the title id it reads out of the dump. the cache's variable names the blob rather than a root, so setting it replaces the whole path and not just its first half — which means the launcher has to name that title id, and it reads the same field of the same file, sanitised the same way: `titleId`, counted only when it is a JSON string, from `sce_sys/param.json` and then from beside the eboot, with each character kept only if it is an ASCII letter, digit, `-` or `_`, uppercased, and everything else becoming `_`. a dump offering none resolves to `UNKNOWN` at both ends.
+
+**the two log mounts are the exception and are flattened**, having no equivalent read to hang a title id on and no measured title that has ever created one. a game that does writes into the app's directory rather than into a build directory, which is the whole point.
+
+**none of the four moves the contract number.** each is read only when it is set, so a payload too old to know one keeps the portable behaviour for that one, and no existing build is refused by name — which would be a false negative in the mechanism built to prevent false negatives.

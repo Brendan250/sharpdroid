@@ -35,7 +35,13 @@ sealed class GameSource {
      */
     abstract val icon: Any?
 
-    /** `sce_sys/param.json`, or null when there is none. The caller closes it. */
+    /**
+     * `param.json`, or null when there is none. The caller closes it.
+     *
+     * **Under `sce_sys/` first and then beside the eboot**, which is the emulator's own search order
+     * — it looks in both, so a dump laid out the second way boots with an identity that a scan
+     * looking only in the first would report as missing.
+     */
     abstract fun openParam(): InputStream?
 
     /** A game staged into the app's own external files by `scripts/stage.py`. */
@@ -46,7 +52,9 @@ sealed class GameSource {
         override val icon: Any? = File(directory, Game.ICON).takeIf { it.isFile }
 
         override fun openParam(): InputStream? =
-            File(directory, Game.PARAM).takeIf { it.isFile }?.inputStream()
+            (File(directory, Game.PARAM).takeIf { it.isFile }
+                ?: File(directory, Game.PARAM_BESIDE_EBOOT).takeIf { it.isFile })
+                ?.inputStream()
     }
 
     /**
@@ -73,9 +81,12 @@ sealed class GameSource {
         override val icon: Any = TreeDocument.uri(tree, TreeDocument.childId(documentId, Game.ICON))
 
         override fun openParam(): InputStream? =
+            open(Game.PARAM) ?: open(Game.PARAM_BESIDE_EBOOT)
+
+        private fun open(relative: String): InputStream? =
             try {
                 resolver.openInputStream(
-                    TreeDocument.uri(tree, TreeDocument.childId(documentId, Game.PARAM))
+                    TreeDocument.uri(tree, TreeDocument.childId(documentId, relative))
                 )
             } catch (e: Exception) {
                 // absent is ordinary — a dump with no sce_sys/ is a game that boots perfectly well —

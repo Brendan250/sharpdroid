@@ -11,9 +11,11 @@ import java.io.File
  * literal in two places is a directory name that gets renamed in one of them.
  *
  * **The two volumes are not interchangeable and the split is deliberate.** External is where `adb`
- * can write and the app can read, which is what makes staging from a PC possible at all; internal is
+ * can write and the app can read, which is what makes staging from a PC possible at all. Internal is
  * where the linker will accept a library it is asked to `dlopen`, which external can never be
- * because another app could have written it. `docs/app.md` has the reasoning per directory.
+ * because another app could have written it — and it is where anything written *during* a run goes,
+ * since external storage is FUSE-backed and private data has no business being world-readable.
+ * `docs/app.md` has the reasoning per directory.
  */
 object AppStorage {
 
@@ -46,26 +48,88 @@ object AppStorage {
     fun installedBuilds(filesDir: File): File = File(filesDir, "builds")
 
     /**
-     * Save data. **One set for the whole app, and deliberately outside every build directory.**
+     * **Everything the emulator writes for the person using it, one set for the whole app.**
      *
-     * SharpEmu resolves saves to `user/savedata/<title id>/` next to its own executable unless
-     * `SHARPEMU_SAVEDATA_DIR` names somewhere else — so without this, re-staging a build destroys
-     * that build's saves and the bundled build would lose them on every app update. The variable is
-     * upstream's own, read by `SaveDataStorage` and covered by upstream's tests; the launcher only
-     * has to point it somewhere that outlives a build directory.
+     * SharpEmu is portable software: it resolves save data, its pipeline cache and a title's own log
+     * mounts to `user/` **next to its own executable**, and upstream's updater treats that directory
+     * as the one an update must not replace. On android the build directory is not something a user
+     * owns — it is re-staged from a PC, re-unpacked from the APK on an app update, and deleted by
+     * the build manager — so `user/` inside it is data with a lifetime nobody chose.
+     *
+     * So it is lifted out whole and put here, and the shape underneath is upstream's own:
+     * [saveData], [pipelineCache] and the two log mounts are the same names in the same layout,
+     * reached by [MainActivity] pointing one environment variable at each. **A build directory
+     * therefore holds only what was staged into it**, and anything that rewrites one is free to.
+     *
+     * **Internal storage rather than external.** This is written *during* a run rather than staged
+     * into before one, and external storage is FUSE-backed on android 11+, where every operation is
+     * a userspace round trip. It is also nobody else's business: a save is not something another app
+     * should be able to read.
+     *
+     * What that costs is that `adb pull` needs `run-as` and a file manager cannot see any of it. The
+     * app is what gets a person their data back.
+     */
+    @JvmStatic
+    fun user(filesDir: File): File = File(filesDir, "user")
+
+    /**
+     * Save data — `SHARPEMU_SAVEDATA_DIR`. The `<title id>/` level underneath is the guest's, and it
+     * writes the same layout here that it writes beside a desktop executable.
      *
      * **Not keyed by build, and that is the decision rather than the easy default.** A save belongs
      * to the game, not to the emulator binary that happened to write it: keying by build would mean
      * trying a different build silently starting the game over, and switching back to look at an old
      * save would be indistinguishable from losing it. Save format compatibility across builds is the
      * emulator's problem to keep, which is the same bargain every other emulator makes.
-     *
-     * **On external storage so that saves can be pulled off the device**, by `adb` with no `run-as`
-     * and by a file manager through the storage provider. They are kilobytes, so the volume costs
-     * nothing measurable.
      */
     @JvmStatic
-    fun saveData(externalRoot: File): File = File(externalRoot, "savedata")
+    fun saveData(filesDir: File): File = File(user(filesDir), "savedata")
+
+    /**
+     * The vulkan pipeline cache of one title — `SHARPEMU_VK_PIPELINE_CACHE_PATH`. Losing it is not
+     * cosmetic: it is what stops a launch recompiling every pipeline the title has already built.
+     *
+     * **The layout is the emulator's own, one blob per title, and the launcher has to build all of
+     * it.** That variable takes the blob's path rather than a root to hang a layout under, so
+     * setting it replaces the whole construction and not just its first half — which is why
+     * [Game.emulatorTitleId] exists and why it matches the emulator's rule character for character
+     * instead of approximating it.
+     *
+     * **Per title rather than one blob for the app.** Sharing would cost the ability to clear one
+     * game's shaders and grow a single file with the whole library, and it would key this directory
+     * differently from [saveData] beside it, which the guest keys by title id whatever we do.
+     *
+     * **Changing the GPU driver needs no invalidation of ours.** Vulkan requires an implementation
+     * to validate the blob's header and ignore contents it cannot use, so a driver reads whatever is
+     * here, discards what is not its own and saves its own over it. What that does not do is keep
+     * both: one file per title means the last driver to write wins, so alternating between two of
+     * them recompiles every switch.
+     */
+    @JvmStatic
+    fun pipelineCache(filesDir: File, titleId: String): File =
+        File(File(File(user(filesDir), "pipeline_cache"), titleId), "vulkan-pipeline-cache.bin")
+
+    /**
+     * The guest's `/hostapp` mount — `SHARPEMU_HOSTAPP_DIR`.
+     *
+     * **Flattened, for [pipelineCache]'s reason**: upstream puts this under a per-title directory
+     * and the app has no title id to key one with. No title measured here has ever created it, so
+     * what this really buys is that the first title which does writes here rather than into a build
+     * directory that the next re-stage removes.
+     */
+    @JvmStatic
+    fun hostApp(filesDir: File): File = File(gameLogs(filesDir), "hostapp")
+
+    /** The guest's `/devlog/app` mount — `SHARPEMU_DEVLOG_APP_DIR`. [hostApp]'s note applies. */
+    @JvmStatic
+    fun devLogApp(filesDir: File): File = File(File(gameLogs(filesDir), "devlog"), "app")
+
+    /**
+     * The parent both log mounts sit under, kept because it is the name upstream gives that level.
+     * Nothing points a variable at it: it has no override and needs none, since the emulator reaches
+     * it only through [hostApp] and [devLogApp], each of which consults its own variable first.
+     */
+    private fun gameLogs(filesDir: File): File = File(user(filesDir), "game_logs")
 
     /**
      * Driver packages the app itself owns — whatever was imported from a zip.

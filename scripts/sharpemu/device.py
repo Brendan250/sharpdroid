@@ -41,7 +41,7 @@ LIST_ACTIVITY = JAVA_PACKAGE + ".GameListActivity"
 
 # the directories the app keeps on external storage, which is the volume adb can write and the app
 # can read. the names are the app's; this is the other end of the same rule.
-EXTERNAL_DIRECTORIES = ("games", "builds", "gpu-drivers", "guest-libs", "savedata")
+EXTERNAL_DIRECTORIES = ("games", "builds", "gpu-drivers", "guest-libs")
 
 # where a build the app does not own is staged, and where the shell binary goes -- which belongs to
 # no app, which is why it is the one thing with no application id.

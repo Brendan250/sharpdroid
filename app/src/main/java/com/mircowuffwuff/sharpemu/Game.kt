@@ -40,6 +40,10 @@ data class Game(
         const val EBOOT = "eboot.bin"
 
         const val PARAM = "sce_sys/param.json"
+
+        /** Where the emulator looks second. See [GameSource.openParam]. */
+        const val PARAM_BESIDE_EBOOT = "param.json"
+
         const val ICON = "sce_sys/icon0.png"
 
         /**
@@ -73,6 +77,54 @@ data class Game(
                 titleId = param?.optString("titleId")?.takeIf { it.isNotBlank() }
                     ?: titleIdFromFolder(source.folder),
             )
+        }
+
+        /**
+         * **The title id the emulator will resolve for this dump, sanitized the way it sanitizes
+         * one.** Never null: a dump that offers none resolves to `UNKNOWN`, which is the emulator's
+         * own answer rather than a placeholder of ours.
+         *
+         * This exists so the launcher can name a per-title directory the emulator would otherwise
+         * have named itself — the pipeline cache, whose environment variable takes the blob's path
+         * rather than a root to hang a layout under. **So the rule has to be the emulator's rule and
+         * not a plausible imitation**, and every part of it is matched deliberately: the field is
+         * `titleId` and it counts only when it is a JSON *string*, `param.json` is looked for under
+         * `sce_sys/` and then beside the eboot, and each character survives only if it is an ASCII
+         * letter, digit, `-` or `_`, uppercased, with everything else becoming `_`.
+         *
+         * **A disagreement here is silent.** It would not break a run: the cache is validated by the
+         * driver and rebuilt when it is rejected. It would file one game's pipelines under a name
+         * nothing else uses, so a launch would quietly recompile what it had already compiled, and
+         * the directory would sit beside a save data directory named the other way. [titleId] is the
+         * *list's* answer to the same question and is deliberately not this one — it falls back to
+         * the `[PPSA…]` in a directory name, which is a staging convention of ours that the emulator
+         * knows nothing about.
+         */
+        @JvmStatic
+        fun emulatorTitleId(param: InputStream?, folder: String): String {
+            val raw = try {
+                param?.use { stream ->
+                    readCapped(stream, folder)?.let { JSONObject(it) }?.opt("titleId") as? String
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "[app] could not read " + PARAM + " of " + folder + ": " + e)
+                null
+            }
+            return sanitizeTitleId(raw)
+        }
+
+        private fun sanitizeTitleId(raw: String?): String {
+            val trimmed = raw?.trim()
+            if (trimmed.isNullOrEmpty()) {
+                return "UNKNOWN"
+            }
+            val out = StringBuilder(trimmed.length)
+            for (character in trimmed) {
+                val kept = character in 'A'..'Z' || character in 'a'..'z' ||
+                    character in '0'..'9' || character == '-' || character == '_'
+                out.append(if (kept) character.uppercaseChar() else '_')
+            }
+            return out.toString()
         }
 
         private fun readParam(source: GameSource): JSONObject? =

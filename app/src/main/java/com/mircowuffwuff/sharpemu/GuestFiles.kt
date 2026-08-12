@@ -126,6 +126,32 @@ object GuestFiles {
     fun missCount(): Long = misses.get()
 
     /**
+     * The mounted game's `param.json`, for the launcher rather than for the guest.
+     *
+     * **Not [openFd], and the difference is who owns the result.** That hands a detached descriptor
+     * to a guest thread and answers in errno because a syscall is waiting on it; this is called from
+     * the app before a guest exists, by the code that has to name a per-title directory before the
+     * emulator starts. A stream is what that caller can read and close.
+     *
+     * The mount is the whole reason this belongs here: a granted game has no path, so the only way
+     * to reach a file of it is the tree and document id this object is already holding. It answers
+     * [GameSource.openParam]'s contract for the one kind of game that has no [GameSource] — the
+     * search order is that contract's, and is spelled here for the same reason `Granted` spells it.
+     */
+    @JvmStatic
+    fun openMountedParam(): java.io.InputStream? =
+        openMounted(Game.PARAM) ?: openMounted(Game.PARAM_BESIDE_EBOOT)
+
+    private fun openMounted(relative: String): java.io.InputStream? {
+        val uri = documentUri(relative) ?: return null
+        return try {
+            resolver?.openInputStream(uri)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
      * An open file descriptor, already ours, or a negative errno.
      *
      * `detachFd` rather than `use`: the descriptor is handed to the guest and outlives every object

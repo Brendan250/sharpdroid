@@ -292,7 +292,7 @@ five rungs from most faithful to fastest — Stability, Compatibility, Intermedi
 
 **there is no second extra for the internal resolution.** `--es guestenv` already reaches the same map and already wins, so a spelling of its own would be one more thing to keep in step with it for no new capability.
 
-**the launcher's five variables are written after the settings map and cannot be reached from it.** they are the contract a payload runs under rather than a preference — the same rule a build's `env` is held to, for the same reason.
+**the launcher's eight variables are written after the settings map and cannot be reached from it.** they are the contract a payload runs under rather than a preference — the same rule a build's `env` is held to, for the same reason. the four that name directories are held to it just as firmly: a settings row that could relocate somebody's saves is a settings row that can lose them.
 
 ## the build manager
 
@@ -367,7 +367,7 @@ the app also checks that the game's `eboot.bin` and the staged guest libraries e
 
 ## the guest's environment
 
-the five launcher variables are [`build-format.md`](build-format.md)'s and are defined there, along with the precedence order. what is the app's is **where each value comes from**, and the answers are not alike:
+the eight launcher variables are [`build-format.md`](build-format.md)'s and are defined there, along with the precedence order. what is the app's is **where each value comes from**, and the answers are not alike:
 
 | | |
 | --- | --- |
@@ -375,9 +375,10 @@ the five launcher variables are [`build-format.md`](build-format.md)'s and are d
 | `SHARPEMU_HOST_AUDIO` | a constant, for the same reason |
 | `SHARPEMU_HOST_WINDOW_SIZE` | **the surface**, as reported to `surfaceChanged`. the host has the window and the guest does not, so the size travels from here rather than being agreed by two separately hand-set defaults |
 | `DOTNET_EnableWriteXorExecute` | a constant, and .NET's own rather than SharpEmu's |
-| `SHARPEMU_SAVEDATA_DIR` | `<external files>/savedata/`, derived from the app's own storage. **one set for the app rather than one per build** — a save belongs to the game and not to the binary that wrote it, so keying it per build would make trying another build look like losing a save and switching back look like getting it returned. a payload too old to know the variable keeps SharpEmu's portable-data behaviour, which is why the contract number does not move for it |
+| `SHARPEMU_SAVEDATA_DIR`, `SHARPEMU_HOSTAPP_DIR`, `SHARPEMU_DEVLOG_APP_DIR` | **the app's own `user/` directory**, on internal storage — three of the four things SharpEmu resolves next to its own executable, lifted out of a build directory whose lifetime nobody chose. `AppStorage` is where the names live |
+| `SHARPEMU_VK_PIPELINE_CACHE_PATH` | the fourth, and **the one the app has to spell in full**: that variable names the cache blob rather than a root, so the per-title directory in the middle is the launcher's to build. it reads the dump's title id the way the emulator reads it — `Game.emulatorTitleId`, matched field for field and character for character, because a disagreement here is silent |
 
-the merge is a **map**, seeded with the build's `env`, overwritten by the settings, overwritten by those five, then overwritten by anything from `guestenv`, and only then turned into `--env` flags. that ordering is the precedence order, and the map is what makes it work: two `--env` arguments naming one variable would be a coin toss over which value the guest reads.
+the merge is a **map**, seeded with the build's `env`, overwritten by the settings, overwritten by those eight, then overwritten by anything from `guestenv`, and only then turned into `--env` flags. that ordering is the precedence order, and the map is what makes it work: two `--env` arguments naming one variable would be a coin toss over which value the guest reads.
 
 **a build may set guest environment and nothing else** — no SMC mode, no signal delivery mode, none of the vulkan family. those are properties of the host layer's correctness, and the app enforces it by construction rather than by validation, since a build's `env` becomes `--env` and can become nothing else.
 
