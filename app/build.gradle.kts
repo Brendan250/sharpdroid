@@ -28,6 +28,15 @@ val identityAppLabel: String = (findProperty("sharpemuAppLabel") as String?)?.ta
 // keeps its small APK without anyone deciding that it should.
 val bundleAssets: String? = (findProperty("sharpemuBundleAssets") as String?)?.takeIf { it.isNotBlank() }
 
+// the build-tools revision, as scripts/build-apk.py resolved it out of toolchain.json.
+//
+// **saying nothing here does not mean "whatever is installed".** AGP has a default of its own, and
+// it is a revision older than the pinned one -- so leaving this unset makes gradle download a second
+// build-tools that nothing in this repository declares, package the APK with it, and leave the
+// declared one fetched and unused. that also breaks --offline for anyone whose only build-tools is
+// the one fetch-toolchain.py installed.
+val buildTools: String? = (findProperty("sharpemuBuildTools") as String?)?.takeIf { it.isNotBlank() }
+
 android {
     // **the java package, and it does not move.** the JNI entry points are named
     // Java_com_mircowuffwuff_sharpemu_HostLayer_*, host/CMakeLists.txt has a -Wl,-u keeping them
@@ -35,6 +44,7 @@ android {
     // breaks the native link and every am start at once.
     namespace = "com.mircowuffwuff.sharpemu"
     compileSdk = 35
+    buildTools?.let { buildToolsVersion = it }
 
     defaultConfig {
         // **the application id is a different thing from the namespace above, and only this one

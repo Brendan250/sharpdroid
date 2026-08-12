@@ -342,8 +342,13 @@ def build_with_gradle(toolchain, package, label, offline):
     if not stl.exists():
         raise Refusal("libc++_shared.so is not where the NDK should have it: {}".format(stl))
 
+    # the build-tools revision, for the same reason as the STL above: it is declared in
+    # toolchain.json, and AGP's own default is a different revision that gradle downloads on demand.
+    # unstated, the APK is packaged by a revision this repository never asked for and the fetched one
+    # sits unused.
     arguments = [str(launcher), ":app:assembleDebug",
                  "-PsharpemuStlSo=" + str(stl),
+                 "-PsharpemuBuildTools=" + toolchain.build_tools_version,
                  "-PsharpemuBundleAssets=" + str(paths.BUILD_BUNDLE),
                  "-PsharpemuApplicationId=" + package,
                  "-PsharpemuAppLabel=" + label]
