@@ -45,6 +45,14 @@ py scripts/run.py --game existing      launch what is already on the device
 | `scripts/build.py` | build everything in dependency order. `--list` prints the steps and which are up to date, `--install` installs the APK, `--clean` wipes what the native steps write, `--force` rebuilds even what is up to date, `--only <step>` runs one |
 | `scripts/regression.py` | stage the shell binary and run the host layer's 15 regression modes on the device. **exits non-zero if any fail**, so it can gate anything |
 
+### the screen
+
+**anything that launches wakes the device first.** a run onto a dozing panel is a wasted one and does not announce itself: the app starts, the log fills, and the guest renders into a surface nobody is looking at. so every launch brings the display up and takes an insecure lock screen off it, and does nothing at all on a device that is already awake.
+
+**a lock with a credential behind it is said out loud and left alone.** no script here types one.
+
+staging does not do this and neither does the regression set -- copying files needs no display, and the host layer's regression modes have no app and no window.
+
 ### which app you are building
 
 **every script here works against the debug app by default** — application id `com.mircowuffwuff.sharpemu.debug`, labelled *SharpEmu Debug*. that is a different app to android: its own internal storage, its own external files directory, its own save data, installed beside a release SharpEmu. so **nothing you do while developing can disturb a personal install on the same phone**, and you have to ask for the release identity rather than remember to ask for the debug one.

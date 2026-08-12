@@ -16,6 +16,7 @@
 
 import re
 import shlex
+import time
 from pathlib import Path
 
 from .shell import Refusal, capture, run, say, size
@@ -45,6 +46,16 @@ EXTERNAL_DIRECTORIES = ("games", "builds", "gpu-drivers", "guest-libs", "savedat
 # where a build the app does not own is staged, and where the shell binary goes -- which belongs to
 # no app, which is why it is the one thing with no application id.
 SHELL_DIRECTORY = "/data/local/tmp/sharpemu"
+
+# how long the panel is given to come up before the lock screen is looked for. a device that is
+# already awake is not waited for at all beyond this, which is why it is short.
+WAKE_SETTLE = 0.3
+
+# how long a dismissed lock screen is given to finish going away, and how often that is checked. the
+# ceiling is only ever reached on a device that really is asking for a credential, and reaching it is
+# the message rather than a delay anybody waits through twice.
+WAKE_TIMEOUT = 3.0
+WAKE_POLL = 0.25
 
 
 def application_id(package=None, release=False):
@@ -233,6 +244,70 @@ class Device:
     def force_stop(self, package):
         self.shell("am force-stop {}".format(quote(package)), check=False)
 
+    # --- the screen ---------------------------------------------------------------------------
+
+    def wake(self):
+        """bring the panel up and take the lock screen off it, so that a launch is seen.
+
+        **a launch onto a dozing device is a wasted run**, and it does not look like one: the app
+        starts, the log fills, `screencap` returns the window drawn correctly, and the guest renders
+        into a surface nobody is looking at. worse, the press that wakes such a panel is delivered to
+        the panel rather than to what is under it -- so the first tap of a session goes missing, and
+        that reads as a broken button rather than a sleeping screen.
+
+        **`KEYCODE_WAKEUP` rather than `KEYCODE_POWER`, and the difference is not stylistic**: power
+        toggles, so sending it to a device that is already awake puts it to sleep. wakeup is a no-op
+        on a device that is awake, which is what makes this safe to do unconditionally.
+
+        **the lock screen is only touched when there is one showing**, which is the other half of the
+        same care: `wm dismiss-keyguard` is harmless, but reaching for the menu key instead -- the
+        older way to dismiss one -- would deliver a menu key to whatever is in the foreground on a
+        device that was never locked.
+
+        a lock with a credential behind it is not dismissed by this and is not meant to be. it is
+        said out loud and left alone.
+        """
+        self.shell("input keyevent KEYCODE_WAKEUP", check=False)
+        time.sleep(WAKE_SETTLE)
+        if not self._locked():
+            return
+        self.shell("wm dismiss-keyguard", check=False)
+        if self._unlocked_within(WAKE_TIMEOUT):
+            return
+        say("  the device is locked and asks for a credential. unlock it, or this run renders "
+            "into a screen nobody can see")
+
+    def _unlocked_within(self, timeout):
+        """whether the lock screen goes away, waited for rather than sampled once.
+
+        **a lock screen dismissed is not a lock screen gone**: it animates, and reading the state
+        immediately afterwards reports it still up. sampling once puts a message about a credential
+        in front of somebody whose device has no credential on it, which is worse than saying
+        nothing -- a warning that cries wolf is one nobody reads on the day it is right.
+        """
+        deadline = time.monotonic() + timeout
+        while True:
+            if not self._locked():
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(WAKE_POLL)
+
+    def _locked(self):
+        """whether a lock screen is up, from whichever of the two names this platform reports.
+
+        an answer neither name gives is read as "no lock screen", which is the reading that sends no
+        input anywhere -- the cost of being wrong that way is a launch onto a locked device, and the
+        cost of the other way is a stray key press into somebody's foreground app.
+        """
+        for name in ("isKeyguardShowing", "mDreamingLockscreen"):
+            found = self.shell(
+                "dumpsys window 2>/dev/null | grep -m1 -o '{}=[a-z]*'".format(name),
+                check=False).strip()
+            if found:
+                return found.endswith("true")
+        return False
+
     def start(self, package, activity, extras=None, wait=False):
         """launch an activity, naming it in full.
 
@@ -246,7 +321,14 @@ class Device:
         line and splits it again. every game directory is named `Title [PPSAxxxxx]`, so a launch
         written the obvious way starts a game whose name is the first word of the real one -- which
         it does *quietly*, because what reaches the app is a name it simply does not have.
+
+        **the screen is brought up first, here rather than in each script.** every launch goes
+        through this one function and nothing else needs a display -- staging copies files, and the
+        regression set drives the shell binary with no app and no window at all -- so putting it here
+        is what makes "the screen is on when a run starts" true of every script without any of them
+        having to remember it. `wake` is a no-op on a device that is already up.
         """
+        self.wake()
         command = "am start"
         if wait:
             command += " -W"
