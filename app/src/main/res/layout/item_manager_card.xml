@@ -151,12 +151,15 @@
 
         </LinearLayout>
 
+        <!-- the background is the toolbar's own item shape rather than the borderless one, for the
+             reason item_user_data_card.xml records: borderless means a ripple with no bounds, which
+             on a button this size spills past it and washes across the card behind. -->
         <ImageButton
             android:id="@+id/delete"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="?attr/actionBarItemBackground"
             android:contentDescription="@string/manager_delete"
             android:src="@drawable/ic_delete" />
 

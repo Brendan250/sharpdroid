@@ -59,13 +59,17 @@
             <!-- **48dp of button around a 24dp glyph**, which is the touch target a toolbar item
                  would have had. the margin is measured to the glyph rather than to the button: the
                  icon's own edge sits 12dp inside the box, so the end margin is what is wanted from
-                 the screen edge less that. -->
+                 the screen edge less that.
+
+                 the background is the toolbar's own item shape for the reason item_user_data_card.xml
+                 records - and here it is doubly right, since this button sits inside a toolbar and is
+                 an item of one in all but declaration. -->
             <ImageButton
                 android:id="@+id/settings"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_marginEnd="10dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                android:background="?attr/actionBarItemBackground"
                 android:contentDescription="@string/settings_open"
                 android:padding="12dp"
                 android:scaleType="fitCenter"
