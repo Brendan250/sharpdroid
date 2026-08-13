@@ -137,7 +137,7 @@ object GuestLibraries {
         )
         val total = contents.sumOf { it.bytes }
         if (!AssetTree.hasSpace(internal, total)) {
-            val free = internal.usableSpace
+            val free = AssetTree.freeSpace(internal)
             Log.e(TAG, "[app] the guest libraries need $total bytes and $internal has $free free")
             return Outcome.OutOfSpace(total, free)
         }

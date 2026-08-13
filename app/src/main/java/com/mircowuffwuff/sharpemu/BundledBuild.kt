@@ -99,7 +99,7 @@ object BundledBuild {
         // asked before a byte is written, because the alternative is discovering it 60 MB in and
         // leaving the user with a black screen and a partially filled disk.
         if (!AssetTree.hasSpace(internal, total)) {
-            val free = internal.usableSpace
+            val free = AssetTree.freeSpace(internal)
             Log.e(TAG, "[app] the bundled build needs $total bytes and $internal has $free free")
             return Outcome.OutOfSpace(total, free)
         }

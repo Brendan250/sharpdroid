@@ -89,8 +89,28 @@ object AssetTree {
         null
     }
 
-    /** Whether [where] has room for [needed] and [SLACK_BYTES] on top of it. */
-    fun hasSpace(where: File, needed: Long): Boolean = where.usableSpace >= needed + SLACK_BYTES
+    /** Whether the volume [where] is on has room for [needed] and [SLACK_BYTES] on top of it. */
+    fun hasSpace(where: File, needed: Long): Boolean = freeSpace(where) >= needed + SLACK_BYTES
+
+    /**
+     * Free space for [where], **asked of the nearest ancestor that exists**.
+     *
+     * **That is the whole function and it is not a nicety.** `File.usableSpace` answers 0 for a path
+     * that is not there, and the directory a tree unpacks into is precisely the thing that does not
+     * exist yet on the launch which has to create it — so asking it directly reports a full disk on a
+     * device with 48 GB free, and the launch aborts with a toast saying so. It is the state the
+     * platform's own *delete everything* leaves, which is exactly when this runs.
+     *
+     * Free space is a property of the volume rather than of a directory, and every ancestor of a path
+     * is on the same volume, so walking up costs nothing and cannot answer about somewhere else.
+     */
+    fun freeSpace(where: File): Long {
+        var at: File? = where.absoluteFile
+        while (at != null && !at.exists()) {
+            at = at.parentFile
+        }
+        return at?.usableSpace ?: 0L
+    }
 
     /**
      * Writes [assets] to a sibling of [target] and renames it into place.
