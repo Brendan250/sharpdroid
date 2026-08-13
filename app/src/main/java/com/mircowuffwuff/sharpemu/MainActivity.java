@@ -128,7 +128,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private String[] driverEnv = {};
     /**
      * Why the chosen driver could not be used, as the string resource a person is shown, or zero when
-     * there is nothing wrong with it. Set by {@link #installDriver} and read on the line after it.
+     * there is nothing wrong with it. Set by {@link #installDriver} for the four things this side can
+     * see, and by the host layer's answer for the one it cannot; read immediately after both.
      */
     private int driverFailure;
     private boolean profile;
