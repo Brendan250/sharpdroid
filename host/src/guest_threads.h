@@ -253,6 +253,11 @@ uint64_t LiveCount();
 uint64_t CreatedCount();
 uint64_t UnalignedFixupCount();
 
+///< whether an unaligned access is backpatched to a half-barrier atomic rather than a plain
+///< non-atomic sequence. it follows FEXCore's own `HalfBarrierTSOEnabled`, and the answer is only
+///< settled once the fault handlers are installed.
+bool UnalignedHandlerIsAtomic();
+
 ///< how many times a thread's call-return shadow stack pointer was reset after walking off one of
 ///< its guard pages. FEX treats that fault as routine, and this number is what says whether the
 ///< host layer handling it mattered on any given run.

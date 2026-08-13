@@ -219,8 +219,12 @@ void PrintRunSummary() {
                 static_cast<unsigned long long>(HostLayer::Threads::CallRetResetCount()));
   }
   if (HostLayer::Threads::UnalignedFixupCount()) {
-    std::printf("[host-layer] %llu unaligned access(es) backpatched\n",
-                static_cast<unsigned long long>(HostLayer::Threads::UnalignedFixupCount()));
+    // the mode is named beside the count because the two are only meaningful together: the same
+    // number of backpatches means something quite different when each one dropped the ordering
+    // x86 promised.
+    std::printf("[host-layer] %llu unaligned access(es) backpatched, to %s sequences\n",
+                static_cast<unsigned long long>(HostLayer::Threads::UnalignedFixupCount()),
+                HostLayer::Threads::UnalignedHandlerIsAtomic() ? "half-barrier atomic" : "non-atomic");
   }
   std::printf("[host-layer] smc=%s: %llu guest mapping(s) tracked, %llu code invalidation(s), %llu SMC write fault(s)\n",
               HostLayer::VMA::Mode() == HostLayer::VMA::SMCMode::None    ? "none" :

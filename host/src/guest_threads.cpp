@@ -1,6 +1,7 @@
 #include "guest_threads.h"
 #include "vma_tracker.h"
 
+#include <FEXCore/Config/Config.h>
 #include <FEXCore/Core/CodeCache.h>
 #include <FEXCore/Core/Context.h>
 #include <FEXCore/Core/CoreState.h>
@@ -48,6 +49,15 @@ void (*SummaryCallback)() {};
 thread_local GuestThread* CurrentGuestThread {};
 
 std::atomic<uint64_t> UnalignedFixups {};
+
+// how an unaligned access is backpatched, settled once in InstallProcessFaultHandlers.
+//
+// **the two are not equally safe and the ladder is what chooses.** a half-barrier atomic keeps the
+// ordering x86 promises across the misaligned access; a non-atomic one is a plain load or store,
+// which is faster and can tear under another thread. the default is the safe one, so a run that
+// asks for nothing is backpatched exactly as it always was.
+FEXCore::ArchHelpers::Arm64::UnalignedHandlerType UnalignedHandler {
+  FEXCore::ArchHelpers::Arm64::UnalignedHandlerType::HalfBarrier};
 std::atomic<uint64_t> ThreadsCreated {};
 
 ///< how often a guest thread's call-return shadow stack was reset after walking off a guard page.
@@ -505,11 +515,20 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
     const auto Fixup = FEXCore::ArchHelpers::Arm64::HandleUnalignedAccess(
       // bionic types mcontext regs as __u64 (unsigned long long) while FEXCore asks for
       // uint64_t (unsigned long on LP64) — same width, distinct types.
-      T->Thread, FEXCore::ArchHelpers::Arm64::UnalignedHandlerType::HalfBarrier, HostPC,
+      T->Thread, UnalignedHandler, HostPC,
       reinterpret_cast<uint64_t*>(&Context->uc_mcontext.regs[0]));
     if (Fixup.has_value()) {
       Context->uc_mcontext.pc = HostPC + Fixup.value();
-      UnalignedFixups.fetch_add(1, std::memory_order_relaxed);
+      // **said once, because a run that is cut off never reaches the exit summary.** every
+      // measurement here ends by killing the process at a fixed number of seconds, so the total
+      // below is unreadable on exactly the runs that matter — and without it a knob that changes
+      // how this backpatches cannot be told apart from one that never fires.
+      if (UnalignedFixups.fetch_add(1, std::memory_order_relaxed) == 0) {
+        std::printf("[host-layer] unaligned access backpatched, to a %s sequence\n",
+                    UnalignedHandler == FEXCore::ArchHelpers::Arm64::UnalignedHandlerType::HalfBarrier ?
+                      "half-barrier atomic" :
+                      "non-atomic");
+      }
       return;
     }
   }
@@ -708,6 +727,24 @@ void Destroy(GuestThread& T) {
 }
 
 void InstallProcessFaultHandlers() {
+  // which sequence an unaligned access is backpatched to, read once here rather than per fault:
+  // the handler runs on a signal stack and a config lookup in it would be paid on every first
+  // touch of every misaligned address.
+  //
+  // **this has to be read after the JIT knobs are applied and before the first fault**, which is
+  // what this function is between. it is the same choice FEX's own signal delegator makes from the
+  // same option, so a run naming nothing gets FEXCore's default of a half-barrier atomic.
+  UnalignedHandler = FEXCore::Config::Get_HALFBARRIERTSOENABLED()() ?
+                       FEXCore::ArchHelpers::Arm64::UnalignedHandlerType::HalfBarrier :
+                       FEXCore::ArchHelpers::Arm64::UnalignedHandlerType::NonAtomic;
+  // announced only when it is the unsafe one. the safe choice is what a run naming nothing gets and
+  // saying so every time would be noise; dropping the ordering x86 promised is not something a log
+  // should be silent about.
+  if (UnalignedHandler == FEXCore::ArchHelpers::Arm64::UnalignedHandlerType::NonAtomic) {
+    std::printf("[host-layer] unaligned accesses backpatch to non-atomic sequences: ordering the "
+                "guest expects is not preserved across them\n");
+  }
+
   // sigaction is process-wide, so this is done once. the *stack* the handler runs on is not, and
   // is set up per thread in SetupSignalStack.
   struct sigaction Action {};
@@ -1101,6 +1138,10 @@ uint64_t CreatedCount() {
 
 uint64_t UnalignedFixupCount() {
   return UnalignedFixups.load(std::memory_order_relaxed);
+}
+
+bool UnalignedHandlerIsAtomic() {
+  return UnalignedHandler == FEXCore::ArchHelpers::Arm64::UnalignedHandlerType::HalfBarrier;
 }
 
 uint64_t CallRetResetCount() {
