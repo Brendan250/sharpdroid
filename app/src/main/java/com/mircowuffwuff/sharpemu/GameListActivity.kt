@@ -70,6 +70,25 @@ class GameListActivity : AppCompatActivity() {
         if (tree != null) addFolder(tree)
     }
 
+    /**
+     * A run, and why it did not start when it did not.
+     *
+     * **The message is said here rather than by the screen that produced it, because a toast belongs
+     * to the process that posted one.** A guest gets a process of its own and is ended with it, so a
+     * run that gives up posts a toast and is killed a few hundred milliseconds later — the platform
+     * cancels it with the process, and what a person sees is a flicker they cannot read. This screen
+     * is in the process that survives, which is what makes the message readable at all.
+     *
+     * A run that ends normally carries no message and says nothing. Registered at construction for
+     * the reason [picker] is.
+     */
+    private val run = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val why = result.data?.getStringExtra(MainActivity.ABORT_MESSAGE)
+        if (!why.isNullOrEmpty()) {
+            Toast.makeText(this, why, Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onCreate(state: Bundle?) {
         // before setContentView, or the theme is resolved after the views are already inflated.
         Theme.apply(this)
@@ -249,7 +268,10 @@ class GameListActivity : AppCompatActivity() {
         // the folder, because that is what the intent carries and what the host layer will name in
         // its own lines. the display name is beside it so a log and a screen can be read together.
         Log.i(TAG, "[app] launching " + game.folder + " (" + game.name + ", " + how + ")")
-        startActivity(intent)
+        // for a result, and the result is only ever a refusal to explain — see [run]. it changes
+        // nothing about the launch itself: the extras are the same ones `am start` carries, which is
+        // what keeps the intent path the control arm it is described as above.
+        run.launch(intent)
     }
 
     private companion object {

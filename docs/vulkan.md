@@ -186,7 +186,17 @@ two things must both be set or neither is used, and with neither set the library
 
 **everything checkable is checked before calling adrenotools**, because it returns a bare `nullptr` for about ten distinct reasons and `dlerror()` is only meaningful for the last of them. a missing hook is its own documented failure mode and a quiet one: the call still succeeds, the stock driver loads as a fallback, and the only symptom is that nothing got faster.
 
-**and the fallback is loud.** a run that quietly reverted to the stock driver looks exactly like a successful injection that did not help, which is the one way this measurement could lie about itself. the injection says so, the fallback says so in as many words, and — asked from the other end — the device's own reported name is printed once at `vkCreateDevice`, which is the only thing a performance number can honestly be read against.
+**and the fallback is loud.** a run that quietly reverted to the stock driver looks exactly like a successful injection that did not help, which is the one way this measurement could lie about itself. the injection says so and the fallback says so in as many words.
+
+**a handle from adrenotools is not an answer, though, and that is the failure this has to catch.** what it returns is the platform loader opened inside an isolated namespace with a hook in front of the loader's own `dlopen`; whether the driver underneath is the chosen one is a separate decision the hook makes later, and a hook that cannot load it falls back to the system driver and returns a perfectly good handle. so the loud fallback above catches adrenotools refusing and catches nothing at all when adrenotools agrees and the hook does not.
+
+**so the injection is checked against `/proc/self/maps`**, once, and a driver that is not mapped refuses the launch rather than rendering through a driver nobody chose. three things about that check are not obvious:
+
+- **it cannot run where the injection is set up.** the loader binds an ICD on its first entry point rather than at `dlopen`, so nothing is mapped yet and a check there would condemn every driver ever loaded. the binding is forced with `vkEnumerateInstanceExtensionProperties`, a pure query the guest itself makes moments later.
+- **the two spellings of the path are the whole check.** an app's data directory is reached as `/data/user/0/<package>` and the kernel reports mappings under `/data/data/<package>`, so matching the string the launch passed finds nothing at all on a driver that is mapped four times over. `realpath` closes that, and a `realpath` that fails answers *unknown* rather than *no* — the expensive direction here is condemning a driver that loaded.
+- **the answer is asked for rather than announced.** `ChosenDriverLoads()` opens the host loader behind the same `std::call_once` the guest's first thunk call would have used, so asking early moves *when* the driver loads and not how often, and what is checked is the load the run will use rather than a rehearsal of it. that is what lets the app ask before it starts a guest at all. it answers true for anything short of a definite failure, including a run that named no driver.
+
+**the device's own reported name is printed once at `vkCreateDevice` and does not answer this question.** it is worth having and it is not evidence: on this device turnip reports the same `deviceName` as the proprietary driver, so what separates them there is the API and driver versions rather than the name, and neither separates two turnip packages from each other. "is *the chosen package* loaded" is a different question and the mapping is what answers it.
 
 ### the driver's environment
 

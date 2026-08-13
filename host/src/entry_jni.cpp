@@ -31,19 +31,13 @@ ANativeWindow* Window {};
 // milestone evidence quoted verbatim in the docs — put a pipe under the two descriptors and pump
 // it into logcat. a run in the app then produces exactly the log a run in a shell does, which is
 // the only reason `adb logcat` output can be compared against every earlier milestone's.
-void* LogPump(void*) {
-  int Pipe[2];
-  if (::pipe(Pipe) != 0) {
-    return nullptr;
-  }
-  ::dup2(Pipe[1], STDOUT_FILENO);
-  ::dup2(Pipe[1], STDERR_FILENO);
-  ::close(Pipe[1]);
+int LogPipe[2] {-1, -1};
 
+void* LogPump(void*) {
   std::string Line;
   char Buffer[1024];
   for (;;) {
-    const ssize_t Got = ::read(Pipe[0], Buffer, sizeof(Buffer));
+    const ssize_t Got = ::read(LogPipe[0], Buffer, sizeof(Buffer));
     if (Got <= 0) {
       break;
     }
@@ -66,12 +60,24 @@ void* LogPump(void*) {
   return nullptr;
 }
 
+// **the redirection happens on the caller's thread and only the draining is the pump's.** it used to
+// be the first thing the pump did, which is a race the caller always won by so much that it could not
+// be seen: everything printed between pthread_create and the new thread reaching dup2 goes to the
+// original stdout, which in an app is /dev/null. a caller that prints seconds later never noticed. a
+// caller that asks the host layer one question and prints the answer microseconds later loses the
+// whole of it, and what is lost is the reason a launch was refused.
 void StartLogPump() {
   static bool Started = false;
   if (Started) {
     return;
   }
   Started = true;
+  if (::pipe(LogPipe) != 0) {
+    return;
+  }
+  ::dup2(LogPipe[1], STDOUT_FILENO);
+  ::dup2(LogPipe[1], STDERR_FILENO);
+  ::close(LogPipe[1]);
   pthread_t Thread {};
   ::pthread_create(&Thread, nullptr, LogPump, nullptr);
   ::pthread_detach(Thread);
@@ -137,6 +143,33 @@ JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetPadSta
   State.RightTrigger = static_cast<uint8_t>(RightTrigger);
   State.Connected = Connected ? 1 : 0;
   HostLayer::PadBridge::SetState(State);
+}
+
+// whether the GPU driver the app chose is the one this process would render through, asked *before*
+// a guest is started so that a launch can be refused rather than ended.
+//
+// **this opens the driver, and that is the point rather than a side effect.** it is the same
+// `std::call_once` the guest's first vulkan call would have run, so the load happens once and simply
+// happens earlier — what is checked is the load that the run will use, not a rehearsal of it in some
+// other process or namespace. see vulkan_thunk.h for why the answer cannot be had any other way.
+//
+// the two strings outlive the call because the thunk keeps the pointers rather than copying them, and
+// RunMain later sets the same two from its own argument vector.
+JNIEXPORT jboolean JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeDriverLoads(
+  JNIEnv* Env, jclass, jstring Driver, jstring Hooks) {
+  StartLogPump();
+  static std::string DriverPath;
+  static std::string HookLibDir;
+  const char* Chars = Env->GetStringUTFChars(Driver, nullptr);
+  DriverPath = Chars ? Chars : "";
+  Env->ReleaseStringUTFChars(Driver, Chars);
+  Chars = Env->GetStringUTFChars(Hooks, nullptr);
+  HookLibDir = Chars ? Chars : "";
+  Env->ReleaseStringUTFChars(Hooks, Chars);
+
+  HostLayer::VulkanThunk::SetDriver(DriverPath.c_str());
+  HostLayer::VulkanThunk::SetHookLibDir(HookLibDir.c_str());
+  return HostLayer::VulkanThunk::ChosenDriverLoads() ? JNI_TRUE : JNI_FALSE;
 }
 
 // blocks for the whole run, so the app must call it off the UI thread. a guest that calls

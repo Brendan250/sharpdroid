@@ -409,4 +409,27 @@
     <string name="driver_import_already_there">That driver is already imported as %1$s</string>
     <string name="driver_import_failed">Could not extract that package</string>
 
+    <!-- a launch that ends because the driver it chose is not the driver the game would have
+         rendered through.
+
+         **two messages for five ways of failing, and the split is the one a person can act on.**
+         a package that is gone and a package that will not load want different things done about
+         them; which step refused is a developer's distinction and is in the log, where the app
+         names its own four and the host layer explains the fifth in full.
+
+         **neither names the driver**, for the reason the import refusals above do not name the file:
+         a toast is two lines and truncates without warning, and the half that would be lost is the
+         half saying what to do. the person reading this chose that driver and knows which it was.
+
+         and both name Settings, because the choice is stored - so this is not one launch going
+         wrong, it is every launch from here until somebody changes it.
+
+         **neither says the game did not start, and the room that buys is what makes them fit.** two
+         lines at this size is about seventy-five characters and the truncation is silent; a longer
+         first draft of these ended at "so the game did not" and lost the sentence that matters.
+         somebody reading this watched a game not start, so it is the one thing here they already
+         know. -->
+    <string name="driver_failed">The graphics driver you chose did not load. Pick another in Settings.</string>
+    <string name="driver_failed_missing">The graphics driver you chose is gone. Pick another in Settings.</string>
+
 </resources>

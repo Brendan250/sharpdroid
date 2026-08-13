@@ -1,6 +1,7 @@
 package com.mircowuffwuff.sharpemu;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.UriPermission;
 import android.net.Uri;
 import android.os.Bundle;
@@ -115,8 +116,21 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     // names nothing has a concrete artefact to answer with rather than a rule to apply.
 
     /** Resolved once in {@link #onCreate}, because the intent is not readable from a worker. */
+    /**
+     * The extra a refused launch sends back, carrying the message a person is shown.
+     *
+     * <p>Present only on a launch that gave up; a run that ends normally sends nothing at all, which
+     * is what lets the receiving side treat absence as "nothing to say" rather than as a state.
+     */
+    public static final String ABORT_MESSAGE = "abort";
+
     private String driverName;
     private String[] driverEnv = {};
+    /**
+     * Why the chosen driver could not be used, as the string resource a person is shown, or zero when
+     * there is nothing wrong with it. Set by {@link #installDriver} and read on the line after it.
+     */
+    private int driverFailure;
     private boolean profile;
     private boolean turbo;
     private boolean audioWatchdog;
@@ -515,8 +529,22 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      */
     private void abort(String message) {
         Log.e(TAG, "[app] " + message);
-        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
+        runOnUiThread(() -> {
+            // **handed to whoever started this rather than said here, when there is somebody to hand
+            // it to.** A toast belongs to the process that posted it, and this process is about to
+            // end: the platform cancels it along with us a few hundred milliseconds later, and what
+            // a person sees is a flicker too short to read. The game list is in the process that
+            // survives, so it says this instead — see its own launcher.
+            setResult(RESULT_FIRST_USER, new Intent().putExtra(ABORT_MESSAGE, message));
+            // and when nothing started us for a result — `am start`, every script — there is nobody
+            // to hand it to, so it is said here for what that is worth. The log is the real answer
+            // on that path and it is the line above.
+            if (getCallingActivity() == null) {
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+            }
+        });
     }
+
 
     /**
      * Ends the run, the activity and this process, in that order.
@@ -620,12 +648,20 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * {@code scripts/stage.py} is copied to where the linker will take it. External storage
      * is also FUSE-backed and this is 15 MB, which is the second reason not to load one in place.
      *
-     * <p><b>A package that is gone falls back to the system driver rather than failing the launch.</b>
+     * <p><b>A package that is gone ends the launch rather than falling back to the system driver.</b>
      * It is a state a user reaches without doing anything wrong — deleted from a PC, or the volume
-     * wiped — and there is a driver that always works. What it must not do is happen quietly, so the
-     * name that was wanted is logged.
+     * wiped — and there is a driver that always works, which is what once made falling back look like
+     * the kind thing to do. It is not: the game starts, the picture is right, and the only evidence
+     * that the driver somebody chose did nothing is a line in a log. Somebody comparing two drivers
+     * then compares one of them with itself. The choice is stored, so a fallback is also not a
+     * one-launch problem — it is every launch from then on, silently. Refusing says it once, on the
+     * screen, and names where the choice is changed.
+     *
+     * <p>{@link #driverFailure} carries which message that is, because the difference between a
+     * package that is gone and one that cannot be used is a difference the person can act on.
      */
     private String installDriver(File externalRoot) {
+        driverFailure = 0;
         if (driverName == null) {
             return null;
         }
@@ -634,7 +670,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         GpuDriver driver = GpuDriver.resolve(driverName, internalRoot, stagedRoot);
         if (driver == null) {
             Log.e(TAG, "[app] the chosen GPU driver '" + driverName + "' is in neither "
-                    + internalRoot + " nor " + stagedRoot + " — using the system driver");
+                    + internalRoot + " nor " + stagedRoot);
+            driverFailure = R.string.driver_failed_missing;
             return null;
         }
 
@@ -643,6 +680,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             if (!source.isFile()) {
                 Log.e(TAG, "[app] meta.json names " + driver.getLibraryName()
                         + " and it is not in " + driver.getDir());
+                driverFailure = R.string.driver_failed;
                 return null;
             }
 
@@ -658,6 +696,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             File installDir = AppStorage.installedDriver(getFilesDir(), driverName);
             if (!installDir.isDirectory() && !installDir.mkdirs()) {
                 Log.e(TAG, "[app] could not create " + installDir);
+                driverFailure = R.string.driver_failed;
                 return null;
             }
             File installed = new File(installDir, driver.getLibraryName());
@@ -681,6 +720,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             return installed.getAbsolutePath();
         } catch (Exception e) {
             Log.e(TAG, "[app] could not install the driver", e);
+            driverFailure = R.string.driver_failed;
             return null;
         }
     }
@@ -905,6 +945,25 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // external root, which is why it is not checked.
         File files = getFilesDir();
 
+        // **the driver first, before a payload is resolved or a byte of a game is touched.** it is
+        // the only thing here that can refuse a launch on grounds the person can do something about,
+        // and it is settled in milliseconds — so settling it first is the difference between a
+        // refusal that looks like the tap did nothing and one that arrives after several seconds of
+        // black screen.
+        String driver = installDriver(root);
+        // and then the one question this side cannot answer: adrenotools falls back to the system
+        // driver and returns a handle that is good in every way, so a package that resolves, exists
+        // and copies correctly still may not be the driver a guest renders through. the host layer
+        // opens it — the same one-time open the guest's first Vulkan call would have done — and says.
+        if (driverFailure == 0 && driver != null
+                && !HostLayer.nativeDriverLoads(driver, getApplicationInfo().nativeLibraryDir)) {
+            driverFailure = R.string.driver_failed;
+        }
+        if (driverFailure != 0) {
+            abort(getString(driverFailure));
+            return;
+        }
+
         File payload = resolvePayload(root);
         if (payload == null) {
             return;
@@ -984,7 +1043,6 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // the custom driver, if one is staged. both flags or neither: with neither, the host layer
         // opens the platform loader exactly as every measurement up to here did, so the stock
         // baseline stays reproducible from the same build.
-        String driver = installDriver(root);
         if (driver != null) {
             args.add("--vulkan-driver");
             args.add(driver);

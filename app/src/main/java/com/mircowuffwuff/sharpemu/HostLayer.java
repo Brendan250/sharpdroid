@@ -46,6 +46,29 @@ public final class HostLayer {
             int rightTrigger, boolean connected);
 
     /**
+     * Whether the chosen GPU driver is the one a run would render through.
+     *
+     * <p><b>The app cannot answer this and nothing on this side can.</b> adrenotools returns the
+     * platform loader opened in an isolated namespace with a hook in front of the loader's own
+     * {@code dlopen}, and a hook that cannot load the driver falls back to the system one and hands
+     * back a handle that is good in every way. Every check available up here has already passed by
+     * then.
+     *
+     * <p><b>This opens the driver rather than testing a copy of it</b>, and it is the same one-time
+     * open the guest's first Vulkan call would have done — so asking here moves when the load
+     * happens, not how often, and what is checked is the load the run will use. That is what lets a
+     * launch be refused instead of ended several seconds in.
+     *
+     * <p>Called before {@link #nativeRun}, off the UI thread, and only when a driver was chosen.
+     * True for anything short of a definite failure: the expensive mistake is refusing a driver that
+     * works.
+     *
+     * @param driver absolute path to the driver's {@code .so}, on internal storage.
+     * @param hooks the app's {@code nativeLibraryDir}, and nothing else.
+     */
+    public static native boolean nativeDriverLoads(String driver, String hooks);
+
+    /**
      * Runs a guest to completion. Blocks for the whole run, so never call it on the UI thread.
      *
      * <p>A guest that calls {@code exit_group} does not return from here at all — it ends the

@@ -112,6 +112,24 @@ void SetLibraryPath(const char* Path);
 void SetDriver(const char* Path);
 void SetHookLibDir(const char* Dir);
 
+// **whether the driver named above is the one this process will render through**, which is not the
+// same question as whether the injection was accepted.
+//
+// adrenotools hands back the platform loader opened in an isolated namespace with a hook in front of
+// the loader's own dlopen, and the hook decides later. one that cannot load the driver falls back to
+// the system driver and returns a perfectly good handle, so every vulkan call works and the picture
+// is right — a run on the driver somebody picked and a run on the driver they did not are the same
+// run but for a line in a log. what settles it is whether the library is mapped into this process.
+//
+// **it opens the host loader, and is the same open the guest's first call would have done** — one
+// `std::call_once`, so calling this early moves when the driver loads and not how often. that is
+// what lets the app ask before it starts a guest, and refuse the launch rather than end one.
+//
+// false only for a definite failure. nothing asked for, a maps file that could not be read and a
+// path that would not resolve all answer true, because none of them is evidence against the driver
+// and the expensive mistake here is refusing one that works.
+bool ChosenDriverLoads();
+
 // NAME=VALUE for the driver's own environment, applied before it is loaded. repeatable.
 //
 // this is **not** --env, and the difference is the whole reason it exists. --env appends to the

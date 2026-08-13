@@ -15,6 +15,7 @@
 #include <adrenotools/driver.h>
 
 #include <dlfcn.h>
+#include <limits.h>
 #include <sys/stat.h>
 #include <time.h>
 
@@ -296,14 +297,121 @@ void* OpenCustomDriver() {
   return Handle;
 }
 
+// --- did the injection actually happen -----------------------------------------------------
+//
+// **a handle from adrenotools is not an answer.** what it returns is the platform loader, opened in an
+// isolated namespace with a hook in front of the loader's own dlopen — and the hook is a separate
+// decision made later. read hook_android_dlopen_ext in libadrenotools: when it cannot load the custom
+// driver it calls its own fallback(), which loads the system driver and returns a perfectly good
+// handle. so the loud fallback above catches adrenotools refusing, and catches nothing at all when
+// adrenotools agrees and the hook underneath it does not.
+//
+// the question that survives that is "is the .so we asked for in this process", and /proc/self/maps is
+// the only thing that answers it. the hook loads the driver with an ordinary android_dlopen_ext out of
+// its own directory, so a successful injection is a file-backed mapping of that library and a fallback
+// is the absence of one. it needs to know nothing about which driver was chosen, which is what keeps
+// it working across several turnip packages that all report the same device name.
+//
+// **the driver's reported identity is not this question and cannot answer it.** deviceName says turnip
+// or adreno, which stops being an answer the moment two turnip packages are on the device — and two is
+// what this device has.
+enum class Injection { Yes, No, Unknown };
+
+// **Unknown until something is actually asked**, which is what makes ChosenDriverLoads() safe to call
+// on a run that named no driver: nothing was attempted, so there is nothing to refuse.
+Injection Verdict = Injection::Unknown;
+
+Injection DriverIsMapped() {
+  // **the two spellings of one path, and the whole check turns on them.** an app's data directory is
+  // reached as /data/user/0/<package>, which is a symlink to /data/data/<package>, and the launch
+  // passes the first while the kernel reports the second — so matching the string we were handed
+  // finds nothing at all on a driver that is mapped four times over. that failure is silent, it is
+  // indistinguishable from the one this check exists to catch, and it condemns every driver on the
+  // device. resolving here rather than where the flag is parsed keeps it beside the only thing that
+  // has to agree with it.
+  char Canonical[PATH_MAX];
+  const bool Resolved = ::realpath(DriverPath, Canonical) != nullptr;
+  const char* Wanted = Resolved ? Canonical : DriverPath;
+
+  // "re" — close-on-exec, because the guest forks nothing but the emulator's own child processes are
+  // not this file's business to leak into.
+  std::FILE* Maps = std::fopen("/proc/self/maps", "re");
+  if (!Maps) {
+    // **unknown, and never a failure.** the expensive direction here is the false positive: a driver
+    // that loaded and is reported as broken ends a run that would have worked. a maps file we cannot
+    // read says nothing about the driver, so it is not allowed to say anything about the driver.
+    std::printf("[vulkan] /proc/self/maps: %s — whether the injection took cannot be checked\n",
+                std::strerror(errno));
+    return Injection::Unknown;
+  }
+  Injection Result = Injection::No;
+  // a mapping line is an address range, four short fields and a path, so this is generous. a path
+  // long enough to be split across two reads would be split at the same place every time and would
+  // read as absent, which is why the size is not the tight one.
+  char Line[1024];
+  while (std::fgets(Line, sizeof(Line), Maps)) {
+    if (std::strstr(Line, Wanted)) {
+      Result = Injection::Yes;
+      break;
+    }
+  }
+  std::fclose(Maps);
+  if (Result == Injection::No) {
+    // named here rather than at the caller, because what was looked for is the resolved path and the
+    // one every other line in this log names is the launch's. a search that found nothing has to say
+    // which string it searched for or it cannot be checked at all.
+    std::printf("[vulkan] no mapping of %s\n", Wanted);
+    if (!Resolved) {
+      // the string that was searched for is the unresolved one, and finding nothing under it is
+      // exactly what a working driver looked like before the line above existed. so this is the one
+      // remaining route to condemning a driver that loaded, and it answers unknown instead.
+      std::printf("[vulkan] realpath(%s) failed, so that is not an answer about the driver\n",
+                  DriverPath);
+      return Injection::Unknown;
+    }
+  }
+  return Result;
+}
+
+// the loader binds an ICD on its first entry point rather than at dlopen, so nothing is mapped yet at
+// the moment the injection is set up and a check there would condemn every driver ever loaded. this
+// forces the binding with the cheapest call that does it — a pure query, taking no instance, that the
+// guest itself makes moments later — and then asks maps.
+void VerifyInjection() {
+  auto Enumerate = reinterpret_cast<PFN_vkEnumerateInstanceExtensionProperties>(
+    ::dlsym(Library, "vkEnumerateInstanceExtensionProperties"));
+  if (!Enumerate) {
+    std::printf("[vulkan] the loader has no vkEnumerateInstanceExtensionProperties — whether the"
+                " injection took cannot be checked\n");
+    return;
+  }
+  uint32_t Count = 0;
+  Enumerate(nullptr, &Count, nullptr);
+
+  Verdict = DriverIsMapped();
+  if (Verdict == Injection::Yes) {
+    std::printf("[vulkan] the injection took: %s is mapped into this process\n", DriverPath);
+  } else if (Verdict == Injection::No) {
+    // adrenotools accepted it and the driver is not here, which is the quiet failure this whole
+    // check exists for.
+    std::printf("[vulkan] adrenotools accepted the injection and %s is not mapped into this process."
+                " the hook fell back and the driver underneath is the system one\n", DriverPath);
+  }
+}
+
 void OpenLibrary() {
   // the custom path first, and a **loud** fallback rather than a silent one. a run that quietly
   // reverted to the stock driver looks exactly like a successful injection that did not help,
   // which is the one way this measurement could lie about itself.
+  bool Injected = false;
   if (DriverPath && HookLibDir) {
     Library = OpenCustomDriver();
+    Injected = Library != nullptr;
     if (!Library) {
       std::printf("[vulkan] falling back to the platform loader — this is NOT the custom driver\n");
+      // a refusal from adrenotools and a missing file are both definite: the chosen driver is not
+      // what this process will render through. the *quiet* case is settled below instead.
+      Verdict = Injection::No;
     }
   }
   if (!Library) {
@@ -317,6 +425,11 @@ void OpenLibrary() {
   HostGetDeviceProcAddr = reinterpret_cast<PFN_vkGetDeviceProcAddr>(::dlsym(Library, "vkGetDeviceProcAddr"));
   std::printf("[vulkan] host loader %s opened, vkGetInstanceProcAddr=%p\n", LibraryPath,
               reinterpret_cast<void*>(HostGetInstanceProcAddr));
+  // last, and only for a run that asked for a driver: a stock run must reach this point having done
+  // exactly what every earlier measurement's did, which means not calling into the loader at all.
+  if (Injected) {
+    VerifyInjection();
+  }
 }
 
 void* Resolve(uint32_t Id) {
@@ -1195,6 +1308,21 @@ void SetHookLibDir(const char* Dir) {
   if (Dir && *Dir) {
     HookLibDir = Dir;
   }
+}
+
+bool ChosenDriverLoads() {
+  // the same once-flag the guest's first thunk call uses, so this **is** the load the run will use
+  // rather than a rehearsal of it. asking early only moves when it happens; asking twice does
+  // nothing the second time.
+  std::call_once(LibraryOnce, OpenLibrary);
+  // **flushed, because a refusal is followed by the process ending rather than by more output.**
+  // stdout is a pipe here and therefore fully buffered, so everything the open just explained would
+  // otherwise sit in that buffer until 4 KB of a run that is not going to happen.
+  std::fflush(stdout);
+  // Unknown is a yes here, and that is the whole of the safety argument. it covers a run that named
+  // no driver, a maps file that could not be read and a path that would not resolve — none of which
+  // is evidence against the driver, and all of which would otherwise end a run that works.
+  return Verdict != Injection::No;
 }
 
 // --- turbo -----------------------------------------------------------------------------------

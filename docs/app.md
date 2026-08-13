@@ -57,7 +57,7 @@ the APK carries the dex files, the host layer's `.so`, `libc++_shared.so` and th
 
 **they ship unstripped, deliberately**, which costs about 7 MB on a build only ever installed over adb and keeps a native backtrace from being a list of addresses. AGP strips by default and is currently failing to, so it is pinned with `keepDebugSymbols` rather than left to an accident.
 
-`build-apk.py` asserts every expected entry is present before it reports success, because an APK missing its dex installs and then dies at `ClassNotFoundException` and one missing the native library dies at `UnsatisfiedLinkError` — both a long way from the packaging step that caused it. a missing adrenotools hook is worse than either, since adrenotools then falls back to the stock driver quietly and a driver comparison measures the same driver twice.
+`build-apk.py` asserts every expected entry is present before it reports success, because an APK missing its dex installs and then dies at `ClassNotFoundException` and one missing the native library dies at `UnsatisfiedLinkError` — both a long way from the packaging step that caused it. a missing adrenotools hook is worse than either, since the failure is not in the packaging step or anywhere near it: every run that asks for a custom driver refuses to start, and the reason is a file that was never put in the APK.
 
 ## the guest's own process
 
@@ -465,11 +465,15 @@ zip entries are normalised and treated as untrusted, the zip is read twice, and 
 
 the copy's install directory is **per driver**, so switching between two packages cannot leave the previous one's library sitting in the directory being pointed at. it is skipped when the installed file already matches the staged one in length, which is enough to notice a re-staged driver and cheap enough to check every launch.
 
-**a chosen package that is gone falls back to the system driver rather than failing the launch**, naming what it wanted — the same shape a missing build takes, with a different answer at the end, because there is always a driver that works.
+**a chosen package that is gone ends the launch rather than falling back to the system driver**, and that is the opposite answer a missing build gets. there is always a driver that works, which is what once made falling back look like the kind thing to do — but the game then starts, the picture is right, and the only evidence that the chosen driver did nothing is a line in a log. somebody comparing two drivers compares one of them with itself. the choice is stored, so it is also not one launch going wrong but every launch after it, silently.
 
 **the package names its own library** in its `meta.json`, so nothing in the app knows or cares what any particular driver's `.so` is called, and the driver's name and version are logged once.
 
-**a package that loads and a package that does not look the same from here.** adrenotools falls back to the platform loader silently, so an injection line is not evidence that the custom driver is in use — what settles it is the `[vulkan] driver:` line, which names the device, the Vulkan version and the driver version the loaded driver reports. a mesa build and the proprietary one are unmistakable there and nowhere earlier.
+**a package that loads and a package that does not look the same from here**, and the app cannot tell them apart at all: adrenotools falls back to the platform loader silently and every check available on this side has already passed by then. so the app asks the host layer, which opens the driver and checks it against `/proc/self/maps` — see [`vulkan.md`](vulkan.md).
+
+**it is asked before anything else a launch does**, ahead of resolving a build or touching a byte of a game, because it is the only thing in a launch that can refuse on grounds a person can act on and it is settled in milliseconds. a refused launch is back on the game list, with its message, inside a second — the difference between a refusal that reads as "the tap did nothing" and one that arrives after several seconds of black screen.
+
+**the `[vulkan] driver:` line is worth reading and does not settle it.** on this device turnip reports the same `deviceName` as the proprietary driver, so what separates them there is the API and driver versions; and nothing there separates two turnip packages from each other, which is what "did the package I picked load" actually asks.
 
 the app then passes `--vulkan-driver` and `--vulkan-hooks` together or neither. the hooks path is `nativeLibraryDir` and can only be `nativeLibraryDir` — the app is the only thing that knows it, which is why it is passed down rather than derived below. [`vulkan.md`](vulkan.md) describes what adrenotools does with the two.
 
