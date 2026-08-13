@@ -87,6 +87,14 @@ def entry():
                         help="extra FEXCore options, comma separated, appended after the preset. "
                              "an instrument for measuring a knob the preset ladder does not carry; "
                              "the host layer refuses a name FEXCore does not have.")
+    parser.add_argument("--profile", action="store_true",
+                        help="the vulkan profile. every 300 frames it prints where a frame went -- "
+                             "how much of it was spent inside vulkan and how much outside, which is "
+                             "what separates a slow driver from slow guest code. it is not free: it "
+                             "times every command, which on a title submitting some 27 times a "
+                             "frame is several times the cost of the calls themselves, so it "
+                             "answers which side of the boundary a frame went and never how fast "
+                             "something is.")
     parser.add_argument("--check", action="store_true",
                         help="run the regression set before deploying.")
     parser.add_argument("--seconds", metavar="N", type=int, default=0,
@@ -111,7 +119,7 @@ def entry():
         guest_only = [name for name, given in (
             ("--turbo", arguments.turbo), ("--guest-env", arguments.guest_env),
             ("--smc", arguments.smc), ("--fex-preset", arguments.fex_preset),
-            ("--fex", arguments.fex)) if given]
+            ("--fex", arguments.fex), ("--profile", arguments.profile)) if given]
         if guest_only:
             raise Refusal(
                 "no --game, so no guest runs and {} would have no effect. pass --game existing to "
@@ -260,6 +268,8 @@ def launch(attached, package, activity, runs_guest, game, build_path, driver, ar
         extras["fex"] = arguments.fex
         if arguments.turbo:
             extras["turbo"] = True
+        if arguments.profile:
+            extras["profile"] = True
 
     attached.force_stop(package)
     attached.clear_log()
