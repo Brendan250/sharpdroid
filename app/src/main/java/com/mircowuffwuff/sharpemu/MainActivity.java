@@ -173,6 +173,19 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private String fexPreset;
 
     /**
+     * Extra FEXCore options for one run, appended after whatever the preset contributes.
+     *
+     * <p><b>An instrument, and absent unless a launch names it.</b> The preset ladder is a fixed
+     * table, so measuring a knob that is not on it would otherwise mean an APK per candidate. With
+     * no {@code --es fex} the argument vector is exactly the one the preset alone produces.
+     *
+     * <p>Nothing validates the names here. The host layer resolves each against FEXCore's own option
+     * table and refuses one it does not know, so a typo ends the run with a message naming it rather
+     * than becoming a knob that silently did nothing.
+     */
+    private String[] fexOptions = new String[0];
+
+    /**
      * What the settings scene contributes to the guest environment. Empty when nothing was chosen.
      *
      * <p>It sits above the build's own {@code env} and below the launcher's five, which is the order
@@ -309,6 +322,14 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // will also accept, since both sides read the same table.
         String preset = FexPreset.normalise(getIntent().getStringExtra("fexpreset"));
         fexPreset = preset != null ? preset : settings.getFexPreset();
+        // --es fex "DisableL2Cache=0,MaxInst=20000", comma-separated and appended after the preset,
+        // so a knob that is not on the ladder can be measured without an APK of its own. there is no
+        // settings row and there is not meant to be: the ladder is what a user chooses from, and a
+        // launch that names nothing here contributes nothing.
+        String fex = getIntent().getStringExtra("fex");
+        if (fex != null && !fex.isEmpty()) {
+            fexOptions = fex.split(",");
+        }
         // the environment the rows contribute -- the internal resolution, the .NET switch and any
         // custom assignments. there is no extra of its own for these: --es guestenv already reaches
         // the same map and already wins, so a second spelling would be a second thing to keep in
@@ -993,6 +1014,16 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // null contributes nothing, so a launch that names no preset and a settings row nobody
         // touched both produce the argument vector every measurement was taken on.
         args.addAll(FexPreset.arguments(fexPreset));
+        // after the preset, so a launch measuring one knob overrides the rung it is measured against
+        // rather than fighting it: the host layer applies these in order and the last assignment to a
+        // name is the one FEXCore keeps.
+        for (String option : fexOptions) {
+            String trimmed = option.trim();
+            if (!trimmed.isEmpty()) {
+                args.add("--fex");
+                args.add(trimmed);
+            }
+        }
 
         // guest environment, in precedence order: **build defaults < app settings < intent
         // extras**, last wins. it is a map rather than a list of --env flags so a variable a build

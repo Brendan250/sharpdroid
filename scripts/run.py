@@ -83,6 +83,10 @@ def entry():
                         default=None,
                         help="the JIT preset. omitted leaves whatever the settings scene stored, "
                              "which on a fresh install is the emulator's own defaults.")
+    parser.add_argument("--fex", metavar="NAME=VALUE", default=None,
+                        help="extra FEXCore options, comma separated, appended after the preset. "
+                             "an instrument for measuring a knob the preset ladder does not carry; "
+                             "the host layer refuses a name FEXCore does not have.")
     parser.add_argument("--check", action="store_true",
                         help="run the regression set before deploying.")
     parser.add_argument("--seconds", metavar="N", type=int, default=0,
@@ -106,7 +110,8 @@ def entry():
     if not runs_guest:
         guest_only = [name for name, given in (
             ("--turbo", arguments.turbo), ("--guest-env", arguments.guest_env),
-            ("--smc", arguments.smc), ("--fex-preset", arguments.fex_preset)) if given]
+            ("--smc", arguments.smc), ("--fex-preset", arguments.fex_preset),
+            ("--fex", arguments.fex)) if given]
         if guest_only:
             raise Refusal(
                 "no --game, so no guest runs and {} would have no effect. pass --game existing to "
@@ -235,6 +240,8 @@ def launch(attached, package, activity, runs_guest, game, build_path, driver, ar
         say("  env     {}".format(arguments.guest_env))
     if arguments.fex_preset:
         say("  fex     {}".format(arguments.fex_preset))
+    if arguments.fex:
+        say("  knobs   {}".format(arguments.fex))
 
     # **every extra is conditional on having been named**, which is what makes omitting an argument
     # reach the app's own default rather than a default this script picked. an extra carrying the
@@ -250,6 +257,7 @@ def launch(attached, package, activity, runs_guest, game, build_path, driver, ar
         extras["guestenv"] = arguments.guest_env
         extras["smc"] = arguments.smc
         extras["fexpreset"] = arguments.fex_preset
+        extras["fex"] = arguments.fex
         if arguments.turbo:
             extras["turbo"] = True
 
