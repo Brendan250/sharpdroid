@@ -291,7 +291,11 @@ five rungs from most faithful to fastest — Stability, Compatibility, Intermedi
 
 **Compatibility is the rung whose name most misleads.** `VectorTSOEnabled` and `MemcpySetTSOEnabled` both default to off and it turns both on, asking for atomic vector loadstores and atomic `REP MOVS`/`REP STOS` that a default run does not emit — so it is more faithful than the defaults and measurably slower than every rung except Stability.
 
-**Extreme and Performance are the same translation under this FEXCore.** Extreme is Performance plus `SmallTSCScale` and `VolatileMetadata`, both of which already default to on, and the second reads metadata out of PE files that a linux guest does not have. it stays a distinct rung because a later FEXCore may move either default.
+**Extreme is the rung that spends memory.** it is Performance plus `DisableL2Cache=0` and `DynamicL1Cache=0`, which stop the JIT's block lookup being kept small: the L1 sits at its maximum of 16 MB per guest thread rather than being resized to fit, and the L2 is consulted rather than skipped. both default to the lean side and FEX's own text says what that costs — "saving memory", "can potentially introduce more stutters". **the limit it reaches is memory and nothing announces it**: no knob refuses, and the process simply has more to lose the longer it runs.
+
+it also asks for `HalfBarrierTSOEnabled=0`, which repairs an unaligned access to a plain load or store rather than a half-barrier atomic. **that is the only setting on this ladder that can corrupt data rather than merely run slowly**, and it is bounded by TSO — with TSO off the JIT emits few atomics to fault, so on a title that behaves like the ones measured here it is honoured and never reached.
+
+**an option being in FEXCore's table does not mean anything reads it.** `VolatileMetadata`, `MonoHacks`, `KernelUnalignedAtomicBackpatching` and `HostFeatures` are consumed only by FEX's frontend or its Windows sources, none of which a library host builds, so they would be accepted and echoed and reach nothing. the ladder names them and refuses to emit them, for the same reason it refuses the `FEX_` environment spelling.
 
 **there is no second extra for the internal resolution.** `--es guestenv` already reaches the same map and already wins, so a spelling of its own would be one more thing to keep in step with it for no new capability.
 

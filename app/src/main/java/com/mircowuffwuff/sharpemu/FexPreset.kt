@@ -61,6 +61,29 @@ object FexPreset {
     private val REFUSED = setOf("SMCChecks", "IS64BIT_MODE", "GDBSERVER")
 
     /**
+     * Knobs that are absent from every rung because nothing here reads them.
+     *
+     * **A FEXCore option being declared is not the same as it being consumed.** `--fex` resolves a
+     * name against the generated option table and refuses one FEXCore does not declare, which
+     * catches a typo but not this: several options in that table are read only by FEX's own
+     * frontend — `LinuxEmulation`, `FEXInterpreter`, the Windows sources — and a process that hosts
+     * FEXCore as a library builds none of it. So they would be accepted, logged, and reach nothing,
+     * which is the same failure as the `FEX_` environment spelling above and harder to see.
+     *
+     * `VolatileMetadata` reads volatile metadata out of PE files, and is consumed in the Windows
+     * image tracker. `MonoHacks` gates on a flag that only the Windows invalidation tracker ever
+     * sets, so it can never become active. `KernelUnalignedAtomicBackpatching` is a `prctl` the
+     * frontend makes. `HostFeatures` is answered by the host layer building its own, so the config
+     * option is not what decides.
+     *
+     * **`HalfBarrierTSOEnabled` is the exception and is on the ladder**, though FEX reads it in its
+     * frontend too: the host layer handles unaligned accesses itself and reads that option to
+     * choose how, so here it is honoured rather than inert.
+     */
+    private val UNREACHABLE = setOf("VolatileMetadata", "MonoHacks",
+                                    "KernelUnalignedAtomicBackpatching", "HostFeatures")
+
+    /**
      * What a preset sets, as FEXCore option names.
      *
      * **Every rung names every knob**, rather than expressing itself as a change from the rung below
@@ -76,11 +99,29 @@ object FexPreset {
      * preset came back 51.45 against 51.41 fps on `Dreaming Sarah`. That title saturates nothing and
      * may barely reach x87 at all, so the figure bounds this rung rather than the knob.
      *
-     * **Extreme and Performance are the same translation under this FEXCore.** Extreme is Performance
-     * plus `SmallTSCScale` and `VolatileMetadata`, and both of those already default to on; the
-     * second reads volatile metadata out of PE files, which a linux guest does not have. It is kept
-     * as a distinct rung because it is distinct upstream and because a later FEXCore may move either
-     * default, not because it measures differently today.
+     * **Extreme is the only rung that changes how an unaligned access is repaired**, and that is the
+     * whole of what separates it from [PERFORMANCE]. x86 permits an unaligned access anywhere,
+     * including on the atomics FEX compiles guest memory accesses into, and arm64's atomics require
+     * natural alignment — so the JIT emits the aligned form and the host layer backpatches the first
+     * time one faults. `HalfBarrierTSOEnabled` chooses what it is backpatched *to*: a half-barrier
+     * atomic, which keeps the ordering the guest expects, or a plain load or store, which does not.
+     *
+     * **Extreme is the plain one, and it is the only rung on this ladder that can corrupt data
+     * rather than merely run slowly.** A torn read needs another thread to be touching the same
+     * misaligned address at the same moment, so it is a race and not a certainty — which is exactly
+     * why it belongs on the rung named for it rather than one below.
+     *
+     * **[PERFORMANCE] therefore asks for the half-barrier, though it turns TSO off.** A rung that
+     * quietly dropped atomicity while advertising only a TSO change would be a rung nobody chose the
+     * risk of.
+     *
+     * **And the knob is subordinate to TSO, which bounds what Extreme buys.** FEX's own text opens
+     * "when TSO emulation is enabled" for a reason: with TSO off the JIT emits far fewer atomic
+     * sequences, so far fewer faults reach the repair at all. Measured on this workload the repair
+     * fires at [COMPATIBILITY] and does not fire once at [PERFORMANCE] — so on a title that behaves
+     * like these two, Extreme's setting of it is honoured and never reached. It is set because the
+     * rung that is allowed to be dangerous should be, and because a title using a locked unaligned
+     * access would reach it; it is not what makes Extreme faster.
      */
     fun options(id: String): Map<String, String> = when (id) {
         // multiblock off: one guest block per translation. the slowest thing here and the one that
@@ -94,10 +135,19 @@ object FexPreset {
         INTERMEDIATE -> emptyMap()
         // TSO emulation off entirely. FEX's text: highly likely to break any multithreaded
         // application. SharpEmu is a .NET process with a JIT, a GC and a render thread of its own.
-        PERFORMANCE -> tso(on = false, vector = false, memcpySet = false, halfBarrier = false) +
+        PERFORMANCE -> tso(on = false, vector = false, memcpySet = false, halfBarrier = true) +
             mapOf("X87ReducedPrecision" to "1", "Multiblock" to "1")
+        // **the rung that spends memory.** both of these default to the lean side and say so in
+        // FEX's own text -- "saving memory", "can potentially introduce more stutters" -- so turning
+        // them off is asking for the block lookup to be as fast as it can be and paying in
+        // footprint: the L1 stops being resized to fit and sits at its maximum, which is 16 MB per
+        // guest thread rather than 128 KB, and the L2 lookup is consulted instead of skipped.
+        //
+        // **on a handheld that ceiling is the real limit of this rung**, and it is a limit no knob
+        // above announces: nothing refuses, the process simply has more to lose to the low-memory
+        // killer the longer it runs.
         EXTREME -> options(PERFORMANCE) +
-            mapOf("SmallTSCScale" to "1", "VolatileMetadata" to "1")
+            mapOf("HalfBarrierTSOEnabled" to "0", "DisableL2Cache" to "0", "DynamicL1Cache" to "0")
         else -> emptyMap()
     }
 
@@ -130,7 +180,7 @@ object FexPreset {
         val resolved = normalise(id) ?: return emptyList()
         val args = ArrayList<String>()
         for ((name, value) in options(resolved)) {
-            if (name in REFUSED) continue
+            if (name in REFUSED || name in UNREACHABLE) continue
             args.add("--fex")
             args.add("$name=$value")
         }

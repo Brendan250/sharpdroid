@@ -48,7 +48,7 @@
         <item>Stricter than the default: vector and string operations are made atomic too. Noticeably slower.</item>
         <item>The FEXCore default. Resembles a good balance between accuracy and speed.</item>
         <item>Drops x86 memory ordering and full x87 precision. Fastest, and some games will misbehave or crash.</item>
-        <item>As Performance. Reserved for options that later FEXCore versions may default differently.</item>
+        <item>As Performance, and spends a lot more memory on JIT lookup caches. Unaligned access is repaired without atomicity.</item>
     </string-array>
 
 </resources>
