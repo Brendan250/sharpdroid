@@ -201,6 +201,56 @@ class Settings private constructor(private val prefs: SharedPreferences) {
         get() = prefs.getString(KEY_DRIVER, null)
         set(value) = prefs.edit().putString(KEY_DRIVER, value).apply()
 
+    // ------------------------------------------------------------------------------------------
+    // Controls
+
+    /**
+     * Whether a connected controller reaches the guest at all.
+     *
+     * **Named for what it will govern and currently governing the whole of controller input**, which
+     * is the honest state of it rather than a shortcut: there is one mapping, it is by button
+     * position, and there are no port rows to be automatic about — so until there are, the switch is
+     * input on or off. The row's own summary says exactly that.
+     *
+     * **The key says *automatic* for the same reason.** Per-pad mappings are what the port rows will
+     * store, so the unqualified name belongs to them rather than to the switch above them.
+     *
+     * **Off does not disable rumble**, which is [vibrateHandheld]'s to decide. The two are separate because a
+     * person who wants to play by touch on a device that has a pad in it should still feel a game's
+     * haptics, and because a controller that misbehaves is a different complaint from a motor that is
+     * distracting.
+     *
+     * **Neither of these becomes a launch argument.** They are read by the process that runs the
+     * guest and applied to what this app does with events it receives and with a request it is
+     * handed, so a launch naming no extras is the argument vector it has always been.
+     */
+    var automaticControllerMapping: Boolean?
+        get() = if (prefs.contains(KEY_AUTOMATIC_CONTROLLER_MAPPING)) {
+            prefs.getBoolean(KEY_AUTOMATIC_CONTROLLER_MAPPING, true)
+        } else {
+            null
+        }
+        set(value) = prefs.edit().putBoolean(KEY_AUTOMATIC_CONTROLLER_MAPPING, value!!).apply()
+
+    /**
+     * Whether a game may drive **this device's** vibration motor.
+     *
+     * **Named for the handheld and not for vibration in general**, because a controller with a motor
+     * of its own is a second answer to "should this rumble" rather than the same one — and the day
+     * that exists, a setting called simply *vibrate* would have to mean both or be renamed.
+     *
+     * Gated in the app rather than in the host layer, because the vibrator is the app's: the guest's
+     * request still crosses and is still counted, and what changes is whether the platform is asked.
+     * That keeps a run with this off distinguishable in the log from a run where the game never asked.
+     */
+    var vibrateHandheld: Boolean?
+        get() = if (prefs.contains(KEY_VIBRATE_HANDHELD)) {
+            prefs.getBoolean(KEY_VIBRATE_HANDHELD, true)
+        } else {
+            null
+        }
+        set(value) = prefs.edit().putBoolean(KEY_VIBRATE_HANDHELD, value!!).apply()
+
     /**
      * The guest environment these settings contribute, in the order it should be applied.
      *
@@ -232,6 +282,14 @@ class Settings private constructor(private val prefs: SharedPreferences) {
         const val KEY_FEX_PRESET = "fex_preset"
         const val KEY_RENDER_SCALE = "render_scale"
         const val KEY_DRIVER = "driver"
+        // **both are named for the narrow thing they govern rather than for their subject**, because
+        // the broad name is the one a later setting will want. per-pad mappings would make a plain
+        // `controller_mapping` the wrong name for the switch that turns automatic mapping on, and a
+        // physical pad's own motor would make a plain `vibrate` ambiguous against this device's.
+        // a stored key cannot be renamed later without either abandoning what people have chosen or
+        // carrying a migration forever, so the cost of getting this wrong is paid once and kept.
+        const val KEY_AUTOMATIC_CONTROLLER_MAPPING = "automatic_controller_mapping"
+        const val KEY_VIBRATE_HANDHELD = "vibrate_handheld"
 
         /** The four the desktop UI offers, as the payload parses them. */
         val RENDER_SCALES = arrayOf("1.0", "0.75", "0.5", "0.25")

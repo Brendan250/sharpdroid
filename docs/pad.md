@@ -68,6 +68,23 @@ a d-pad arrives either as four keys or as a hat axis, and both are handled — t
 
 **one pad reaches the guest, and that is a real ceiling.** the emulator's pad exports read at most two states and take the type, motion and touch of the first, so ports are not addressable from here.
 
+## the two switches
+
+Settings → Controls, both on by default.
+
+| | |
+| --- | --- |
+| **Automatic controller mapping** | whether a controller reaches the guest at all. named for what it will govern and currently governing the whole of controller input, which the row's own summary says: there is one mapping, it is by button position, and there are no ports to be automatic about yet |
+| **Vibrate handheld motor** | whether a game may drive the motor |
+
+**they are independent, and that is the point of there being two.** somebody playing by touch on a device with a pad in it should still feel a game's haptics, and a controller that misbehaves is a different complaint from a motor that is distracting. turning the mapping off leaves rumble working; turning rumble off leaves the pad working.
+
+**neither becomes a launch argument.** they are read once by the process that runs the guest — which is given to one run and ended with it — and applied to what the app does with events it receives and with a request it is handed. so a launch that names no extras is the argument vector it has always been, and nothing about the host layer's flags changes.
+
+**turning the mapping off releases everything first**, rather than simply going quiet: a button held at that moment would otherwise stay held for the rest of the run, since nothing afterwards processes its release. it also stops *consuming* events, so a pad still reaches the app's own screens and the panel over a running guest stays reachable with a d-pad.
+
+**rumble is gated in the app rather than in the bridge**, so the guest's request still crosses and is still counted as asked for and only the platform call stops. that keeps a run with the motor switched off distinguishable in the log from a run where the game never asked — which is the distinction the two counters exist to preserve.
+
 ## rumble, and the thread that delivers it
 
 there is no NDK vibrator, so rumble is a JNI call up into the app — the only thing besides the guest file layer that calls upward at all.

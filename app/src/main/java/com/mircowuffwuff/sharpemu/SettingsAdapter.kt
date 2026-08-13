@@ -139,12 +139,16 @@ class SettingsAdapter(
         private fun stored(key: String, default: Boolean): Boolean = when (key) {
             Settings.KEY_FULLSCREEN -> settings.fullscreen ?: default
             Settings.KEY_STRICT -> settings.strictDynlib ?: default
+            Settings.KEY_AUTOMATIC_CONTROLLER_MAPPING -> settings.automaticControllerMapping ?: default
+            Settings.KEY_VIBRATE_HANDHELD -> settings.vibrateHandheld ?: default
             else -> default
         }
 
         private fun write(key: String, value: Boolean) = when (key) {
             Settings.KEY_FULLSCREEN -> settings.fullscreen = value
             Settings.KEY_STRICT -> settings.strictDynlib = value
+            Settings.KEY_AUTOMATIC_CONTROLLER_MAPPING -> settings.automaticControllerMapping = value
+            Settings.KEY_VIBRATE_HANDHELD -> settings.vibrateHandheld = value
             else -> Unit
         }
     }

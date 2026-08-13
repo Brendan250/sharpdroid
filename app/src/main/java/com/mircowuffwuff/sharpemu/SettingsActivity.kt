@@ -97,6 +97,11 @@ class SettingsActivity : AppCompatActivity() {
             R.string.settings_graphics_summary,
             R.drawable.ic_section_graphics,
         ),
+        CONTROLS(
+            R.string.settings_controls,
+            R.string.settings_controls_summary,
+            R.drawable.ic_section_controls,
+        ),
         GAME_FILES(
             R.string.settings_game_files,
             R.string.settings_game_files_summary,
@@ -117,7 +122,7 @@ class SettingsActivity : AppCompatActivity() {
              * since 1.9 — a member shadowing it compiles with a deprecation warning and then means
              * something different from what it reads as.
              */
-            val shown = listOf(APP, EMULATION, GRAPHICS, GAME_FILES, USER_DATA)
+            val shown = listOf(APP, EMULATION, GRAPHICS, CONTROLS, GAME_FILES, USER_DATA)
         }
     }
 

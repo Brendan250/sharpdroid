@@ -97,6 +97,7 @@ class SettingsSectionActivity : AppCompatActivity() {
         SettingsActivity.Section.APP -> appRows()
         SettingsActivity.Section.EMULATION -> emulationRows()
         SettingsActivity.Section.GRAPHICS -> graphicsRows()
+        SettingsActivity.Section.CONTROLS -> controlsRows()
         SettingsActivity.Section.GAME_FILES -> gameFilesRows()
         // User data is a manager screen of its own, so its card never opens this activity. a
         // hand-written intent still can, and an empty list is what it gets - the same answer the
@@ -307,6 +308,35 @@ class SettingsSectionActivity : AppCompatActivity() {
      * cannot set it: it is granted in android's own settings and nowhere else, so the row shows the
      * state and a tap opens the screen that changes it.
      */
+    /**
+     * The Controls section.
+     *
+     * **Both rows are on by default, and both are read by the process that runs the guest rather than
+     * turned into a launch argument.** That is the difference between these and every row in Emulation:
+     * a build, a preset or a resolution has to reach the payload's command line, while these two govern
+     * what this app does with events it receives and with a request it is handed — so nothing is passed,
+     * and a launch that names no extras is the argument vector it has always been.
+     *
+     * **There are no port rows under the mapping switch yet**, which is why that switch is currently
+     * the whole of controller input rather than a choice between mappings. The row's own summary says
+     * so; a switch that silently meant something other than its label is what a settings screen must
+     * never be.
+     */
+    private fun controlsRows(): List<SettingRow> = listOf(
+        SettingRow.Switch(
+            key = Settings.KEY_AUTOMATIC_CONTROLLER_MAPPING,
+            title = R.string.setting_automatic_controller_mapping,
+            summary = R.string.setting_automatic_controller_mapping_summary,
+            default = true,
+        ),
+        SettingRow.Switch(
+            key = Settings.KEY_VIBRATE_HANDHELD,
+            title = R.string.setting_vibrate_handheld,
+            summary = R.string.setting_vibrate_handheld_summary,
+            default = true,
+        ),
+    )
+
     private fun gameFilesRows(): List<SettingRow> {
         // **a count rather than the folders themselves.** the build row names one build and the
         // driver row one package, because there is one of each; there is any number of folders, and

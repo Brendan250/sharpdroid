@@ -72,6 +72,30 @@ object PadState {
     val connected: Boolean get() = devices.isNotEmpty()
 
     /**
+     * Whether a controller reaches the guest at all — Settings, Controls, the mapping switch.
+     *
+     * **Turning it off releases everything and says so, rather than simply going quiet.** A button
+     * held at the moment it is switched off would otherwise stay held for the rest of the run, since
+     * nothing after this point will process its release.
+     *
+     * **Events are then not consumed either**, which matters more than it looks: an unconsumed key
+     * goes on to the view hierarchy, so the panel drawn over a running guest stays reachable with the
+     * d-pad by somebody who has turned controller input off. Consuming and discarding would leave a
+     * pad that does nothing at all, including to the app's own screens.
+     */
+    @JvmStatic
+    var enabled: Boolean = true
+        set(value) {
+            if (field == value) return
+            field = value
+            if (!value) {
+                devices.clear()
+                release()
+            }
+            push()
+        }
+
+    /**
      * Whether this event came from something with a stick or a gamepad button on it.
      *
      * The source is a bit mask and a device is commonly several things at once — a gamepad that also
@@ -132,7 +156,7 @@ object PadState {
      */
     @JvmStatic
     fun onKey(event: KeyEvent): Boolean {
-        if (!isGamepad(event.device)) {
+        if (!enabled || !isGamepad(event.device)) {
             return false
         }
         val bit = buttonFor(event.keyCode)
@@ -171,7 +195,8 @@ object PadState {
      */
     @JvmStatic
     fun onMotion(event: MotionEvent): Boolean {
-        if (!isGamepad(event.device) || event.action != MotionEvent.ACTION_MOVE) {
+        if (!enabled || !isGamepad(event.device) ||
+            event.action != MotionEvent.ACTION_MOVE) {
             return false
         }
         devices.add(event.deviceId)
@@ -226,6 +251,7 @@ object PadState {
      */
     @JvmStatic
     fun onDeviceChanged() {
+        if (!enabled) return
         val present = LinkedHashSet<Int>()
         for (id in InputDevice.getDeviceIds()) {
             val device = InputDevice.getDevice(id)

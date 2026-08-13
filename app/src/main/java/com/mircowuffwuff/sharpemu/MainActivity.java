@@ -319,6 +319,16 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // surface with it.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        // **the two Controls switches, read before anything can act on them.** neither becomes a
+        // launch argument: they govern what this process does with events it receives and with a
+        // request it is handed, so the argument vector is untouched by either. an untouched row is
+        // null and both default to on.
+        //
+        // this process is given to one run and ended with it, so reading them once here is reading
+        // them for the whole run -- there is no later launch to inherit a stale value.
+        PadState.setEnabled(!Boolean.FALSE.equals(settings.getAutomaticControllerMapping()));
+        PadRumble.setEnabled(!Boolean.FALSE.equals(settings.getVibrateHandheld()));
+
         // the vibrator, before the guest starts, because the host layer's rumble path resolves its
         // java side at library load and would otherwise have somewhere to call and nothing behind it.
         // the application context rather than this activity: it outlives any one screen.

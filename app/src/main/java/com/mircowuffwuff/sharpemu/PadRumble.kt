@@ -52,6 +52,20 @@ object PadRumble {
     private var amplitudeControl = false
 
     /**
+     * Whether a game may drive the motor — Settings, Controls, the vibrate switch.
+     *
+     * **Gated here rather than in the host layer, and that is deliberate.** The guest's request still
+     * crosses the boundary and is still counted as asked for; what stops is the platform call. So a
+     * run with this off stays distinguishable in the log from a run where the game never asked, which
+     * is the distinction the two counters exist to preserve.
+     *
+     * Volatile because the host layer's delivery thread reads it and the UI thread writes it.
+     */
+    @Volatile
+    @JvmStatic
+    var enabled: Boolean = true
+
+    /**
      * Called by the activity that owns a run, before the guest starts.
      *
      * The application context is held rather than the activity, because this outlives any one screen
@@ -113,6 +127,9 @@ object PadRumble {
      */
     @JvmStatic
     fun rumble(large: Int, small: Int): Boolean {
+        if (!enabled) {
+            return false
+        }
         val device = vibrator ?: return false
         // android has one actuator to aim at and the seam names two motors, so the louder wins. taking
         // the larger rather than a sum or an average is what keeps a request for one strong motor from

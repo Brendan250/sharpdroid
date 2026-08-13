@@ -141,7 +141,10 @@ a subsection is a label above a run of rows rather than another button press. a 
 | App | Theme, Theme color while Custom is chosen, Fullscreen mode |
 | Emulation | under a SharpEmu label, SharpEmu build; under a FEXCore label, FEXCore preset |
 | Graphics | Internal resolution, and under a Vulkan label, Custom driver |
+| Controls | Automatic controller mapping, Vibrate handheld motor |
 | Data | under a Game files label, Game folders, and All files access where the platform has it |
+
+**the two Controls rows are the only ones that reach neither an argument vector nor the guest environment.** every other row here becomes something on the payload's command line or in its environment; these two are read by the process that runs the guest and change what the app does with events it receives and with a request it is handed. [`pad.md`](pad.md) owns what they govern and why they are two switches rather than one.
 
 **only the sections that have rows are shown.** a button opening an empty screen is worse than a button that is not there, because the empty screen looks like a fault in the one that is.
 

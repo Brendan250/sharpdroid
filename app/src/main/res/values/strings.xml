@@ -60,6 +60,8 @@
     <string name="settings_emulation_summary">How SharpEmu itself is run</string>
     <string name="settings_graphics">Graphics</string>
     <string name="settings_graphics_summary">Rendering and presentation</string>
+    <string name="settings_controls">Controls</string>
+    <string name="settings_controls_summary">Input and haptics</string>
     <!-- **two sections rather than one, and the split is input against output.** what this one holds
          is things somebody already owns, living elsewhere on the device, reached by a grant that can be
          revoked. what the next one holds is what the emulator produced, in storage the app owns. the
@@ -96,6 +98,14 @@
     <string name="colour_preview">Preview</string>
     <string name="colour_preview_value">Selected</string>
 
+    <!-- **the mapping row says what it does today rather than what its name promises.** the name is
+         the one the outline gives it, and the automatic part is real only once there are mappings to
+         choose between; until then the switch is the whole of controller input, and a summary that
+         described a mapping nobody can configure would be a row lying about itself. -->
+    <string name="setting_automatic_controller_mapping">Automatic controller mapping</string>
+    <string name="setting_automatic_controller_mapping_summary">Play with a connected physical controller, mapped by button position.</string>
+    <string name="setting_vibrate_handheld">Vibrate handheld motor</string>
+    <string name="setting_vibrate_handheld_summary">Let a game drive this Android device\'s vibration motor.</string>
     <string name="setting_fullscreen">Fullscreen mode</string>
     <string name="setting_fullscreen_summary">Hide the status and navigation bars everywhere. Swipe from an edge to bring them back. A game is always fullscreen.</string>
 
