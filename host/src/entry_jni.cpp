@@ -60,12 +60,11 @@ void* LogPump(void*) {
   return nullptr;
 }
 
-// **the redirection happens on the caller's thread and only the draining is the pump's.** it used to
-// be the first thing the pump did, which is a race the caller always won by so much that it could not
-// be seen: everything printed between pthread_create and the new thread reaching dup2 goes to the
-// original stdout, which in an app is /dev/null. a caller that prints seconds later never noticed. a
-// caller that asks the host layer one question and prints the answer microseconds later loses the
-// whole of it, and what is lost is the reason a launch was refused.
+// **the redirection happens on the caller's thread and only the draining is the pump's**, which is
+// the whole reason it is not simply the first thing the pump does. anything printed between
+// pthread_create and a new thread reaching dup2 goes to the original stdout, and in an app that is
+// /dev/null — a window a caller printing seconds later never notices, and a total loss for one that
+// asks the host layer a question and ends the process on the answer.
 void StartLogPump() {
   static bool Started = false;
   if (Started) {
@@ -100,6 +99,13 @@ extern "C" {
 // microseconds once, and a mount that discovered here that it had nothing to talk to would have
 // discovered it far too late.
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* VM, void*) {
+  // **first, because the two bridges below can fail and say so on stdout.** the redirection used to
+  // be a run's business, which meant everything printed before a run started went to the original
+  // stdout — /dev/null in an app. what is printed here is precisely a bridge that could not resolve
+  // its java side, so the lines that vanished were the ones explaining a capability that is now
+  // missing for the rest of the process. redirecting at library load costs a pipe and a thread once
+  // and gives every later caller a stdout that goes somewhere.
+  StartLogPump();
   HostLayer::SafBridge::OnLoad(VM);
   // the pad bridge resolves its own helper here for the same reason and at the same moment. it calls
   // *up* only for rumble; state comes down through nativeSetPadState below, so a failure to resolve
@@ -157,7 +163,6 @@ JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetPadSta
 // RunMain later sets the same two from its own argument vector.
 JNIEXPORT jboolean JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeDriverLoads(
   JNIEnv* Env, jclass, jstring Driver, jstring Hooks) {
-  StartLogPump();
   static std::string DriverPath;
   static std::string HookLibDir;
   const char* Chars = Env->GetStringUTFChars(Driver, nullptr);
@@ -178,8 +183,6 @@ JNIEXPORT jboolean JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeDrive
 // library was loaded into, so a caller that has anything to lose runs a guest in a process it is
 // willing to lose; the app gives one to each run.
 JNIEXPORT jint JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeRun(JNIEnv* Env, jclass, jobjectArray Args) {
-  StartLogPump();
-
   std::vector<std::string> Storage;
   Storage.emplace_back("sharpemu-host-layer");
   const jsize Count = Args ? Env->GetArrayLength(Args) : 0;
