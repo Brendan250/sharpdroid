@@ -27,6 +27,25 @@ public final class HostLayer {
     public static native void nativeSetSurface(Surface surface);
 
     /**
+     * The current state of the gamepad, pushed down whenever any control on it moves.
+     *
+     * <p>The guest polls for this rather than being handed it, because a host thread calling into the
+     * guest would have to enter translated code — the one direction every seam here refuses. So the
+     * native side keeps the latest and answers a guest that asks.
+     *
+     * <p><b>Scalars rather than a structure, deliberately.</b> One layout does have to cross this
+     * boundary — the guest's own poll — and it is versioned and size-checked by the call that carries
+     * it. A second layout here would be a second thing to keep in step for nothing.
+     *
+     * <p>Cheap enough for the input dispatch: it takes one uncontended lock and copies twelve bytes,
+     * and it neither allocates nor blocks. Sticks are 0..255 with 128 centred and Y growing downward;
+     * triggers are 0..255. See {@code PadState}, which is the only caller.
+     */
+    public static native void nativeSetPadState(
+            int buttons, int leftX, int leftY, int rightX, int rightY, int leftTrigger,
+            int rightTrigger, boolean connected);
+
+    /**
      * Runs a guest to completion. Blocks for the whole run, so never call it on the UI thread.
      *
      * <p>A guest that calls {@code exit_group} does not return from here at all — it ends the

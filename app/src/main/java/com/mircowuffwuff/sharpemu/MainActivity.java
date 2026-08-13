@@ -6,6 +6,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.format.Formatter;
 import android.util.Log;
+import android.view.InputDevice;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -119,6 +122,22 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private boolean audioWatchdog;
     /** {@code --ez tracefiles}, counting the guest's file access under the game directory. */
     private boolean traceFiles;
+    /**
+     * {@code --ez tracepad}, printing every pad poll and every rumble request.
+     *
+     * <p>Chatty by the standards of the others: the emulator samples the pad up to a thousand times a
+     * second per polling thread, so this is for one question at a time and not for a whole run.
+     */
+    private boolean tracePad;
+    /**
+     * {@code --ez padselftest}, one fabricated rumble when the guest first polls.
+     *
+     * <p>It exists because the two directions of the pad bridge fail independently and an ordinary run
+     * exercises only one: a game that polls proves the read path continuously, and rumble is proven by
+     * nothing unless the title happens to vibrate. This fires the real delivery path and says so in the
+     * log, so a buzz can never be mistaken for the game's own.
+     */
+    private boolean padSelfTest;
     /** The host layer's SMC tracking mode. mtrack is the default every measurement was taken on. */
     private String smcMode = "mtrack";
     private String[] guestEnv = {};
@@ -207,6 +226,11 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // branch per file syscall when off, and it is what makes two ways of reaching the same game
         // comparable rather than a matter of opinion.
         traceFiles = getIntent().getBooleanExtra("tracefiles", false);
+        // --ez tracepad true prints every poll and every rumble request. the counters print without
+        // it: the first read, the first read that finds a pad and the first rumble each say so once,
+        // which is what separates "the pad does nothing" from "the payload never asked".
+        tracePad = getIntent().getBooleanExtra("tracepad", false);
+        padSelfTest = getIntent().getBooleanExtra("padselftest", false);
         // --es smc full, because chasing the audio stall needs the two SMC modes compared on the
         // same build. this
         // is a *launch* extra and still not a build one: the comment below about a payload that can
@@ -295,10 +319,111 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // surface with it.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        // the vibrator, before the guest starts, because the host layer's rumble path resolves its
+        // java side at library load and would otherwise have somewhere to call and nothing behind it.
+        // the application context rather than this activity: it outlives any one screen.
+        PadRumble.attach(getApplicationContext());
+        // and the pads already attached. android reports one arriving as an event and one that was
+        // already there as nothing at all, so the initial sweep is the only thing that finds a
+        // controller the device booted with — which on this hardware is the built-in one.
+        PadState.onDeviceChanged();
+
         SurfaceView view = new SurfaceView(this);
         view.getHolder().addCallback(this);
         setContentView(withOverlays(view));
         goFullscreen();
+    }
+
+    /**
+     * The gamepad, before the view hierarchy sees it.
+     *
+     * <p><b>{@code dispatchKeyEvent} rather than {@code onKeyDown}, and that is what makes the d-pad
+     * work.</b> An unconsumed {@code DPAD_DOWN} reaching the views moves focus to whatever is
+     * focusable, and the in-game panel has a button on it — so the d-pad would walk the panel's focus
+     * instead of reaching the game. Taking the event here means the hierarchy never gets the chance.
+     *
+     * <p>{@code KEYCODE_BACK} is deliberately not one of the pad's keys, so a controller's own back
+     * button still opens the panel like the software one does. Everything else the pad claims goes no
+     * further.
+     */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (PadState.onKey(event)) {
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    /**
+     * The sticks and the analogue triggers, before the view hierarchy sees them, for the same reason.
+     *
+     * <p>A joystick motion event would otherwise be offered to the focused view first, and a focused
+     * button treats a stick deflection as a focus move.
+     */
+    @Override
+    public boolean dispatchGenericMotionEvent(MotionEvent event) {
+        if (PadState.onMotion(event)) {
+            return true;
+        }
+        return super.dispatchGenericMotionEvent(event);
+    }
+
+    /**
+     * A controller arriving or leaving mid-run.
+     *
+     * <p><b>Removal is what this is for.</b> A pad that is used registers itself on its first event, so
+     * one plugged in during a game is picked up without help. One unplugged is not an event at all, and
+     * without this a stick that was held over when the cable came out stays held as far as the guest is
+     * concerned, forever.
+     */
+    private final android.hardware.input.InputManager.InputDeviceListener padListener =
+            new android.hardware.input.InputManager.InputDeviceListener() {
+                @Override
+                public void onInputDeviceAdded(int deviceId) {
+                    PadState.onDeviceChanged();
+                }
+
+                @Override
+                public void onInputDeviceRemoved(int deviceId) {
+                    PadState.onDeviceChanged();
+                }
+
+                @Override
+                public void onInputDeviceChanged(int deviceId) {
+                    PadState.onDeviceChanged();
+                }
+            };
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        android.hardware.input.InputManager input =
+                getSystemService(android.hardware.input.InputManager.class);
+        if (input != null) {
+            input.registerInputDeviceListener(padListener, null);
+        }
+        // and a sweep, because anything that changed while this activity was not listening produced no
+        // callback to catch up on.
+        PadState.onDeviceChanged();
+    }
+
+    /**
+     * Releases every control on the way out of the foreground.
+     *
+     * <p><b>The run keeps going and that is deliberate</b> — nothing here pauses emulation. What must
+     * not keep going is a button: this activity stops receiving key events when it loses focus, so the
+     * release for a button held as the app went away would never arrive and the guest would see it held
+     * for the rest of the run.
+     */
+    @Override
+    protected void onPause() {
+        super.onPause();
+        android.hardware.input.InputManager input =
+                getSystemService(android.hardware.input.InputManager.class);
+        if (input != null) {
+            input.unregisterInputDeviceListener(padListener);
+        }
+        PadState.clear();
     }
 
     /**
@@ -387,6 +512,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // so that a request already in flight cannot buzz after the run it belonged to is over.
+        PadRumble.detach();
         if (ending) {
             Log.i(TAG, "[app] the run is over, and so is this process");
             android.os.Process.killProcess(android.os.Process.myPid());
@@ -768,6 +895,16 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         if (audioWatchdog) {
             args.add("--audio-watchdog");
         }
+        // the pad bridge, in the shape the two above have. it needs nothing else from this side beyond
+        // the flag and the pushes PadState makes: the state travels down and the guest polls for it, so
+        // there is no thread and no callback anywhere in it.
+        args.add("--pad");
+        if (tracePad) {
+            args.add("--trace-pad");
+        }
+        if (padSelfTest) {
+            args.add("--pad-selftest");
+        }
         // the custom driver, if one is staged. both flags or neither: with neither, the host layer
         // opens the platform loader exactly as every measurement up to here did, so the stock
         // baseline stays reproducible from the same build.
@@ -828,6 +965,12 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // that is the failure hostContract 2 exists to refuse, so this and the contract move
         // together.
         env.put("SHARPEMU_HOST_AUDIO", "android");
+        // and the fourth of the same family: without it the payload registers no input source at all,
+        // and its pad exports report a controller that is permanently connected and permanently
+        // neutral — a game that responds to nothing, with nothing anywhere returning an error. that is
+        // the same shape of failure the audio selector exists to prevent, so it is written here beside
+        // it and above anything a build or a settings row can reach.
+        env.put("SHARPEMU_HOST_INPUT", "android");
         // and this is the one that stops the extent being a coincidence: the host has the window,
         // the guest does not, so the size travels from here rather than being agreed by two
         // separately hand-set defaults.

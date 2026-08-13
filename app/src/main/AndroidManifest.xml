@@ -34,6 +34,17 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
 
+    <!--
+      controller rumble. a normal permission, so it is granted at install and there is no screen to
+      send anybody to and nothing to read back at launch.
+
+      it is worth knowing what its absence looks like, because it is not what one would guess:
+      hasVibrator() and hasAmplitudeControl() both answer truthfully without it, so everything reports
+      ready and the vibrate call alone throws a SecurityException naming the permission. a rumble path
+      can therefore look completely healthy right up to the first buzz that does not happen.
+    -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:label="@string/app_name"
         android:hardwareAccelerated="true"
