@@ -80,7 +80,9 @@ it is a **sortable integer** rather than an ISO string or an epoch second, delib
 
 the app declares a **range** rather than a single number — `CONTRACT_MIN` and `CONTRACT_MAX` in `SharpEmuBuild.java` — so bumping it does not silently invalidate every build a user has already imported. outside the range the launch is refused and both numbers are named in the log.
 
-**the range is 2..2.** generation 2 is a payload that implements both the host window selector and the host audio selector, and it is the only generation this app runs.
+**the range is 2..3.** generation 3 is a payload that also registers a host input source; generation 2 is one that implements the window and audio selectors alone. both run.
+
+**generation 2 is admitted where generation 1 is refused, and the difference is what a person can tell.** a generation-2 payload does not know `SHARPEMU_HOST_INPUT`, so it registers no input source and its pad exports report a controller that is permanently connected and permanently neutral — a game that ignores every button, with nothing returning an error. that is the same *shape* as the silent-audio failure below, and it is nonetheless allowed, because silent audio is indistinguishable from a scene that has no music while a controller that does nothing is obvious within seconds of a title screen. the launch log names the generation that ran either way.
 
 **generation 1 implements the window selector alone, and is refused rather than run.** the range does not extend down to it, and that is the deliberate part: a generation-1 payload does not know `SHARPEMU_HOST_AUDIO`, so it asks SDL for a device, SDL names four backends android does not have, and the port degrades to `backend=silent`. the game renders, makes no sound, and nothing anywhere reports an error. that is precisely the class of failure this check exists to turn into a refusal, so running such a build is worth less than refusing it.
 

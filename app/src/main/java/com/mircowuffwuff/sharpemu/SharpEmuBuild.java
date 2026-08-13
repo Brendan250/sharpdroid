@@ -67,9 +67,21 @@ public final class SharpEmuBuild {
      * launching at the cost of making the one failure they have invisible. Audio is a
      * {@code parity}-tier change — it is part of the output being correct rather than fast — so a
      * build without it is not a build this app should quietly run.
+     *
+     * <p><b>3 means the payload registers a host input source, and the range includes 2 rather than
+     * excluding it.</b> A contract-2 payload does not know {@code SHARPEMU_HOST_INPUT}, so it registers
+     * nothing and its pad exports report a controller that is permanently connected and permanently
+     * neutral — a game that ignores every button with nothing returning an error. That reads as
+     * identical to a contract-2 build in every other respect, which is the argument for refusing it.
+     *
+     * <p>It is admitted anyway, and the difference from the audio case is what a person can tell. Silent
+     * audio is indistinguishable from a game that has no music in that scene; a controller that does
+     * nothing is obvious within seconds of a title screen, and the launch log names the generation that
+     * ran. So the range is what it is documented to be for — old builds keep launching — and the one
+     * failure they have announces itself.
      */
     static final int CONTRACT_MIN = 2;
-    static final int CONTRACT_MAX = 2;
+    static final int CONTRACT_MAX = 3;
 
     /**
      * The one build that ships inside the APK, by the folder it extracts to.

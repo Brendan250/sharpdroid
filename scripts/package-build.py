@@ -45,7 +45,7 @@ from sharpemu.vocabulary import Parser
 
 # the launcher-to-payload interface generation. the build format document is where this is defined;
 # the number is here because packaging is what stamps it.
-HOST_CONTRACT = 2
+HOST_CONTRACT = 3
 
 # what the first-party ids *are*, so that naming a branch produces a build that behaves as
 # advertised rather than a build plus a knob the caller had to remember. this table stands in for a
