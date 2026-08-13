@@ -411,11 +411,29 @@ class UserDataActivity : AppCompatActivity() {
         }
     )
 
-    /** Relaunches into the game list and ends this process, so nothing cached outlives the import. */
+    /**
+     * Ends this process and comes back to this screen, so that nothing cached outlives the import.
+     *
+     * **The process has to go and where it comes back to is a free choice.** `SharedPreferences` is
+     * cached per process and there is no way to make the framework re-read a file that changed
+     * underneath it, so the restart is what makes the imported store the one that is read — but
+     * nothing about that decides which screen is on top afterwards, and being dropped on the game
+     * list reads as having been thrown out of what you were doing.
+     *
+     * **A stack rather than one activity**, so the way back out is the way it would have been had the
+     * import not happened: this screen, then the settings scene, then the game list. Relaunching
+     * straight into this activity alone would be worse than the game list, because then back leaves
+     * the app.
+     *
+     * Landing here also redraws the figures, since measuring is what `onResume` does — so the sizes
+     * on screen are the imported ones rather than the ones this screen was opened with.
+     */
     private fun restart() {
-        val intent = packageManager.getLaunchIntentForPackage(packageName)
-            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        if (intent != null) startActivity(intent)
+        val list = Intent(this, GameListActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        startActivities(
+            arrayOf(list, Intent(this, SettingsActivity::class.java), Intent(this, UserDataActivity::class.java))
+        )
         finishAffinity()
         Runtime.getRuntime().exit(0)
     }
