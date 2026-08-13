@@ -6,6 +6,7 @@
 // argument is the window, because it is a live object rather than a string.
 
 #include "host_layer.h"
+#include "pad_bridge.h"
 #include "saf_bridge.h"
 #include "vulkan_thunk.h"
 
@@ -94,6 +95,10 @@ extern "C" {
 // discovered it far too late.
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* VM, void*) {
   HostLayer::SafBridge::OnLoad(VM);
+  // the pad bridge resolves its own helper here for the same reason and at the same moment. it calls
+  // *up* only for rumble; state comes down through nativeSetPadState below, so a failure to resolve
+  // costs rumble and leaves the reading half working.
+  HostLayer::PadBridge::OnLoad(VM);
   return JNI_VERSION_1_6;
 }
 
@@ -109,6 +114,29 @@ JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetSurfac
     ::ANativeWindow_release(Window);
   }
   Window = Next;
+}
+
+// the app's pad state, pushed from wherever it reads a KeyEvent or a MotionEvent. scalars rather than
+// a structure on purpose: the guest checks a version and a byte count for the one layout that does
+// cross, and adding a second layout across the JNI boundary as well would be a second thing to keep
+// in step for no gain.
+//
+// **cheap enough to call on every event.** it takes one uncontended lock and copies twelve bytes; the
+// guest's poll takes the same lock. nothing here allocates, throws or blocks, which is what lets it be
+// called straight from the input dispatch on the UI thread.
+JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetPadState(
+  JNIEnv*, jclass, jint Buttons, jint LeftX, jint LeftY, jint RightX, jint RightY, jint LeftTrigger,
+  jint RightTrigger, jboolean Connected) {
+  HostLayer::PadBridge::WireState State {};
+  State.Buttons = static_cast<uint32_t>(Buttons);
+  State.LeftX = static_cast<uint8_t>(LeftX);
+  State.LeftY = static_cast<uint8_t>(LeftY);
+  State.RightX = static_cast<uint8_t>(RightX);
+  State.RightY = static_cast<uint8_t>(RightY);
+  State.LeftTrigger = static_cast<uint8_t>(LeftTrigger);
+  State.RightTrigger = static_cast<uint8_t>(RightTrigger);
+  State.Connected = Connected ? 1 : 0;
+  HostLayer::PadBridge::SetState(State);
 }
 
 // blocks for the whole run, so the app must call it off the UI thread. a guest that calls

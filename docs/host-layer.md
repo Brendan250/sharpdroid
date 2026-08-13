@@ -107,7 +107,9 @@ sockets forward rather than being stubbed, because a guest that cannot open one 
 
 **an unhandled syscall returns `-ENOSYS`, prints its number, arguments and guest RIP, and increments a counter reported at exit.** `get_mempolicy` and `getcpu` are the only two a full game run reaches, and `-ENOSYS` is an honest answer for both.
 
-**the two thunks ride in on the syscall boundary**, in magic number ranges far above any real syscall, which is what guarantees their arguments are all live in `CPUState` when they are read. they are tested before the switch and can never shadow a real number.
+**the two thunks and the pad bridge ride in on the syscall boundary**, in magic number ranges far above any real syscall, which is what guarantees their arguments are all live in `CPUState` when they are read. all three are tested before the switch and can never shadow a real number.
+
+**the pad bridge is on that boundary without being a thunk**, and it is worth separating the two ideas. a thunk forwards a guest call to a real NDK library; there is no NDK gamepad API for an app to read, so the host layer answers those calls itself out of what the app pushed into it. what it borrows is the boundary alone. [`pad.md`](pad.md) owns it, including why input is a poll rather than a callback: it originates in java and has to reach guest code, which is the one direction nothing here crosses.
 
 `--trace` prints every syscall with the issuing tid, and prints the *path* for the path-taking ones: a trace of bare pointers answers "how many opens" and never "which file", and which file is the whole question when a guest's dynamic linker is searching for something it cannot find.
 
@@ -244,6 +246,7 @@ the argument vector is the whole interface, and the app passes the same flags a 
 | `--asyncsig syscall\|safepoint\|block` | above |
 | `--fex Name=Value` | one FEXCore option, repeatable. below |
 | `--vulkan` `--audio` and their families | the two thunks, `host/src/vulkan_thunk.h` and `host/src/audio_thunk.h` |
+| `--pad` `--trace-pad` `--pad-selftest` | the gamepad bridge, `host/src/pad_bridge.h`. [`pad.md`](pad.md) |
 
 ### choosing FEXCore options
 
@@ -261,6 +264,8 @@ values are passed through as written, so a bool wants `0` or `1`: the `none`/`mt
 
 printed once however the process ends, and handed to the thread layer as well as called directly, because `exit_group` can come from any guest thread and only the initial one unwinds back to the driver.
 
-threads created and still live; guest signals delivered; signals raised asynchronously against interrupts left for a later boundary; frames presented and vulkan calls thunked; audio calls thunked and per-stream frame counts; call-return stack resets; unaligned accesses backpatched; the SMC mode with mappings tracked, invalidations and write faults; and unhandled syscalls with the last number.
+threads created and still live; guest signals delivered; signals raised asynchronously against interrupts left for a later boundary; frames presented and vulkan calls thunked; audio calls thunked and per-stream frame counts; pad polls, polls that found a pad, and rumbles asked for against rumbles delivered; call-return stack resets; unaligned accesses backpatched; the SMC mode with mappings tracked, invalidations and write faults; and unhandled syscalls with the last number.
 
 **several of these are counted precisely because zero is the interesting answer.** a negative result with no liveness counter behind it is silence, not evidence — a run reporting no call-return resets says the mechanism is theoretical here, and one reporting thousands says something quite different. the same reasoning is why a stream that opened and never played reports its frame count: it is the one audio failure that looks exactly like success.
+
+**and rumbles asked for are counted apart from rumbles delivered for the same reason.** delivery is asynchronous and ends in a platform call that can be refused, so "the guest asked" and "the device buzzed" are two claims; a gap between the counts is what a broken delivery path looks like, and one number could not tell them apart.

@@ -588,6 +588,12 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   if (AudioThunk::IsThunkCall(Number)) [[unlikely]] {
     return AudioThunk::Handle(Frame, Args);
   }
+  // and the pad bridge, one range along again. it is not a thunk -- nothing is forwarded to an NDK
+  // library, the host layer answers it -- but it needs the same boundary for the same reason, since
+  // that is where a guest thread's registers are all in CPUState. see pad_bridge.h.
+  if (PadBridge::IsThunkCall(Number)) [[unlikely]] {
+    return PadBridge::Handle(Frame, Args);
+  }
 
   const uint64_t Arg0 = Args->Argument[1];
   const uint64_t Arg1 = Args->Argument[2];

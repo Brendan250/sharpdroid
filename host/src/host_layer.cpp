@@ -211,6 +211,9 @@ void PrintRunSummary() {
     // frames-read figure goes in the summary rather than only in the periodic report.
     HostLayer::AudioThunk::ReportStreams();
   }
+  // unconditional when the bridge is on, unlike the two above: a guest that never polled and a pad
+  // nobody touched are indistinguishable without the count, and the zero is the reading that matters.
+  HostLayer::PadBridge::Report();
   if (HostLayer::Threads::CallRetResetCount()) {
     std::printf("[host-layer] %llu call-return shadow stack reset(s) after a guard-page fault\n",
                 static_cast<unsigned long long>(HostLayer::Threads::CallRetResetCount()));
@@ -746,6 +749,17 @@ int HostLayer::RunMain(int argc, char** argv) {
       HostLayer::AudioThunk::SetTrace(true);
     } else if (std::strcmp(argv[ArgIndex], "--audio-watchdog") == 0) {
       HostLayer::AudioThunk::SetWatchdog(true);
+    } else if (std::strcmp(argv[ArgIndex], "--pad") == 0) {
+      // off by default, in the shape --vulkan and --audio have and for the same reason: without it
+      // the guest's poll is refused, the fork reports no pad, and the run is the argument vector
+      // every earlier measurement was taken on.
+      HostLayer::PadBridge::SetEnabled(true);
+    } else if (std::strcmp(argv[ArgIndex], "--trace-pad") == 0) {
+      HostLayer::PadBridge::SetTrace(true);
+    } else if (std::strcmp(argv[ArgIndex], "--pad-selftest") == 0) {
+      // one fabricated rumble when the guest first polls, so the delivery path can be shown to work
+      // on a title that never asks for one. it announces itself in the log.
+      HostLayer::PadBridge::SetSelfTest(true);
     } else if (std::strcmp(argv[ArgIndex], "--libs") == 0 && ArgIndex + 1 < argc) {
       // one flag, two jobs: where PT_INTERP is resolved from, and what the guest is handed as
       // LD_LIBRARY_PATH. they are the same directory in every case that matters, and splitting
@@ -778,7 +792,8 @@ int HostLayer::RunMain(int argc, char** argv) {
                          "[--vulkan-driver <so>] [--vulkan-hooks <dir>] [--vulkan-driver-env NAME=VALUE]... [--vulkan-turbo] "
                          "[--vulkan-size WxH] [--vulkan-wsi auto|headless|android] [--trace-vulkan] "
                          "[--vulkan-profile] [--vulkan-dump <prefix>] "
-                         "[--audio] [--audio-lib <so>] [--trace-audio] [--audio-watchdog] [--libs <dir>] "
+                         "[--audio] [--audio-lib <so>] [--trace-audio] [--audio-watchdog] "
+                         "[--pad] [--trace-pad] [--pad-selftest] [--libs <dir>] "
                          "[--saf-mount <prefix>] "
                          "[--fex Name=Value]... "
                          "[--tmp <dir>] [--env NAME=VALUE]... <x86-64-elf> [guest args...]\n");

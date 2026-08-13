@@ -14,6 +14,7 @@
 #include "audio_thunk.h"
 #include "guest_procfs.h"
 #include "guest_signals.h"
+#include "pad_bridge.h"
 #include "vma_tracker.h"
 #include "vulkan_thunk.h"
 

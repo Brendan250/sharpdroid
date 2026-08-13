@@ -35,6 +35,7 @@ a repository boundary there would buy an independent version number nobody would
 │   ├── guest-files.md        a granted game directory, answered underneath the guest's syscalls
 │   ├── vulkan.md             the vulkan thunk, both window systems, custom driver injection
 │   ├── audio.md              the AAudio thunk, the callback boundary, the stall watchdog
+│   ├── pad.md               the gamepad bridge, the wire format, rumble delivery
 │   ├── app.md                the screens, the surface, the launch extras, the settings and merge
 │   └── scripts.md            every script, and the arguments worth knowing
 │
