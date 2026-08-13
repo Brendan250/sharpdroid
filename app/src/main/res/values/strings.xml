@@ -429,7 +429,7 @@
          first draft of these ended at "so the game did not" and lost the sentence that matters.
          somebody reading this watched a game not start, so it is the one thing here they already
          know. -->
-    <string name="driver_failed">The graphics driver you chose did not load. Pick another in Settings.</string>
-    <string name="driver_failed_missing">The graphics driver you chose is gone. Pick another in Settings.</string>
+    <string name="driver_failed">The graphics driver you chose failed to load. Pick another in settings.</string>
+    <string name="driver_failed_missing">The graphics driver you chose is gone. Pick another in settings.</string>
 
 </resources>
