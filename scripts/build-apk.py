@@ -321,19 +321,31 @@ def stage_guest_libs():
         if not (source / needed).exists():
             raise Refusal("{} is not in {} -- the guest cannot start without it. run: py "
                           "scripts/fetch-guest-libs.py".format(needed, paths.relative(source)))
-    # **the notice is required rather than packed if it happens to be there.** most of this set is
-    # unmodified debian binaries under licences that ask for one, and an APK is where they are
-    # distributed -- so a set assembled before the fetch started writing it must not quietly ship
-    # without it. it names the source of every package, which is the other half of what is asked.
-    if not (source / "licences.txt").exists():
+    # **the notice and the texts are required rather than packed if they happen to be there.** most
+    # of this set is unmodified debian binaries under licences that ask that a recipient be given the
+    # terms and be able to get the source, and an APK is where they are distributed -- so a set
+    # assembled before the fetch started writing these must not quietly ship without them.
+    #
+    # the index alone is not enough to check for: it is one small file, and the directory beside it
+    # is where the copyright statements and the full licence texts are. a set carrying the index and
+    # an empty directory would pass a test that only asked about the index.
+    missing = [name for name in ("licences.txt", "licences/glibc.copyright",
+                                 "licences/gcc-12.copyright", "licences/openssl.copyright",
+                                 "licences/LGPL-2.1", "licences/GPL-3", "licences/Apache-2.0")
+               if not (source / name).exists()]
+    if missing:
         raise Refusal(
-            "licences.txt is not in {} -- most of this set is redistributed debian binaries and "
-            "the APK is what distributes them. run: py scripts/fetch-guest-libs.py".format(
-                paths.relative(source)))
+            "{} is missing {} -- most of this set is redistributed debian binaries and the APK is "
+            "what distributes them, so it ships the terms and the source pointers with them. run: "
+            "py scripts/fetch-guest-libs.py".format(
+                paths.relative(source), ", ".join(missing)))
 
+    # **the whole directory rather than the files in it.** the set is not only shared objects -- the
+    # notice sits beside them and `licences/` under it -- and a copy that took files would drop the
+    # subdirectory silently, which is how the terms these binaries are redistributed under would go
+    # missing without anything failing. what the fetch writes is what ships.
     ensure(asset)
-    for path in libraries:
-        shutil.copyfile(str(path), str(asset / path.name))
+    shutil.copytree(str(source), str(asset), dirs_exist_ok=True)
     drop_unpackable(asset)
 
     # the listing first, then the identity -- so the identity is not in the listing, is not extracted,
@@ -540,7 +552,15 @@ def verify(apk, bundled, guest_libraries):
     # anything the app prints, which is exactly how this shipped unnoticed for as long as it did.
     for name in ("assets/guest-libs/contents", "assets/guest-libs/identity",
                  "assets/guest-libs/ld-linux-x86-64.so.2", "assets/guest-libs/libc.so.6",
-                 "assets/guest-libs/libvulkan.so.1", "assets/guest-libs/libaaudio.so"):
+                 "assets/guest-libs/libvulkan.so.1", "assets/guest-libs/libaaudio.so",
+                 # and the terms they are redistributed under, asserted in the archive rather than
+                 # only in the tree it was assembled from.
+                 "assets/guest-libs/licences.txt",
+                 "assets/guest-libs/licences/glibc.copyright",
+                 "assets/guest-libs/licences/gcc-12.copyright",
+                 "assets/guest-libs/licences/openssl.copyright",
+                 "assets/guest-libs/licences/LGPL-2.1", "assets/guest-libs/licences/GPL-3",
+                 "assets/guest-libs/licences/Apache-2.0"):
         if name not in sizes or sizes[name] <= 0:
             raise Refusal("packaging failed: {} is missing or empty in the APK".format(name))
     check_listing(sizes, "guest-libs")

@@ -235,6 +235,16 @@ def stage_guest_libs(attached, files):
     say("  {} libraries -> {}".format(len(local), target))
     for path in local:
         attached.push_quietly(path, target + "/")
+
+    # **the licence directory goes too, and it is named rather than swept up.** the loop above takes
+    # files, so a directory beside them is silently not staged -- and what is in this one is the
+    # terms these binaries are redistributed under, which is the last thing that should go missing
+    # by omission. it is a directory rather than loose files because keeping the linker's search
+    # path to libraries is worth one explicit push.
+    licences = paths.GUEST_LIBS_X86_64 / "licences"
+    if licences.is_dir():
+        attached.remove(target + "/licences")
+        attached.push(licences, target + "/")
     attached.shell("sync")
 
     # assert the count, and assert the two the guest cannot start without: the interpreter, and what
@@ -246,6 +256,8 @@ def stage_guest_libs(attached, files):
     for needed in ("ld-linux-x86-64.so.2", "libc.so.6"):
         if needed not in on_device:
             raise Refusal("{} is not on the device".format(needed))
+    if licences.is_dir() and not attached.is_directory(target + "/licences"):
+        raise Refusal("licences/ did not land at {}".format(target))
     say("  staged, {} verified".format(len(on_device)))
 
 

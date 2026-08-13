@@ -221,14 +221,24 @@ dependencies keep their own licences and their texts are carried in `LICENSES/`:
 
 SharpEmu builds are GPLv2 binaries. the corresponding source is our fork, public, and each build's `meta.json` records the exact commit it was cut from. running one is aggregation rather than linking: SharpEmu is a guest process image executed under emulation, never a library the app links against.
 
-**the guest libraries in an APK are the same kind of thing.** they are unmodified Debian binaries under LGPL and GPL-with-exception terms, they are what the *guest's* own dynamic linker searches rather than anything the app links against, and the directory can be replaced with any compatible set. `guest-libs/x86_64/licences.txt`, written by the fetch and packaged with them, names each package's licence and the Debian source it came from.
+**the guest libraries in an APK are the same kind of thing, and an APK carrying them redistributes them.** they are unmodified Debian binaries — glibc under LGPL-2.1-or-later, libstdc++ and libgcc under GPL-3.0-or-later with the GCC runtime exception, openssl under Apache-2.0. **nothing here links against them and nothing could**: the application is arm64 and they are x86-64, searched by the *guest's* own dynamic linker under emulation.
+
+what those terms ask for is that a recipient be given the terms and be able to get the source, and all of it ships beside the libraries:
+
+- **`licences.txt`** — the index. what the set is, what each source package is under, and where its source is kept
+- **`licences/*.copyright`** — Debian's own copyright statement per source package, taken out of the package rather than written here, so it cannot drift from the binaries. `gcc-12` is fetched purely for this: Debian points every gcc runtime package's documentation directory at it by symlink, so neither `libstdc++6` nor `libgcc-s1` carries a statement of its own
+- **`licences/LGPL-2.1`, `GPL-2`, `GPL-3`, `Apache-2.0`** — the full texts, since a Debian copyright file refers to a licence by the path it lives at on a Debian system rather than quoting it. `base-files` is fetched for these
+
+**the packages are pinned to `snapshot.debian.org` by content hash.** the ordinary mirror keeps only what a suite currently references, so a pinned filename is retired at the next point release; snapshot keeps every version permanently, which makes both the build and the source pointers stable. `scripts/build-apk.py` refuses to package a set missing any of the above.
+
+**the directory is replaceable with any compatible set**, which is what the LGPL cares about most: a set on external storage is preferred over the one inside the APK, and the launch log names whichever answered.
 
 ## what is deliberately not here
 
 - **games.** PS5 titles are the user's own dumps and never appear here
 - the android SDK, the JDK and the .NET SDK. `toolchain/` is where they land and is ignored — `toolchain.json` is the committed declaration, `toolchain/` the materialisation, in the same relationship as `package.json` to `node_modules/`
 - all build output
-- **the x86-64 guest libraries.** `guest-libs/x86_64/` is ignored: mostly Debian glibc, libstdc++ and openssl binaries, fetched by `scripts/fetch-guest-libs.py` rather than committed. **the APK does carry them**, since a device with no guest linker cannot start a game at all, and that makes it a redistribution — so the fetch writes a `licences.txt` beside them naming every package, its licence and where Debian keeps its source, `build-apk.py` refuses to package a set without it, and the file travels with the libraries wherever they go
+- **the x86-64 guest libraries.** `guest-libs/x86_64/` is ignored: mostly Debian glibc, libstdc++ and openssl binaries, fetched by `scripts/fetch-guest-libs.py` rather than committed. **that is a size and derived-artefact decision rather than a licensing one** — the same relationship `toolchain/` has to `toolchain.json`. **the APK does carry them**, since a device with no guest linker cannot start a game at all; what that asks for is below
 - a debug signing keystore. `scripts/build-apk.py` generates one on demand. it is named explicitly as the debug signing config rather than left to gradle's per-machine `~/.android/debug.keystore`, because a device that already has the app installed refuses an update signed by a different key
 - **gradle's own caches.** `.gradle/` and `local.properties` are per-machine and ignored; `gradle/wrapper/` and `gradle/libs.versions.toml` are the committed declarations, in the same relationship as `toolchain.json` to `toolchain/`
 - **the maintainer's working notes.** the long-form investigation records — measurement logs, dated snapshots, root causes that turned out to be wrong — are kept privately. this repository documents how the project works; it is not the record of how each thing was found out

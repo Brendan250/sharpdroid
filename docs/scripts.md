@@ -96,7 +96,7 @@ each of these is one job, and `scripts/build.py` runs them in this order. **the 
 
 | | |
 | --- | --- |
-| `scripts/fetch-guest-libs.py` | the x86-64 glibc set the guest's own linker searches, built out of debian packages, with a `licences.txt` naming each package and its source. `--keep-packages` keeps the downloads |
+| `scripts/fetch-guest-libs.py` | the x86-64 glibc set the guest's own linker searches, built out of debian packages pinned on `snapshot.debian.org` by content hash and verified against it, plus the licences they are redistributed under. `--keep-packages` keeps the downloads |
 | `scripts/build-adrenotools.py` | the GPU driver loading library. the host project imports it as a static library at configure time and will not configure without it |
 | `scripts/gen-thunks.py` | regenerates both halves of both thunks from the NDK's headers. **the output is committed**, so this is what you run when the NDK moves rather than on every build. `--check` reports what would change and writes nothing |
 | `scripts/build-thunks.py` | assembles the guest halves into `libvulkan.so.1` and `libaaudio.so`, beside the glibc set |
@@ -105,6 +105,8 @@ each of these is one job, and `scripts/build.py` runs them in this order. **the 
 | `scripts/build-apk.py` | the APK, with exactly one SharpEmu build and the guest's x86-64 libraries inside it. `--install` installs it afterwards, `--offline` makes gradle resolve everything from its cache or fail |
 
 **the guest libraries always ship and no argument says otherwise.** a build is chosen because a person picks between several; the x86-64 set is the one right set for a given APK, so the only thing an argument could decide is whether the APK can run a game at all. missing, the APK step **refuses** and names the fetch — which is what makes the first link in the order above an actual refusal rather than an editorial one.
+
+**it refuses just as hard without the licences.** an APK carrying those binaries redistributes them, so the notice, the per-package copyright statements and the full licence texts are packaged with them and asserted inside the finished archive. [`repo-structure.md`](repo-structure.md) has what each is and why.
 
 `py scripts/build.py --list` prints the whole sequence and says what each step will do. it also reports when the committed thunk sources no longer match the NDK's headers, which is the only thing that would otherwise need someone to think of asking.
 
