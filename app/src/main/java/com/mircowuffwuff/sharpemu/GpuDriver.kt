@@ -90,10 +90,18 @@ class GpuDriver private constructor(
          */
         const val SYSTEM = "system"
 
-        /** `stock` is what the scripts and [MainActivity]'s extra have always spelled it. */
+        /**
+         * Every spelling that means the platform's own driver.
+         *
+         * `stock` and `none` are both the scripts' and [MainActivity]'s extra, `none` being what the
+         * whole script set uses for "name nothing" and what it documents for pinning stock. Missing
+         * one of these is not a small thing: the name then resolves to no package at all, and until
+         * a launch refused over that it simply fell through to the system driver — the right answer
+         * reached by the wrong road, which is why nothing ever showed it.
+         */
         @JvmStatic
         fun isSystem(folder: String?): Boolean =
-            folder == null || folder.isEmpty() || folder == SYSTEM || folder == "stock"
+            folder == null || folder.isEmpty() || folder == SYSTEM || folder == "stock" || folder == "none"
 
         /**
          * The on-device folder name, derived from the identity and never from what the zip is called.
