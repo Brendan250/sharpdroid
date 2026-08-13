@@ -47,11 +47,18 @@ object UserDataArchive {
      * - `files/builds/bundled` is the build unpacked out of this APK. Every install can lay it down
      *   again in about a quarter of a second, so carrying 76 MB of it would roughly double an archive
      *   to deliver bytes the destination already has inside its own package.
+     * - `files/guest-libs` is the x86-64 set unpacked out of this APK, and the argument above
+     *   transfers word for word: 12 MB the destination already holds in its own package, remade in
+     *   the time it takes to unpack. **Never replaced matters more here than never packed** — an
+     *   archive written by an older app version must not lay an older library set over a newer one,
+     *   because the failure is a guest resolving an old thunk stub against a new host layer rather
+     *   than anything that looks like a missing file.
      */
     val IGNORED = setOf(
         "files/profileInstalled",
         "files/gpu-driver",
         "files/builds/bundled",
+        "files/guest-libs",
     )
 
     enum class Kind(val id: String) {

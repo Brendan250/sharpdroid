@@ -324,6 +324,19 @@
     <string name="bundled_out_of_space">Not enough space to unpack SharpEmu. It needs %1$s and there is %2$s free.</string>
     <string name="bundled_failed">Could not unpack the SharpEmu build that came with this app</string>
 
+    <!-- and the same three moments for the x86-64 libraries the game itself links against, unpacked
+         the same way and on the same launch.
+
+         **none of these says "guest libraries"**, which is the name the code and the log use and
+         means nothing to somebody who has tapped a game. what a person can act on is that support
+         files the game needs could not be written, and how much space it wanted.
+
+         the last one is reachable only from an app built without them, so it names the command
+         rather than a thing to tap: nobody holding a released app can be in this state. -->
+    <string name="guest_libs_out_of_space">Not enough space to unpack the files games need. They need %1$s and there is %2$s free.</string>
+    <string name="guest_libs_failed">Could not unpack the support files that came with this app</string>
+    <string name="guest_libs_missing">This app was built without the files games need. Put them on the device with scripts/stage.py --guest-libs</string>
+
     <!-- the panel the back button opens over a running game. "Exit game" rather than "Quit" or
          "Close": it is the game that ends, and the word has to be unambiguous enough to be tapped
          without a confirmation behind it - which there deliberately is not, because reaching this

@@ -1,4 +1,4 @@
-# builds the APK, with exactly one SharpEmu build inside it.
+# builds the APK, with exactly one SharpEmu build and the guest's x86-64 libraries inside it.
 #
 #   py scripts/build-apk.py                              build as the debug app, bundling the newest build
 #   py scripts/build-apk.py --install                    build, then install over whatever is there
@@ -11,9 +11,15 @@
 # alone finds its own SDK through the environment, which on a machine with two installs is exactly
 # the silent disagreement the resolver exists to prevent.
 #
+# **the guest libraries always ship and there is no argument to say otherwise.** a build is chosen
+# because a person picks between several; the x86-64 set the guest's own linker searches is the one
+# right set for a given APK, so the only question it could answer is "should this APK be able to run
+# a game at all". missing, it is a refusal naming the fetch.
+#
 # **the native libraries are not built here.** build the host layer and libadrenotools first; the
 # gradle build collects their output.
 
+import hashlib
 import json
 import re
 import shutil
@@ -62,7 +68,12 @@ def entry():
     say("APK:            {}".format(paths.relative(apk)))
 
     check_sdk_levels(toolchain)
-    bundled = stage_bundle(toolchain, arguments.sharpemu, package)
+    # **emptied once, here, rather than by whichever step runs first.** two asset trees are staged
+    # into it and each would otherwise wipe the other's work depending on the order they were called
+    # in -- a failure that would show up as an APK missing whichever one was packed first.
+    fresh(paths.BUILD_BUNDLE)
+    bundled = stage_bundle(arguments.sharpemu, package)
+    guest_libraries = stage_guest_libs()
 
     write_local_properties(toolchain)
     keystore(toolchain)
@@ -70,7 +81,7 @@ def entry():
     step("gradle")
     build_with_gradle(toolchain, package, label, arguments.offline)
     collect(apk)
-    verify(apk, bundled)
+    verify(apk, bundled, guest_libraries)
 
     say("")
     say("built: {}  {}".format(paths.relative(apk), size(apk.stat().st_size)))
@@ -105,7 +116,7 @@ def check_sdk_levels(toolchain):
 # --- the bundled build -----------------------------------------------------------------------------
 
 
-def stage_bundle(toolchain, wanted, package):
+def stage_bundle(wanted, package):
     """assemble the asset tree for the one build that ships inside this APK.
 
     **exactly one ships, and it is a plain directory tree rather than a zip.** a zip inside an APK is
@@ -117,7 +128,6 @@ def stage_bundle(toolchain, wanted, package):
     every build, which is what stops yesterday's bundle riding along in today's APK.
     """
     step("the bundled build")
-    fresh(paths.BUILD_BUNDLE)
     asset = paths.BUILD_BUNDLE / "sharpemu"
 
     source = vocabulary.read(wanted)
@@ -156,7 +166,7 @@ def stage_bundle(toolchain, wanted, package):
     shutil.copytree(str(build.directory), str(asset), dirs_exist_ok=True)
     drop_unpackable(asset)
     write_bundle_meta(build, asset)
-    count = builds.write_contents(asset, asset / "contents")
+    count = write_contents(asset)
 
     total = tree_size(asset)
     say("  bundling {} {} {}, contract {}".format(
@@ -276,6 +286,108 @@ def write_bundle_meta(build, asset):
     write_text(asset / "meta.json", json.dumps(meta, indent=4))
 
 
+# --- the guest libraries ---------------------------------------------------------------------------
+
+
+def stage_guest_libs():
+    """assemble the asset tree for the x86-64 shared objects the guest's own linker searches.
+
+    **the APK is where these come from, and there is no way to build one without them.** they used to
+    reach a device over `adb` alone, which meant a release install could not start a game and a data
+    wipe put a working install in that same state -- the platform's own wipe takes the external files
+    directory, which is where they were. so the refusal here is what keeps the failure on this
+    machine, where the fetch that fixes it can be named.
+
+    **the identity is computed here rather than on the device.** the set has no natural version:
+    twenty-five files come from fixed debian packages and the rest are the thunks' guest halves that
+    this repository builds, so nothing but the content names the whole of it. a hash of 12 MB
+    measures 15 to 20 ms on the device warm, and the app has to answer "is what is unpacked what we
+    ship" on every single launch -- so it is computed once, here, and shipped beside the tree as one
+    short string the app compares against the stamp its own unpack wrote.
+    """
+    step("the guest libraries")
+    asset = paths.BUILD_BUNDLE / "guest-libs"
+
+    source = paths.GUEST_LIBS_X86_64
+    libraries = sorted(p for p in source.iterdir() if p.is_file()) if source.is_dir() else []
+    if not libraries:
+        raise Refusal(
+            "nothing to bundle: no x86-64 guest libraries under {}. without them an installed app "
+            "cannot start a game at all.\n"
+            "  py scripts/fetch-guest-libs.py      fetches the glibc set out of debian packages\n"
+            "  py scripts/build-thunks.py          builds the two the thunks contribute".format(
+                paths.relative(source)))
+    for needed in ("ld-linux-x86-64.so.2", "libc.so.6"):
+        if not (source / needed).exists():
+            raise Refusal("{} is not in {} -- the guest cannot start without it. run: py "
+                          "scripts/fetch-guest-libs.py".format(needed, paths.relative(source)))
+    # **the notice is required rather than packed if it happens to be there.** most of this set is
+    # unmodified debian binaries under licences that ask for one, and an APK is where they are
+    # distributed -- so a set assembled before the fetch started writing it must not quietly ship
+    # without it. it names the source of every package, which is the other half of what is asked.
+    if not (source / "licences.txt").exists():
+        raise Refusal(
+            "licences.txt is not in {} -- most of this set is redistributed debian binaries and "
+            "the APK is what distributes them. run: py scripts/fetch-guest-libs.py".format(
+                paths.relative(source)))
+
+    ensure(asset)
+    for path in libraries:
+        shutil.copyfile(str(path), str(asset / path.name))
+    drop_unpackable(asset)
+
+    # the listing first, then the identity -- so the identity is not in the listing, is not extracted,
+    # and is not hashing itself.
+    count = write_contents(asset)
+    identity = content_hash(asset)
+    write_text(asset / "identity", identity + "\n")
+
+    total = tree_size(asset)
+    say("  {} in {} files, from {}".format(size(total), count, paths.relative(source)))
+    say("  identity {}".format(identity[:16]))
+    return count
+
+
+def content_hash(asset):
+    """one hex string naming the whole content of an asset tree.
+
+    every file's path and byte count go into the digest beside its bytes, so a renamed file is a
+    different set rather than the same one -- which matters here, where the linker finds a library by
+    the name it is filed under and two of the names are sonames that nothing else spells out.
+    """
+    digest = hashlib.sha256()
+    for path in sorted(asset.rglob("*")):
+        if not path.is_file():
+            continue
+        digest.update(path.relative_to(asset).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(str(path.stat().st_size).encode("ascii"))
+        digest.update(b"\0")
+        with open(str(path), "rb") as handle:
+            for block in iter(lambda: handle.read(1 << 20), b""):
+                digest.update(block)
+    return digest.hexdigest()
+
+
+def write_contents(asset):
+    """the listing an unpack reads before it starts: a size and a path per line, tab-separated.
+
+    **it is packaging's file rather than part of anything's format**, and it is what buys an unpack
+    that knows how much it is about to write before it writes any of it -- an asset in the APK has no
+    length to ask for, and `AssetManager.list` returns names without saying which are directories.
+
+    it is written after the walk, so it never appears in its own listing and is therefore never
+    extracted. anything else that must stay in the APK and off the device is written after this.
+    """
+    lines = []
+    for path in sorted(asset.rglob("*")):
+        if path.is_file():
+            lines.append("{}\t{}".format(path.stat().st_size,
+                                         path.relative_to(asset).as_posix()))
+    write_text(asset / "contents", "\n".join(lines) + "\n")
+    return len(lines)
+
+
 # --- gradle -----------------------------------------------------------------------------------------
 
 
@@ -391,7 +503,7 @@ def collect(apk):
 # --- what is actually in it ---------------------------------------------------------------------------
 
 
-def verify(apk, bundled):
+def verify(apk, bundled, guest_libraries):
     """open the APK and assert what it holds, while the artefact is still on this machine.
 
     an APK missing its dex installs and then dies at a missing class; one missing the host layer
@@ -423,6 +535,19 @@ def verify(apk, bundled):
         if name.startswith("lib/arm64-v8a/") and count <= 0:
             raise Refusal("packaging failed: {} is empty".format(name))
 
+    # **the guest libraries, before the build.** an APK without them installs, lists games and starts
+    # nothing -- the guest's own interpreter is missing, so the failure is several layers below
+    # anything the app prints, which is exactly how this shipped unnoticed for as long as it did.
+    for name in ("assets/guest-libs/contents", "assets/guest-libs/identity",
+                 "assets/guest-libs/ld-linux-x86-64.so.2", "assets/guest-libs/libc.so.6",
+                 "assets/guest-libs/libvulkan.so.1", "assets/guest-libs/libaaudio.so"):
+        if name not in sizes or sizes[name] <= 0:
+            raise Refusal("packaging failed: {} is missing or empty in the APK".format(name))
+    check_listing(sizes, "guest-libs")
+    say("  {:>12,}  the guest libraries, {} files".format(
+        sum(count for name, count in sizes.items() if name.startswith("assets/guest-libs/")),
+        guest_libraries))
+
     assets = [name for name in sizes if name.startswith("assets/sharpemu/")]
     if bundled is None:
         if assets:
@@ -437,21 +562,28 @@ def verify(apk, bundled):
     if not any(name.startswith("assets/sharpemu/plugins/") for name in sizes):
         raise Refusal("packaging failed: the bundled build has no plugins/ in the APK")
 
-    # **every line of the listing, against what the archive actually holds.** the listing is what the
-    # app walks on first launch, so a name in it that was never packaged is a launch that aborts
-    # after writing most of the tree -- a failure the device would find and this machine can.
-    listing = (paths.BUILD_BUNDLE / "sharpemu" / "contents").read_text(encoding="utf-8")
-    for line in listing.splitlines():
-        if not line.strip():
-            continue
-        name = "assets/sharpemu/" + line.split("\t", 1)[1]
-        if name not in sizes:
-            raise Refusal(
-                "packaging failed: the bundled build's listing names {} and the APK has no such "
-                "entry".format(name))
+    check_listing(sizes, "sharpemu")
     say("  {:>12,}  the bundled build, {} entries".format(
         sum(count for name, count in sizes.items() if name.startswith("assets/sharpemu/")),
         len(assets)))
+
+
+def check_listing(sizes, tree):
+    """**every line of one tree's listing, against what the archive actually holds.**
+
+    the listing is what the app walks on the first launch that needs the tree, so a name in it that
+    was never packaged is an unpack that aborts after writing most of the files -- a failure the
+    device would find and this machine can.
+    """
+    listing = (paths.BUILD_BUNDLE / tree / "contents").read_text(encoding="utf-8")
+    for line in listing.splitlines():
+        if not line.strip():
+            continue
+        name = "assets/{}/{}".format(tree, line.split("\t", 1)[1])
+        if name not in sizes:
+            raise Refusal(
+                "packaging failed: {}'s listing names {} and the APK has no such entry".format(
+                    tree, name))
 
 
 if __name__ == "__main__":

@@ -366,7 +366,26 @@ what belongs to the app around all of it:
 - **the resolved build's `env` becomes the lowest-precedence tier** of the environment merge below
 - **nothing resolves a build by id.** the id groups the list and decides the *Latest* badge, and that is the whole of its job — answering "the newest build of this id" would only ever serve a recommendation, and with exactly one build shipping per APK there is none to make
 
-the app also checks that the game's `eboot.bin` and the staged guest libraries exist before it starts anything, and names the staging script for whichever is missing. a guest that starts and then cannot find its libraries fails much further from the cause.
+the app also checks that the game's `eboot.bin` is there before it starts anything, and names what would fix it — a name that is not there was never staged, while a path that is not there is one the app is not allowed to read. a guest that starts and then cannot find its game fails much further from the cause.
+
+### the guest's libraries
+
+the x86-64 shared objects the guest's own `ld.so` searches — glibc, libstdc++, openssl and the guest halves of both thunks — **ship in the APK as a second asset tree** and are unpacked on the launch that finds them missing, exactly as the build above is. 12 MB in ~65 ms.
+
+**that is what makes an install self-sufficient.** the set used to reach a device over `adb` alone, which meant an install nobody had ever plugged into a PC could not start a game at all — the failure being that the guest's own dynamic linker was absent, several layers below anything the app prints. it is also why the platform's own *delete everything* is now survivable: that call takes the app's external files directory with it, so a set living there was deleted as user data, and one living in the APK cannot be.
+
+**two tiers, and every launch says which answered:**
+
+| | |
+| --- | --- |
+| a set on external storage | **wins.** only `scripts/stage.py --guest-libs` creates one, so only a machine with `adb` can |
+| otherwise | the copy unpacked out of this APK, which the APK is always authoritative for |
+
+**those are not in tension.** unlike a build, where a person picks between several and a stored choice has to survive a newer one arriving, there is exactly one right set for a given APK — so the only question about the internal copy is *"is what is unpacked what we ship"*, never *"is it newer"*. the external tier sits above that and a release install never has one.
+
+**the override never expires**, which is the hazard worth naming: a set staged weeks ago keeps winning after an update ships newer thunk stubs, and the failure is then a guest resolving an old `libvulkan.so.1` against a new host thunk — a version skew across the boundary rather than a missing file, which will not present as *"the staged libraries are old"*. hence the line naming the tier on every launch.
+
+**nothing is hashed on the device.** a content hash is computed when the APK is packaged and shipped beside the tree as one short asset; the unpacked copy carries the same string in a stamp written as the last file of the extraction, inside the `.partial` directory, so the rename is the moment the set becomes complete and no stamp means unfinished whatever files are lying about. the check at launch is *read two short files and compare*, and it does not grow with the set — where hashing 12 MB measures 15 to 20 ms warm and would sit on every launch.
 
 ## the guest's environment
 

@@ -787,6 +787,49 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
+     * The directory the guest's own linker searches, unpacked out of the APK first if this is the
+     * launch that needs it.
+     *
+     * <p><b>It is not staged content any more, and that is what this pays for.</b> The set used to
+     * reach a device only over {@code adb}, so a release install could not start a game at all and a
+     * data wipe put a working install in the same state — {@code clearApplicationUserData} takes the
+     * external files directory, which was where the guest's dynamic linker lived. The APK carries it
+     * now; {@link GuestLibraries} is where the two tiers are decided.
+     *
+     * <p><b>A failure ends the launch rather than falling back</b>, for {@link #bundledBuild}'s
+     * reason and one of its own: there is nothing to fall back <i>to</i>. Without an interpreter the
+     * guest does not start, and the honest thing is to say so on the screen instead of leaving the
+     * reason in {@code logcat}, which is exactly how this arrived as "tapping a game does nothing".
+     */
+    private File resolveGuestLibs(File root, File internal) {
+        // the progress this discards is real and reported per 64 KB, and nothing consumes it while a
+        // launch draws nothing — the same note bundledBuild carries, and the same answer.
+        GuestLibraries.Outcome outcome =
+                GuestLibraries.ensure(this, root, internal, (done, total) -> { });
+        GuestLibraries.report(outcome);
+        if (outcome instanceof GuestLibraries.Outcome.Staged staged) {
+            return staged.getDir();
+        }
+        if (outcome instanceof GuestLibraries.Outcome.Ready ready) {
+            return ready.getDir();
+        }
+        if (outcome instanceof GuestLibraries.Outcome.OutOfSpace out) {
+            abort(getString(R.string.guest_libs_out_of_space,
+                    Formatter.formatShortFileSize(this, out.getNeeded()),
+                    Formatter.formatShortFileSize(this, out.getFree())));
+            return null;
+        }
+        if (outcome instanceof GuestLibraries.Outcome.Failed failed) {
+            abort(failed.getWhy());
+            return null;
+        }
+        // nothing in the APK and nothing staged. an APK built before the set was bundled is the only
+        // way here, so the message names the command that fixes one.
+        abort(getString(R.string.guest_libs_missing));
+        return null;
+    }
+
+    /**
      * Points the guest file layer at a game inside a tree the user has already granted us.
      *
      * <p><b>The tree is named by the launch, and only falls back to a guess when it is not.</b> The
@@ -887,12 +930,14 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 return;
             }
         }
-        for (File needed : new File[] {payload, AppStorage.guestLibs(root)}) {
-            if (!needed.exists()) {
-                Log.e(TAG, "[app] missing: " + needed.getAbsolutePath()
-                        + " — stage it with scripts/stage.py or scripts/stage.py");
-                return;
-            }
+        if (!payload.exists()) {
+            Log.e(TAG, "[app] missing: " + payload.getAbsolutePath()
+                    + " — stage it with scripts/stage.py");
+            return;
+        }
+        File guestLibs = resolveGuestLibs(root, files);
+        if (guestLibs == null) {
+            return;
         }
 
         List<String> args = new ArrayList<>();
@@ -1019,7 +1064,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         }
 
         args.add("--libs");
-        args.add(AppStorage.guestLibs(root).getAbsolutePath());
+        args.add(guestLibs.getAbsolutePath());
         // internal storage, not the external one the payload sits on: .NET reaches for TMPDIR far
         // more than for its own bundle, and the external volume is FUSE-backed on Android 11+, so
         // every file operation there is a userspace round trip.

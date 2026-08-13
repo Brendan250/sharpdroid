@@ -4,18 +4,16 @@ import android.content.Context
 import android.util.Log
 import org.json.JSONObject
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 
 /**
  * The one SharpEmu build that ships inside the APK: where it is before it is a directory, and what
  * turns it into one.
  *
- * **It is an asset tree rather than a zip**, `assets/sharpemu/` — the payload, its `plugins/`, the
- * licences, and a `meta.json` generated when the APK was built. A zip would be a second archive
- * inside an archive that is already one, so the APK would carry the payload compressed twice and the
- * device would pay for both. [BuildImport] handles zips because a zip is what somebody *sends* you;
- * nothing sends you the build you shipped.
+ * **It is an [AssetTree]**, `assets/sharpemu/` — the payload, its `plugins/`, the licences, and a
+ * `meta.json` generated when the APK was built — which is where the listing, the space check and the
+ * `.partial` write live, shared with the guest libraries in [GuestLibraries]. [BuildImport] handles
+ * zips because a zip is what somebody *sends* you; nothing sends you the build you shipped.
  *
  * **Nothing is extracted until a launch needs it**, which is GameNative's shape: an app update that
  * changed only the app costs nothing, and a user who never runs the bundled build never pays 76 MB
@@ -33,36 +31,6 @@ object BundledBuild {
     /** The asset directory the APK carries the build in. `scripts/build-apk.py` populates it. */
     private const val ASSETS = "sharpemu"
 
-    /**
-     * The generated file listing every asset in the tree, `<size>\t<path>` per line.
-     *
-     * **It is packaging's, not the build format's.** `docs/build-format.md` describes a build and
-     * says nothing about this, because it exists for two things an APK asset cannot otherwise
-     * answer:
-     *
-     * - **how big the extraction is, before it starts.** A compressed asset has no length —
-     *   `openFd` refuses one, and `open` only tells you when it hits the end — so without this the
-     *   free-space check would have to happen halfway through the write it exists to prevent, and
-     *   progress would have to be counted in files. One of the 27 files here is 61 MB and the rest
-     *   are small, so a count of files sits at 4% for the entire extraction
-     * - **which names are directories.** `AssetManager.list` returns names and not kinds, so telling
-     *   a file from a directory means trying to open each one and reading a failure as "directory" —
-     *   a guess that gets an empty directory and an unreadable file exactly backwards
-     *
-     * It is not extracted with the rest: the directory that lands on the device is the build, and
-     * this is a note the packaging step left for the unpacking step.
-     */
-    private const val CONTENTS = "contents"
-
-    /**
-     * Slack over the extraction's own size before it is attempted at all.
-     *
-     * A tree costs a little more than the sum of its files, and a device with nothing left after
-     * writing 76 MB is a device that fails somewhere else a minute later — inside the guest, where
-     * the cause is much harder to see than it is here.
-     */
-    private const val SLACK_BYTES = 16L * 1024 * 1024
-
     /** What [ensure] did. */
     sealed class Outcome {
         /** This APK ships no build. A development build of the app is in this state. */
@@ -76,11 +44,6 @@ object BundledBuild {
 
         /** Anything else. Already logged; [why] is what a toast may say. */
         data class Failed(val why: String) : Outcome()
-    }
-
-    /** Reports extraction progress in bytes. Called on the worker, often. */
-    fun interface Progress {
-        fun onProgress(done: Long, total: Long)
     }
 
     /** True when this APK carries a build. Cheap: it opens one small asset. */
@@ -117,7 +80,7 @@ object BundledBuild {
      *   whether a wait is worth showing and this is the only place that knows how far along it is.
      */
     @JvmStatic
-    fun ensure(context: Context, internal: File, progress: Progress): Outcome {
+    fun ensure(context: Context, internal: File, progress: AssetTree.Progress): Outcome {
         val meta = assetMeta(context) ?: return Outcome.NotBundled
         val target = target(internal)
 
@@ -129,19 +92,19 @@ object BundledBuild {
             Log.i(TAG, "[app] the bundled build on disk is not the one in this APK, so re-extracting")
         }
 
-        val contents = contents(context) ?: return Outcome.Failed(
+        val contents = AssetTree.contents(context, ASSETS) ?: return Outcome.Failed(
             context.getString(R.string.bundled_failed)
         )
         val total = contents.sumOf { it.bytes }
         // asked before a byte is written, because the alternative is discovering it 60 MB in and
         // leaving the user with a black screen and a partially filled disk.
-        val free = internal.usableSpace
-        if (free < total + SLACK_BYTES) {
+        if (!AssetTree.hasSpace(internal, total)) {
+            val free = internal.usableSpace
             Log.e(TAG, "[app] the bundled build needs $total bytes and $internal has $free free")
             return Outcome.OutOfSpace(total, free)
         }
 
-        val extracted = extract(context, internal, contents, total, progress)
+        val extracted = extract(context, contents, target, progress)
             ?: return Outcome.Failed(context.getString(R.string.bundled_failed))
         return Outcome.Ready(extracted)
     }
@@ -178,85 +141,26 @@ object BundledBuild {
         return !asset.contentEquals(runCatching { diskMeta.readBytes() }.getOrNull() ?: return true)
     }
 
-    /** One line of [CONTENTS]. */
-    private class Item(val bytes: Long, val path: String)
-
-    private fun contents(context: Context): List<Item>? = try {
-        context.assets.open("$ASSETS/$CONTENTS").use { input ->
-            input.readBytes().decodeToString().lineSequence()
-                .filter { it.isNotBlank() }
-                .map { line ->
-                    // tab, because a path may contain a space and a size never contains a tab.
-                    val tab = line.indexOf('\t')
-                    if (tab < 1) throw IOException("malformed line in $CONTENTS: '$line'")
-                    Item(line.substring(0, tab).trim().toLong(), line.substring(tab + 1))
-                }
-                .toList()
-        }
-    } catch (e: Exception) {
-        Log.e(TAG, "[app] could not read the bundled build's $CONTENTS", e)
-        null
-    }
-
     /**
-     * Writes the tree beside its target and renames it into place.
+     * Lays the tree down and reads back what landed.
      *
-     * **`.partial` then rename, the shape [BuildImport] uses**, and for the same reason: a
-     * half-extracted directory has a `meta.json`, so it would be listed and resolved and would then
-     * fail somewhere inside SharpEmu. [SharpEmuBuild.list] and [SharpEmuBuild.mostRecent] both skip
-     * a `.partial`, so one left behind by a process that died is invisible rather than dangerous.
+     * **The read back is not belt and braces.** What is on disk is what will be launched, and this is
+     * the last moment a mismatch is cheap to notice — after this the failure is somewhere inside
+     * SharpEmu. A tree that is not a runnable build is removed rather than left: [SharpEmuBuild.list]
+     * would otherwise find it and the build manager would offer it.
+     *
+     * A `.partial` left behind by a process that died is invisible rather than dangerous, since
+     * [SharpEmuBuild.list] and [SharpEmuBuild.mostRecent] both skip one. That is why this tree needs
+     * no stamp of its own: `meta.json` is both the identity and the mark of a finished extraction.
      */
     private fun extract(
         context: Context,
-        internal: File,
-        contents: List<Item>,
-        total: Long,
-        progress: Progress,
+        contents: List<AssetTree.Item>,
+        target: File,
+        progress: AssetTree.Progress,
     ): SharpEmuBuild? {
-        val partial = File(internal, SharpEmuBuild.BUNDLED + ".partial")
-        partial.deleteRecursively()
-        if (!partial.mkdirs()) {
-            Log.e(TAG, "[app] could not create $partial")
-            return null
-        }
-        val started = System.currentTimeMillis()
-        var done = 0L
-        try {
-            for (item in contents) {
-                val out = File(partial, item.path)
-                out.parentFile?.mkdirs()
-                context.assets.open("$ASSETS/${item.path}").use { input ->
-                    FileOutputStream(out).use { output ->
-                        val buffer = ByteArray(1 shl 16)
-                        while (true) {
-                            val n = input.read(buffer)
-                            if (n < 0) break
-                            output.write(buffer, 0, n)
-                            done += n
-                            progress.onProgress(done, total)
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "[app] could not extract the bundled build", e)
-            partial.deleteRecursively()
-            return null
-        }
-
-        val target = target(internal)
-        // the old one goes only once the new one is complete, so an extraction that dies leaves the
-        // build that was working exactly where it was.
-        target.deleteRecursively()
-        if (!partial.renameTo(target)) {
-            Log.e(TAG, "[app] could not move $partial to $target")
-            partial.deleteRecursively()
-            return null
-        }
-        Log.i(TAG, "[app] extracted the bundled build, $done bytes to $target in "
-                + (System.currentTimeMillis() - started) + " ms")
-        // read back rather than trusting the asset's meta: what is on disk is what will be launched,
-        // and this is the last moment a mismatch is cheap to notice.
+        AssetTree.extract(context, ASSETS, "the bundled build", contents, target, progress)
+            ?: return null
         val build = SharpEmuBuild.read(target)
         if (build == null || !build.runnable()) {
             Log.e(TAG, "[app] $target extracted and is not a runnable build")

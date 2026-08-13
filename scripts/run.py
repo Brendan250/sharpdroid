@@ -23,6 +23,14 @@
 #   no --driver     the app loads what its settings hold, which on an untouched install is the
 #                   platform's own. `--driver none` pins that regardless of what is stored
 #
+# **this stages nothing the APK already carries.** the guest's x86-64 libraries ship inside it and
+# the app unpacks them on the launch that needs them, so a deploy is the install and nothing else.
+# staging them was once done here automatically, whenever fewer than twenty of the twenty-eight were
+# on the device -- and that is precisely why nobody noticed for months that the APK carried none at
+# all: the one machine able to see the gap re-created the missing set on every run, so the unpack
+# path a user takes was never executed where a failure in it could be observed.
+# `py scripts/stage.py --guest-libs` is still there, and is now only ever run deliberately.
+#
 # **the SharpEmu build is held constant unless you say otherwise**, and that is deliberate rather
 # than lazy. rebuilding the emulator on every change to the host layer moves two variables per
 # iteration and hands you a different payload from the one your last measurement used, which is the
@@ -139,12 +147,6 @@ def entry():
     if arguments.check:
         step("the regression set")
         _script(["regression.py"])
-
-    # the debug app starts with nothing, so this is the common case rather than a repair path.
-    files = device.external_files(package)
-    if len(attached.list(files + "/guest-libs")) < 20:
-        step("the guest libraries")
-        _script(["stage.py", "--guest-libs", "--package", package])
 
     game = None
     if runs_guest:

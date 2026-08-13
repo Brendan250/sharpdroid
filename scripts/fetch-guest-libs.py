@@ -33,7 +33,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from sharpemu import paths
-from sharpemu.shell import Refusal, ensure, main, produced, say, size, step, wipe
+from sharpemu.shell import Refusal, ensure, main, produced, say, size, step, wipe, write_text
 from sharpemu.vocabulary import Parser
 
 MIRROR = "https://deb.debian.org/debian/pool/main"
@@ -42,22 +42,37 @@ MIRROR = "https://deb.debian.org/debian/pool/main"
 # character-set modules, the locales, the documentation, the configuration -- is weight the guest's
 # linker never looks at. the character-set modules would matter if glibc's own conversion were ever
 # used; the runtime carries its own internationalisation library instead.
+#
+# `source` names the debian source package these came out of, and `licence` what they are under. both
+# are there for NOTICE below rather than for the fetch, which is why every entry carries them
+# including the one that contributes no library.
 PACKAGES = [
     {"name": "libc6", "url": MIRROR + "/g/glibc/libc6_2.36-9+deb12u14_amd64.deb",
-     "wanted": ["./lib/x86_64-linux-gnu/"], "libraries": "lib/x86_64-linux-gnu"},
+     "wanted": ["./lib/x86_64-linux-gnu/"], "libraries": "lib/x86_64-linux-gnu",
+     "source": "glibc/2.36-9+deb12u14", "licence": "LGPL-2.1-or-later, and others"},
     {"name": "libc-bin", "url": MIRROR + "/g/glibc/libc-bin_2.36-9+deb12u14_amd64.deb",
-     "wanted": ["./usr/bin/"], "libraries": None},
+     "wanted": ["./usr/bin/"], "libraries": None,
+     "source": "glibc/2.36-9+deb12u14", "licence": "GPL-2.0-or-later, and others"},
     {"name": "libgcc-s1", "url": MIRROR + "/g/gcc-12/libgcc-s1_12.2.0-14+deb12u1_amd64.deb",
-     "wanted": ["./lib/x86_64-linux-gnu/"], "libraries": "lib/x86_64-linux-gnu"},
+     "wanted": ["./lib/x86_64-linux-gnu/"], "libraries": "lib/x86_64-linux-gnu",
+     "source": "gcc-12/12.2.0-14+deb12u1",
+     "licence": "GPL-3.0-or-later WITH GCC-exception-3.1"},
     {"name": "libstdc++6", "url": MIRROR + "/g/gcc-12/libstdc++6_12.2.0-14+deb12u1_amd64.deb",
-     "wanted": ["./usr/lib/x86_64-linux-gnu/"], "libraries": "usr/lib/x86_64-linux-gnu"},
+     "wanted": ["./usr/lib/x86_64-linux-gnu/"], "libraries": "usr/lib/x86_64-linux-gnu",
+     "source": "gcc-12/12.2.0-14+deb12u1",
+     "licence": "GPL-3.0-or-later WITH GCC-exception-3.1"},
     # the runtime's cryptography is a thin shim over OpenSSL: it opens libssl by soname and fails
     # hard with "no usable version of libssl was found" if it is not there. SharpEmu reaches that
     # path while constructing its runtime, before it opens anything of the game's, so this is not
     # optional the way a root filesystem's package would be.
     {"name": "libssl3", "url": MIRROR + "/o/openssl/libssl3_3.0.17-1~deb12u2_amd64.deb",
-     "wanted": ["./usr/lib/x86_64-linux-gnu/"], "libraries": "usr/lib/x86_64-linux-gnu"},
+     "wanted": ["./usr/lib/x86_64-linux-gnu/"], "libraries": "usr/lib/x86_64-linux-gnu",
+     "source": "openssl/3.0.17-1~deb12u2", "licence": "Apache-2.0"},
 ]
+
+# what the notice beside the libraries is called. **it is written by the fetch because the fetch is
+# what knows what it fetched**, and the packaging step refuses without it.
+NOTICE = "licences.txt"
 
 # the test binaries taken out of the packages rather than cross-compiled. they are dynamically
 # linked x86-64 glibc executables built against the exact set staged here, which is a glibc the NDK
@@ -110,11 +125,15 @@ def entry():
 
     # the C++ runtime ships as a fully versioned file with the soname beside it as a symlink, and
     # the symlink is what was skipped above. the guest's linker searches by soname, so the name it
-    # will actually ask for has to exist as a file. copying costs two megabytes and removes a whole
-    # class of "works here, not on the device".
+    # will actually ask for has to exist as a file.
+    #
+    # **renamed onto the soname rather than copied to it.** the soname is the only name anything ever
+    # asks for -- a binary's DT_NEEDED carries it and never the fully versioned file -- so keeping
+    # both was two megabytes of the set duplicated, which is a seventh of what the APK ships.
     for path in sorted(output.glob("libstdc++.so.6.*")):
-        shutil.copyfile(str(path), str(output / "libstdc++.so.6"))
-        staged += 1
+        path.replace(output / "libstdc++.so.6")
+
+    write_notice(output)
 
     step("the test binaries")
     for name in TEST_BINARIES:
@@ -135,6 +154,44 @@ def entry():
     for name in GENERATED:
         if (output / name).exists():
             say("  kept {}, which is generated rather than fetched".format(name))
+
+
+def write_notice(output):
+    """the notice that travels with the libraries, wherever they go.
+
+    **the APK carries these binaries, so it distributes them.** they are unmodified debian packages
+    under licences that ask for a notice and for the corresponding source to be available, and both
+    are answered by naming the exact package version and where debian keeps its source -- which is
+    the same thing a person would need in order to build a replacement set themselves, since the
+    whole point of a directory the guest's linker searches is that any compatible set works.
+
+    **it is written into the library directory rather than beside it** so that it cannot be separated
+    from what it describes: everything that moves this set -- the packaging step, `stage.py
+    --guest-libs`, `stage.py --shell` -- moves whole directories.
+    """
+    lines = [
+        "the x86-64 shared objects in this directory are what the guest's own dynamic linker",
+        "searches. most of them are unmodified binaries from debian 12, redistributed unchanged.",
+        "",
+        "they are not part of sharpemu-android. the emulator and the game it runs link against them",
+        "at runtime the way any linux program links against a system library, and this directory can",
+        "be replaced with any compatible set.",
+        "",
+    ]
+    for package in PACKAGES:
+        lines.append("{}".format(package["name"]))
+        lines.append("  {}".format(package["licence"]))
+        lines.append("  binary  {}".format(package["url"]))
+        lines.append("  source  https://sources.debian.org/src/{}/".format(package["source"]))
+        lines.append("")
+    lines += [
+        "libvulkan.so, libvulkan.so.1 and libaaudio.so are not debian's. they are the guest halves",
+        "of this project's own thunks, they are generated from the android NDK's headers by",
+        "scripts/gen-thunks.py, and they are GPL-2.0-or-later like the rest of sharpemu-android.",
+        "",
+        "scripts/fetch-guest-libs.py writes this file and is where the list above lives.",
+    ]
+    write_text(output / NOTICE, "\n".join(lines) + "\n")
 
 
 def _clear_except(directory, keep):

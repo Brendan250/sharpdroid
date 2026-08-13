@@ -47,7 +47,9 @@ def entry():
                              "package's own name. **not `--name`**, which is the launcher label "
                              "where an APK build takes one -- no argument here means two things.")
     parser.add_argument("--guest-libs", action="store_true",
-                        help="the x86-64 shared objects the guest's own linker searches.")
+                        help="the x86-64 shared objects the guest's own linker searches. the APK "
+                             "carries these, so this is the development override for a rebuilt "
+                             "thunk stub rather than how they get onto a device.")
     parser.add_argument("--shell", action="store_true",
                         help="the host layer's shell binary, its guests and its libraries, into "
                              "the directory that belongs to no app.")
@@ -210,6 +212,17 @@ def stage_guest_libs(attached, files):
 
     the thunk guest halves live in the same directory and are found the same way, so they go across
     with it rather than being a staging step of their own.
+
+    **this is an override rather than the way the set reaches a device.** the APK carries it and the
+    app unpacks it to internal storage, which is what lets an install nobody has ever plugged in run
+    a game; what this writes is on external storage, and the app prefers it whenever it is there. so
+    it is the fast loop for a rebuilt thunk stub, and nothing else needs it.
+
+    **it never expires, and that is the hazard to hold on to.** a set staged weeks ago keeps winning
+    after an app update ships newer stubs, and the failure then is a guest resolving an old
+    `libvulkan.so.1` against a new host thunk -- a version skew across the thunk boundary that will
+    not present as "the staged libraries are old". the launch log names which of the two tiers
+    answered, every run, and `--restage` is the fix.
     """
     step("the guest libraries")
     local = sorted(p for p in paths.GUEST_LIBS_X86_64.iterdir() if p.is_file())

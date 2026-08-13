@@ -31,9 +31,28 @@ object AppStorage {
     @JvmStatic
     fun stagedDrivers(externalRoot: File): File = File(externalRoot, "gpu-drivers")
 
-    /** The x86-64 shared objects the guest's `ld.so` searches. Handed to the host layer as `--libs`. */
+    /**
+     * A **staged** set of the x86-64 shared objects the guest's `ld.so` searches.
+     *
+     * **This is the development override rather than the source of record.** The APK carries the set
+     * and [unpackedGuestLibs] is where it lands; this is what `scripts/stage.py --guest-libs` writes,
+     * it is the only way the external set comes into existence, and it wins when it is there.
+     * [GuestLibraries] is where that order is decided and why.
+     */
     @JvmStatic
     fun guestLibs(externalRoot: File): File = File(externalRoot, "guest-libs")
+
+    /**
+     * The same set, unpacked out of this APK — what a launch resolves to when nothing is staged.
+     *
+     * **Internal storage, and that is what closes the gap it was moved for.** The platform's own
+     * "delete everything" takes the external files directory with it, so a set living there was
+     * deleted as user data and took the guest's dynamic linker with it; the recovery was a PC. It is
+     * also where the linker is happiest, which is the same reason a staged GPU driver is copied to
+     * [installedDriver] before it is loaded.
+     */
+    @JvmStatic
+    fun unpackedGuestLibs(filesDir: File): File = File(filesDir, "guest-libs")
 
     /**
      * Builds the app itself owns — the bundled one, and anything imported from a zip.

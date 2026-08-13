@@ -18,7 +18,7 @@ import re
 from pathlib import Path
 
 from . import paths
-from .shell import Refusal, write_text
+from .shell import Refusal
 
 # the app's declaration of which contracts it speaks.
 _CONTRACT_SOURCE = paths.APP / "src" / "main" / "java" / "com" / "mircowuffwuff" / "sharpemu" / "SharpEmuBuild.java"
@@ -191,20 +191,3 @@ def compare_payload(build, remote_size):
     except OSError:
         return UNKNOWN
     return MATCH if local == remote_size else STALE
-
-
-def write_contents(directory, target):
-    """the listing packaging puts beside a bundled build: a size and a path per line, tab-separated.
-
-    it is packaging's file rather than part of the build format -- it is never extracted, and a
-    build that is not an APK asset has no reason to carry one. what it buys is an unpack that knows
-    how much it is about to write before it starts writing.
-    """
-    directory = Path(directory)
-    lines = []
-    for path in sorted(directory.rglob("*")):
-        if path.is_file():
-            relative = path.relative_to(directory).as_posix()
-            lines.append("{}\t{}".format(path.stat().st_size, relative))
-    write_text(target, "\n".join(lines) + "\n")
-    return len(lines)

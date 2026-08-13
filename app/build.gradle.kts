@@ -19,13 +19,12 @@ plugins {
 val identityApplicationId: String? = (findProperty("sharpemuApplicationId") as String?)?.takeIf { it.isNotBlank() }
 val identityAppLabel: String = (findProperty("sharpemuAppLabel") as String?)?.takeIf { it.isNotBlank() } ?: "SharpEmu"
 
-// where the bundled SharpEmu build was staged, if one is being bundled at all.
+// where the APK's asset trees were staged: the guest's x86-64 libraries, and the bundled SharpEmu
+// build when one is being bundled at all.
 //
 // **it is a generated directory and never a source one.** scripts/build-apk.py populates it under
-// build/ from the build directory that was named, and empties it when none was, so
-// "which build is in this APK" is answered by one argument on one command rather than by whatever
-// happens to be sitting in app/src/main/assets. a development build of the app bundles nothing and
-// keeps its small APK without anyone deciding that it should.
+// build/ and empties it first, so "what is in this APK" is answered by one command rather than by
+// whatever happens to be sitting in app/src/main/assets.
 val bundleAssets: String? = (findProperty("sharpemuBundleAssets") as String?)?.takeIf { it.isNotBlank() }
 
 // the build-tools revision, as scripts/build-apk.py resolved it out of toolchain.json.
@@ -128,9 +127,9 @@ android {
             // the four .so files are produced by other steps into build/ and collected by
             // stageJniLibs below, rather than living in the source tree.
             jniLibs.srcDir(layout.buildDirectory.dir("jniLibs"))
-            // and the bundled SharpEmu build, when one was named. a directory that does not exist
-            // contributes nothing, which is the case whenever a build was told to ship no SharpEmu
-            // build at all.
+            // and the asset trees. a directory that does not exist contributes nothing, which is
+            // what opening this project in Android Studio and hitting build gets -- an APK with no
+            // assets, which installs and cannot start a game.
             bundleAssets?.let { assets.srcDir(it) }
         }
     }

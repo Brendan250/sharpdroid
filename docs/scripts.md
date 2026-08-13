@@ -15,7 +15,9 @@ py scripts/fetch-toolchain.py --install
 py scripts/run.py --sharpemu build --game "D:/games/Dreaming Sarah"
 ```
 
-**that last command is the whole build.** it publishes and packages the emulator from the fork, builds the host layer and everything under it, builds the APK with that build inside it, installs it on the attached device, puts the game and the guest libraries there, launches it and follows the log. it takes a while the first time; afterwards `py scripts/run.py --game existing` is the loop, and it needs nothing else said.
+**that last command is the whole build.** it publishes and packages the emulator from the fork, builds the host layer and everything under it, builds the APK with that build and the guest's x86-64 libraries inside it, installs it on the attached device, puts the game there, launches it and follows the log. it takes a while the first time; afterwards `py scripts/run.py --game existing` is the loop, and it needs nothing else said.
+
+**the game is the only thing a run stages.** everything else the app needs is in the APK it just installed, and the app unpacks what it needs on the launch that needs it.
 
 four notes, and then the rest of this document is detail:
 
@@ -94,13 +96,15 @@ each of these is one job, and `scripts/build.py` runs them in this order. **the 
 
 | | |
 | --- | --- |
-| `scripts/fetch-guest-libs.py` | the x86-64 glibc set the guest's own linker searches, built out of debian packages. `--keep-packages` keeps the downloads |
+| `scripts/fetch-guest-libs.py` | the x86-64 glibc set the guest's own linker searches, built out of debian packages, with a `licences.txt` naming each package and its source. `--keep-packages` keeps the downloads |
 | `scripts/build-adrenotools.py` | the GPU driver loading library. the host project imports it as a static library at configure time and will not configure without it |
 | `scripts/gen-thunks.py` | regenerates both halves of both thunks from the NDK's headers. **the output is committed**, so this is what you run when the NDK moves rather than on every build. `--check` reports what would change and writes nothing |
 | `scripts/build-thunks.py` | assembles the guest halves into `libvulkan.so.1` and `libaaudio.so`, beside the glibc set |
 | `scripts/build-host.py` | the host layer: the library the app loads, and the same thing as a shell binary. `--clean` wipes first, `--probe` builds the host vulkan probe instead |
 | `scripts/build-guests.py` | the x86-64 test guests the regression set runs. `--only <name>` builds one |
-| `scripts/build-apk.py` | the APK, with exactly one SharpEmu build inside it. `--install` installs it afterwards, `--offline` makes gradle resolve everything from its cache or fail |
+| `scripts/build-apk.py` | the APK, with exactly one SharpEmu build and the guest's x86-64 libraries inside it. `--install` installs it afterwards, `--offline` makes gradle resolve everything from its cache or fail |
+
+**the guest libraries always ship and no argument says otherwise.** a build is chosen because a person picks between several; the x86-64 set is the one right set for a given APK, so the only thing an argument could decide is whether the APK can run a game at all. missing, the APK step **refuses** and names the fetch — which is what makes the first link in the order above an actual refusal rather than an editorial one.
 
 `py scripts/build.py --list` prints the whole sequence and says what each step will do. it also reports when the committed thunk sources no longer match the NDK's headers, which is the only thing that would otherwise need someone to think of asking.
 
@@ -117,6 +121,8 @@ py scripts/stage.py --shell
 ```
 
 more than one may be named in a single command. everything lands on the app's external storage, which is the volume `adb` can write and the app can read — except `--shell`, which goes to a directory belonging to no app and therefore takes no application id.
+
+**`--guest-libs` is an override rather than a way of putting something there for the first time.** the APK carries the set and the app unpacks it to internal storage, which is what lets an install nobody has ever plugged in start a game; this writes a second copy on external storage that the app then prefers, and it exists for the fast loop after a rebuilt thunk stub. **it never expires** — a set staged weeks ago keeps winning after an app update ships newer stubs, and that failure is a guest resolving an old `libvulkan.so.1` against a new host thunk rather than anything that looks like a missing file. every launch logs which of the two tiers answered, and `--restage` is the fix.
 
 **existence is not sameness.** what decides whether something is already there is the byte count of its payload, never its name: a rebuilt artefact keeps its directory name, so "the folder is already there" would silently run yesterday's bytes.
 
