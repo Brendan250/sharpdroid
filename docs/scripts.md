@@ -42,7 +42,7 @@ py scripts/run.py --game existing      launch what is already on the device
 | | |
 | --- | --- |
 | **`scripts/run.py`** | **build it, put it on the device, start it, show the log.** the one command you want most of the time |
-| `scripts/build.py` | build everything in dependency order. `--list` prints the steps and which are up to date, `--install` installs the APK, `--clean` wipes what the native steps write, `--force` rebuilds even what is up to date, `--only <step>` runs one |
+| `scripts/build.py` | build everything in dependency order. `--list` prints the steps and what each will do, `--install` installs the APK, `--clean` wipes what the native steps write, `--force` fetches again as well, `--only <step>` runs one |
 | `scripts/regression.py` | stage the shell binary and run the host layer's 15 regression modes on the device. **exits non-zero if any fail**, so it can gate anything |
 
 ### the screen
@@ -102,7 +102,9 @@ each of these is one job, and `scripts/build.py` runs them in this order. **the 
 | `scripts/build-guests.py` | the x86-64 test guests the regression set runs. `--only <name>` builds one |
 | `scripts/build-apk.py` | the APK, with exactly one SharpEmu build inside it. `--install` installs it afterwards, `--offline` makes gradle resolve everything from its cache or fail |
 
-`py scripts/build.py --list` prints the whole sequence and says which steps are already up to date. it also reports when the committed thunk sources no longer match the NDK's headers, which is the only thing that would otherwise need someone to think of asking.
+`py scripts/build.py --list` prints the whole sequence and says what each step will do. it also reports when the committed thunk sources no longer match the NDK's headers, which is the only thing that would otherwise need someone to think of asking.
+
+**a build step runs every time, and only the fetch is skipped when its output is already there.** the difference is who knows about the inputs: what a fetch produces either exists or does not, while what a build produces is stale the moment a source changes — and the driver cannot see that without knowing every source file, every header and the state of a submodule, which is the job of the cmake, ninja or compiler invocation the step already makes. so the step is entered and its own tool decides there is nothing to do. that costs about six seconds across the four build steps, against a stale library being packaged into an APK and a run whose log is missing the line the change added — which reads as the change not working rather than as the change never having been installed.
 
 ## putting things on a device
 
