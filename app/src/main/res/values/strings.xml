@@ -116,13 +116,13 @@
     <!-- short enough to clear three icons, and it spends the room it has on the one thing the title
          does not already say: the settings travel with the files. -->
     <string name="user_data_everything_description">Fully replaces all data.</string>
-    <string name="user_data_everything_empty">Nothing stored yet</string>
+    <string name="user_data_everything_empty">Nothing</string>
     <string name="user_data_saves">Save data</string>
     <string name="user_data_saves_description">Your progress across titles.</string>
-    <string name="user_data_saves_empty">Nothing saved yet</string>
+    <string name="user_data_saves_empty">None</string>
     <string name="user_data_shaders">Disk shader cache</string>
     <string name="user_data_shaders_description">Compiled as you play and rebuilt if deleted.</string>
-    <string name="user_data_shaders_empty">Nothing compiled yet</string>
+    <string name="user_data_shaders_empty">Empty</string>
     <string name="user_data_settings">Settings</string>
     <!-- short enough to clear three icons. a card carrying the most of them has the least room for a
          description, and this is the one where the two meet. -->
@@ -131,7 +131,7 @@
          bytes whatever is in it, so a figure in kB would be a true number answering nothing anybody
          opened this card to ask. zero is its own line: "0 settings changed" is a count where the
          sentence beside it is a state, and a fresh install is the one state worth naming. -->
-    <string name="user_data_settings_default">Everything is at its default</string>
+    <string name="user_data_settings_default">No changes</string>
     <plurals name="user_data_settings_changed">
         <item quantity="one">%d setting changed</item>
         <item quantity="other">%d settings changed</item>
