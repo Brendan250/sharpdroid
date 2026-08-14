@@ -67,7 +67,7 @@
                 android:ellipsize="marquee"
                 android:marqueeRepeatLimit="marquee_forever"
                 android:singleLine="true"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
                 android:textColor="?attr/colorOnSurface" />
 
             <!-- one line, and a long one scrolls rather than wrapping. two cards share a grid row and
