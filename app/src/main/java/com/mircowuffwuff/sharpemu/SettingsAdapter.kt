@@ -141,6 +141,7 @@ class SettingsAdapter(
             Settings.KEY_STRICT -> settings.strictDynlib ?: default
             Settings.KEY_AUTOMATIC_CONTROLLER_MAPPING -> settings.automaticControllerMapping ?: default
             Settings.KEY_VIBRATE_HANDHELD -> settings.vibrateHandheld ?: default
+            Settings.KEY_DISK_SHADER_CACHE -> settings.diskShaderCache ?: default
             else -> default
         }
 
@@ -149,6 +150,7 @@ class SettingsAdapter(
             Settings.KEY_STRICT -> settings.strictDynlib = value
             Settings.KEY_AUTOMATIC_CONTROLLER_MAPPING -> settings.automaticControllerMapping = value
             Settings.KEY_VIBRATE_HANDHELD -> settings.vibrateHandheld = value
+            Settings.KEY_DISK_SHADER_CACHE -> settings.diskShaderCache = value
             else -> Unit
         }
     }

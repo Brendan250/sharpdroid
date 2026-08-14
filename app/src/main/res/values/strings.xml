@@ -356,6 +356,17 @@
 
     <string name="settings_group_vulkan">Vulkan</string>
 
+    <!-- named for the thing it keeps rather than for the Vulkan object underneath it: "pipeline
+         cache" is what the API calls it and nothing else in this app says "pipeline". it is the
+         same three words the User data card uses for the same bytes, deliberately, so a person who
+         switches this off and then goes looking for what to delete finds the one they just read.
+
+         the summary names the benefit in the two forms a player meets it in - a shorter wait at the
+         start and fewer hitches during play - because "compiled shaders are reused" describes the
+         mechanism to somebody who already knows what it buys them. -->
+    <string name="setting_disk_shader_cache">Disk shader cache</string>
+    <string name="setting_disk_shader_cache_summary">Keep compiled shaders between sessions, so a game you have played before starts faster and stutters less.</string>
+
     <string name="setting_driver">Graphics driver</string>
     <string name="setting_driver_summary">Which Vulkan driver your games render through. Import one, or use the driver this device came with.</string>
     <string name="setting_driver_missing">%1$s is no longer on this device</string>

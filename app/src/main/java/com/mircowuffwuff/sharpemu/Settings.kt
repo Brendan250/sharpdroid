@@ -72,6 +72,7 @@ class Settings private constructor(private val prefs: SharedPreferences) {
         if (strictDynlib == true) count++
         if (fexPreset?.let { it != FexPreset.DEFAULT } == true) count++
         if (renderScale?.let { it != RENDER_SCALES[0] } == true) count++
+        if (diskShaderCache == true) count++
         // **absence is the default and the bundled build is a choice, even though a launch resolves
         // the two to the same payload.** what separates them is that nothing writes this key by
         // itself: a fresh install stores nothing, and BuildsActivity.select returns early on the row
@@ -201,6 +202,31 @@ class Settings private constructor(private val prefs: SharedPreferences) {
         get() = prefs.getString(KEY_DRIVER, null)
         set(value) = prefs.edit().putString(KEY_DRIVER, value).apply()
 
+    /**
+     * Whether compiled graphics pipelines are kept between runs.
+     *
+     * **Off is the default, and it is the one row here whose default is not the emulator's own.**
+     * The cache is derived state written throughout a run and kept per title, so holding it is a
+     * thing to opt into rather than something an install starts doing unasked — and what it buys is
+     * time rather than capability, which is the kind of trade that belongs to the person paying it.
+     *
+     * **It travels as `SHARPEMU_VK_PIPELINE_CACHE=0`, which is the emulator's own opt-out**, and the
+     * cache then lives for the run and is never written. Leaving `SHARPEMU_VK_PIPELINE_CACHE_PATH`
+     * out instead would not disable anything: unset means the emulator resolves its portable
+     * default, a directory inside the build, so the cache would still persist and would sit where a
+     * re-stage destroys it.
+     *
+     * Nothing deletes a cache already on the device. The User data screen is where bytes are
+     * removed, and a file nothing reads costs only space.
+     */
+    var diskShaderCache: Boolean?
+        get() = if (prefs.contains(KEY_DISK_SHADER_CACHE)) {
+            prefs.getBoolean(KEY_DISK_SHADER_CACHE, false)
+        } else {
+            null
+        }
+        set(value) = prefs.edit().putBoolean(KEY_DISK_SHADER_CACHE, value!!).apply()
+
     // ------------------------------------------------------------------------------------------
     // Controls
 
@@ -282,6 +308,7 @@ class Settings private constructor(private val prefs: SharedPreferences) {
         const val KEY_FEX_PRESET = "fex_preset"
         const val KEY_RENDER_SCALE = "render_scale"
         const val KEY_DRIVER = "driver"
+        const val KEY_DISK_SHADER_CACHE = "disk_shader_cache"
         // **both are named for the narrow thing they govern rather than for their subject**, because
         // the broad name is the one a later setting will want. per-pad mappings would make a plain
         // `controller_mapping` the wrong name for the switch that turns automatic mapping on, and a

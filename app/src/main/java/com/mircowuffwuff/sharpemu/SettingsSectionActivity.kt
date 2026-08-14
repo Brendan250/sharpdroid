@@ -260,6 +260,15 @@ class SettingsSectionActivity : AppCompatActivity() {
         ) {
             startActivity(Intent(this, DriversActivity::class.java))
         },
+        // under the driver rather than above it, because a driver change invalidates a cache: the
+        // blob carries the implementation's compatibility header and is rejected and rebuilt when
+        // the driver moves. reading them in this order is reading cause before consequence.
+        SettingRow.Switch(
+            key = Settings.KEY_DISK_SHADER_CACHE,
+            title = R.string.setting_disk_shader_cache,
+            summary = R.string.setting_disk_shader_cache_summary,
+            default = false,
+        ),
     )
 
     /**

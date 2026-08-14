@@ -209,6 +209,22 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      */
     private Map<String, String> settingsEnv = new LinkedHashMap<>();
 
+    /**
+     * Whether compiled graphics pipelines survive the run that built them.
+     *
+     * <p><b>Two-valued and defaulting to off, unlike every other row here.</b> The emulator's own
+     * default is on. Keeping the cache is derived state written throughout a run and held per
+     * title, so it is a thing to opt into rather than something an install starts doing unasked —
+     * and the app is where that call belongs, since the app is what owns the directory it lands in.
+     *
+     * <p><b>It travels as {@code SHARPEMU_VK_PIPELINE_CACHE=0}, the emulator's own opt-out</b>, which
+     * keeps the cache in memory for the run and writes nothing. Leaving
+     * {@code SHARPEMU_VK_PIPELINE_CACHE_PATH} unset would not have done this: unset means the
+     * emulator resolves its portable default, which is a path inside the build directory, so the
+     * cache would persist and land somewhere a re-stage destroys.
+     */
+    private boolean diskShaderCache;
+
     private boolean started;
     /** Set once the run is over, so {@code onDestroy} can tell an ending from an ordinary one. */
     private boolean ending;
@@ -344,6 +360,15 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         String fex = getIntent().getStringExtra("fex");
         if (fex != null && !fex.isEmpty()) {
             fexOptions = fex.split(",");
+        }
+        // --ez shadercache true, hasExtra for the same reason --ez strict is: absent and false are
+        // different answers here. **this is the one row whose "nobody said" is not the payload's own
+        // default** -- Boolean.TRUE.equals leaves both an untouched row and an empty store off, which
+        // is what makes the switch's default reachable by saying nothing.
+        if (getIntent().hasExtra("shadercache")) {
+            diskShaderCache = getIntent().getBooleanExtra("shadercache", false);
+        } else {
+            diskShaderCache = Boolean.TRUE.equals(settings.getDiskShaderCache());
         }
         // the environment the rows contribute -- the internal resolution, the .NET switch and any
         // custom assignments. there is no extra of its own for these: --es guestenv already reaches
@@ -1144,6 +1169,20 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         env.put("SHARPEMU_SAVEDATA_DIR", AppStorage.saveData(files).getAbsolutePath());
         env.put("SHARPEMU_VK_PIPELINE_CACHE_PATH",
                 AppStorage.pipelineCache(files, titleId).getAbsolutePath());
+        // and the switch above it, which decides whether that path is ever read or written.
+        //
+        // **the path is written either way, and only the mode moves.** the emulator reads the path
+        // only while persistence is on, so naming it costs a disabled run nothing — and the
+        // alternative, leaving the variable out, is not an off switch at all: unset means the
+        // emulator resolves its own portable default, which is a directory inside the build. that
+        // would keep caching and put the bytes somewhere a re-stage deletes.
+        //
+        // it is written here beside the other four rather than in the settings map because the
+        // app's answer when nobody has said anything is *off*, and the settings map is where a row
+        // that was touched speaks. a launch naming no extras still gets this line.
+        if (!diskShaderCache) {
+            env.put("SHARPEMU_VK_PIPELINE_CACHE", "0");
+        }
         env.put("SHARPEMU_HOSTAPP_DIR", AppStorage.hostApp(files).getAbsolutePath());
         env.put("SHARPEMU_DEVLOG_APP_DIR", AppStorage.devLogApp(files).getAbsolutePath());
         for (String assignment : guestEnv) {
