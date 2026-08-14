@@ -237,7 +237,7 @@ class DriversActivity : AppCompatActivity() {
             GpuDriver.delete(File(staged, folder))
             // and the library that was copied out of it, or the next launch loads a driver whose
             // package is gone — a run attributed to something the manager no longer lists.
-            GpuDriver.delete(AppStorage.installedDriver(filesDir, folder))
+            GpuDriver.delete(AppStorage.installedDriver(cacheDir, folder))
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 if (!gone) {

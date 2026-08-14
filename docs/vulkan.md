@@ -179,7 +179,7 @@ two things must both be set or neither is used, and with neither set the library
 
 | | |
 | --- | --- |
-| `--vulkan-driver <so>` | absolute path to the driver. it must live on **internal storage**: adrenotools stats it and then dlopens it, and the linker refuses a library any other app could have written |
+| `--vulkan-driver <so>` | absolute path to the driver. it must live on **internal storage**: adrenotools stats it and then dlopens it, and external storage is mounted `noexec`, so the executable segment cannot be mapped off it — the loader says `couldn't map … segment 2: Operation not permitted` and the hook quietly falls back to the system driver |
 | `--vulkan-hooks <dir>` | the app's `nativeLibraryDir`, and nothing else. `libmain_hook.so` and `libhook_impl.so` are loaded from there by soname into the isolated namespace, so a directory that merely contains copies of them is not the same thing |
 
 **this only works inside an app process.** adrenotools drives the bionic linker's namespace API, and a shell binary has no classloader namespace to bypass — so the shell binary and the whole regression set stay on the platform loader whatever these are set to.

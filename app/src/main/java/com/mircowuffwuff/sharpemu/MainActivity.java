@@ -642,12 +642,18 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * simply not passed.
      *
      * <p><b>An imported package is loaded where it is and a staged one is copied first</b>, and the
-     * difference is the linker's rather than a preference. adrenotools stats the driver and then
-     * {@code dlopen}s it, and the linker refuses a library from anywhere another app could have
-     * written it — which is what {@code /storage/emulated/0} is. So a package the driver manager
-     * imported already lives on internal storage and needs nothing, while one staged by
-     * {@code scripts/stage.py} is copied to where the linker will take it. External storage
-     * is also FUSE-backed and this is 15 MB, which is the second reason not to load one in place.
+     * difference is the platform's rather than a preference. adrenotools stats the driver and then
+     * {@code dlopen}s it, and {@code /storage/emulated/0} is mounted {@code noexec} — so mapping the
+     * library's executable segment off it fails with {@code EPERM}, the loader reports
+     * {@code couldn't map … segment 2}, and adrenotools' hook falls back to the system driver while
+     * still returning a usable handle. That is the quiet failure, not a loud one. So a package the
+     * driver manager imported already lives on internal storage and needs nothing, while one staged
+     * by {@code scripts/stage.py} is copied to where it can be mapped. External storage is also
+     * FUSE-backed and this is 15 MB, which is the second reason not to load one in place.
+     *
+     * <p><b>The copy is a cache entry rather than app data</b>, because it is derived from bytes that
+     * are still on external storage and is remade whenever it is missing. {@link AppStorage} says
+     * what that buys.
      *
      * <p><b>A package that is gone ends the launch rather than falling back to the system driver.</b>
      * It is a state a user reaches without doing anything wrong — deleted from a PC, or the volume
@@ -694,7 +700,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
             // per driver, so switching between two packages cannot leave the previous one's
             // library sitting in the directory being pointed at.
-            File installDir = AppStorage.installedDriver(getFilesDir(), driverName);
+            File installDir = AppStorage.installedDriver(getCacheDir(), driverName);
             if (!installDir.isDirectory() && !installDir.mkdirs()) {
                 Log.e(TAG, "[app] could not create " + installDir);
                 driverFailure = R.string.driver_failed;

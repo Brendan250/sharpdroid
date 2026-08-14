@@ -17,10 +17,11 @@ import java.util.Locale
  *
  * **A driver's copy onto internal storage is a requirement and a build's is not**, which is the one
  * place these two managers genuinely differ. adrenotools stats the library and then `dlopen`s it, and
- * the linker refuses a library from a volume another app could have written — which external storage
- * is by definition. So an imported package is extracted straight onto internal storage and loaded
- * where it lands, and a staged one has its library copied there at launch. [AppStorage] owns both
- * directories and says which is which.
+ * external storage is mounted `noexec` — so the library's executable segment cannot be mapped off it
+ * and the load fails with `EPERM`, while a build's payload is read into anonymous memory and never
+ * mapped from the file at all. So an imported package is extracted straight onto internal storage and
+ * loaded where it lands, and a staged one has its library copied there at launch. [AppStorage] owns
+ * both directories and says which is which.
  */
 class GpuDriver private constructor(
     /** Where the package is. Its library is loaded from here when this is on internal storage. */

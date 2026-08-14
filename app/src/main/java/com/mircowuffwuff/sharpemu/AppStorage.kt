@@ -12,10 +12,13 @@ import java.io.File
  *
  * **The two volumes are not interchangeable and the split is deliberate.** External is where `adb`
  * can write and the app can read, which is what makes staging from a PC possible at all. Internal is
- * where the linker will accept a library it is asked to `dlopen`, which external can never be
- * because another app could have written it — and it is where anything written *during* a run goes,
- * since external storage is FUSE-backed and private data has no business being world-readable.
- * `docs/app.md` has the reasoning per directory.
+ * the only one a library can be mapped executable from, since external is mounted `noexec` — and it
+ * is where anything written *during* a run goes, since external storage is FUSE-backed and private
+ * data has no business being world-readable. `docs/app.md` has the reasoning per directory.
+ *
+ * **The rule is what a file is for rather than where it came from**: anything read as data is left on
+ * external where it was staged, and only what a linker maps executable is copied in. Of everything
+ * staged from a PC the GPU driver is the sole member of the second set.
  */
 object AppStorage {
 
@@ -163,24 +166,38 @@ object AppStorage {
     /**
      * Driver packages the app itself owns — whatever was imported from a zip.
      *
-     * **Unlike a build, this is where a package has to be**, and the difference is the linker's
-     * rather than a preference: adrenotools `dlopen`s the driver, and a library on a volume another
-     * app could have written is one the linker refuses. So an imported package is extracted straight
-     * onto internal storage and loaded where it lands, while a staged one goes through
-     * [installedDriver] at launch.
+     * **Unlike a build, this is where a package has to be**, and the difference is the platform's
+     * rather than a preference. External storage is mounted `noexec`, so mapping a library's
+     * executable segment off it fails with `EPERM` and `dlopen` reports `couldn't map … segment 2`;
+     * adrenotools' hook then falls back to the system driver and returns a perfectly good handle. A
+     * build is unaffected because its payload is read into anonymous memory and never mapped
+     * executable from the file. So an imported package is extracted straight onto internal storage
+     * and loaded where it lands, while a staged one goes through [installedDriver] at launch.
      */
     @JvmStatic
     fun installedDrivers(filesDir: File): File = File(filesDir, "gpu-drivers")
 
     /**
-     * Where a **staged** driver package's `.so` is copied so that the linker will accept it, one
+     * Where a **staged** driver package's `.so` is copied so that it can be mapped executable, one
      * directory per driver.
+     *
+     * **The cache directory, because every byte here is derived.** The library exists on external
+     * storage already and this copy is made from it whenever it is missing or a different length, so
+     * it is exactly what a cache is for — the platform may reclaim it under storage pressure and the
+     * next launch remakes it in the time one copy takes. Keeping it in `files/` instead would put
+     * megabytes of reproducible bytes where an export has to be told to skip them by name.
+     *
+     * **`gpu-drivers` in every root that has one**, so the name says what a directory holds and the
+     * root says whose it is: under `files/` are packages this app owns, under the cache are libraries
+     * derived from packages that live elsewhere, and on external storage are the ones a script
+     * staged. A name differing from the one beside it by a single letter is a collision waiting for
+     * whoever writes the next substring test.
      *
      * Per driver so that switching between two packages cannot leave the previous one's library
      * sitting in the directory being pointed at. An imported package needs none of this: it is
      * already on internal storage, so it is loaded out of [installedDrivers] in place.
      */
     @JvmStatic
-    fun installedDriver(filesDir: File, driverName: String): File =
-        File(File(filesDir, "gpu-driver"), driverName)
+    fun installedDriver(cacheDir: File, driverName: String): File =
+        File(File(cacheDir, "gpu-drivers"), driverName)
 }

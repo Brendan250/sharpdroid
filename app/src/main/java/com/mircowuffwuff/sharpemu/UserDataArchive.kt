@@ -36,14 +36,15 @@ object UserDataArchive {
     /**
      * **Paths never packed and never replaced**, relative to the data directory.
      *
-     * **Matched exactly, never by substring**, and that is the whole reason this is a list of paths
-     * rather than a list of names: `gpu-driver` is a prefix of `gpu-drivers`, so a `contains` test
-     * meant to skip the derived copy of a staged driver's library would silently skip every imported
-     * driver on the device — the collection an export exists to carry.
+     * **Matched exactly, never by substring**, and it is a rule about paths rather than names for a
+     * reason that outlives this particular list. `gpu-drivers` is the name of three directories in
+     * three roots, only one of which an export packs; the derived copies of staged drivers' libraries
+     * are in the cache directory, which an export does not reach at all. So the day something here
+     * shares a name — or a prefix — with a directory that *is* packed, a `contains` test would drop
+     * every imported driver on the device, silently, which is the collection an export exists to
+     * carry. A whole-path match cannot make that mistake.
      *
      * - `files/profileInstalled` is `androidx.profileinstaller`'s marker for *this* install.
-     * - `files/gpu-driver` holds copies of staged drivers' libraries, made because the linker needs
-     *   them on internal storage. Derived, and remade whenever a staged driver is selected.
      * - `files/builds/bundled` is the build unpacked out of this APK. Every install can lay it down
      *   again in about a quarter of a second, so carrying 76 MB of it would roughly double an archive
      *   to deliver bytes the destination already has inside its own package.
@@ -56,7 +57,6 @@ object UserDataArchive {
      */
     val IGNORED = setOf(
         "files/profileInstalled",
-        "files/gpu-driver",
         "files/builds/bundled",
         "files/guest-libs",
     )
