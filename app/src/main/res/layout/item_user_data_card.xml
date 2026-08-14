@@ -10,6 +10,10 @@
   where a save file came from is not a question - it came from playing. a badge slot filled with the
   only word available would be the rule that file states, broken in its own shape.
 
+  **what is inside is a settings row, drawn in that shell.** title, description, then the value at a
+  little more distance in the accent - the same three lines in the same order, appearance and spacing
+  as item_setting_value.xml, so a screen of cards and a screen of rows state a value the same way.
+
   **the actions sit in the space the text already occupies rather than in a row beneath it**, which is
   what keeps the card three lines tall instead of four blocks tall. it is also what makes a trailing
   icon work here where it does not in a settings list: a card is a container, so the gap between the
@@ -63,27 +67,8 @@
                 android:ellipsize="marquee"
                 android:marqueeRepeatLimit="marquee_forever"
                 android:singleLine="true"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
                 android:textColor="?attr/colorOnSurface" />
-
-            <!-- **the size, in the accent, because it is what the card was opened to find out.** it is
-                 the one line here that changes between one visit and the next, and it is drawn the way
-                 a settings row draws a chosen value: the answer to the card, in the colour that marks
-                 an answer. what is empty says so in words rather than showing "0 B", which reads as a
-                 measurement that failed.
-
-                 **and a card with nothing to report takes the body colour instead**, which is the same
-                 thing a settings row does with "None": an absence is not an answer, so it is not
-                 painted as one. the colour is set per card in UserDataAdapter rather than here, since
-                 only the adapter knows which of the two a card is. -->
-            <TextView
-                android:id="@+id/figures"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:singleLine="true"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorPrimary" />
 
             <!-- one line, and a long one scrolls rather than wrapping. two cards share a grid row and
                  are each as tall as their own content, so a description that takes two lines on one of
@@ -93,12 +78,33 @@
                 android:id="@+id/description"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="2dp"
                 android:ellipsize="marquee"
                 android:marqueeRepeatLimit="marquee_forever"
                 android:singleLine="true"
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <!-- **the size, in the accent, because it is what the card was opened to find out.** it is
+                 the one line here that changes between one visit and the next, and it is the settings
+                 row's value line verbatim - same appearance, same colour, same extra gap above it, and
+                 last for the same reason the row puts it last: the description is what the card says
+                 when it has nothing else to say, and the figure is the thing somebody came back to
+                 check. see item_setting_value.xml. what is empty says so in words rather than showing
+                 "0 B", which reads as a measurement that failed.
+
+                 **and a card with nothing to report takes the body colour instead**, which is the same
+                 thing a settings row does with "None": an absence is not an answer, so it is not
+                 painted as one. the colour is set per card in UserDataAdapter rather than here, since
+                 only the adapter knows which of the two a card is. -->
+            <TextView
+                android:id="@+id/figures"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="?attr/colorPrimary" />
 
         </LinearLayout>
 
