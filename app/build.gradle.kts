@@ -35,6 +35,12 @@ val bundleAssets: String? = (findProperty("sharpemuBundleAssets") as String?)?.t
 // on that line is a string somebody then quotes into a bug report and tries to resolve.
 val identityCommit: String = (findProperty("sharpemuCommit") as String?)?.takeIf { it.isNotBlank() } ?: ""
 
+// the FEXCore the host layer is linked against, as scripts/build-apk.py described it out of the
+// pinned submodule. empty is a supported state for the same reason it is above, and the About screen
+// simply omits the line.
+val identityFexVersion: String =
+    (findProperty("sharpemuFexVersion") as String?)?.takeIf { it.isNotBlank() } ?: ""
+
 // the build-tools revision, as scripts/build-apk.py resolved it out of toolchain.json.
 //
 // **saying nothing here does not mean "whatever is installed".** AGP has a default of its own, and
@@ -74,6 +80,7 @@ android {
         // buildConfig feature nor a generated class -- it is a string on a screen and nothing else
         // consumes it.
         resValue("string", "app_commit", identityCommit)
+        resValue("string", "fex_version", identityFexVersion)
 
         ndk {
             // arm64 only, and that is the architecture rather than a packaging choice: FEXCore's

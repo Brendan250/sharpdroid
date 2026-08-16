@@ -78,8 +78,9 @@ class AboutActivity : AppCompatActivity() {
         body.mirco.setOnClickListener { wiggleThenOpen(it, DONATE) }
 
         val facts = body.facts
-        facts.build.text = buildLine()
+        facts.versions.text = versionsLine()
         facts.sharpemu.setOnClickListener { open(SHARPEMU) }
+        facts.fexcore.setOnClickListener { open(FEXCORE) }
         facts.eden.setOnClickListener { open(EDEN) }
         facts.gamenative.setOnClickListener { open(GAMENATIVE) }
         facts.source.setOnClickListener { open(REPOSITORY) }
@@ -126,6 +127,24 @@ class AboutActivity : AppCompatActivity() {
             .getOrNull().orEmpty()
         val commit = getString(R.string.app_commit)
         return if (commit.isEmpty()) version else getString(R.string.about_version, version, commit)
+    }
+
+    /**
+     * Both emulators' versions, on one line, in the order the two names above them are in.
+     *
+     * **It is one string rather than a field each with a separator between them**, because the dot
+     * dividing the two is meant to be the same mark as the dot inside the SharpEmu version — and the
+     * only way to be sure of that is for it to be the same character of the same string. It is also
+     * `about_version`, the format the app's own version line uses, so the two lines cannot drift.
+     *
+     * **The dot goes with the value it introduces.** A build that could not describe the FEX submodule
+     * leaves the line at SharpEmu's half alone: an empty field beside a full one reads as a value that
+     * failed, and a separator with nothing after it as one still arriving.
+     */
+    private fun versionsLine(): String {
+        val build = buildLine()
+        val fex = getString(R.string.fex_version)
+        return if (fex.isEmpty()) build else getString(R.string.about_version, build, fex)
     }
 
     /**
@@ -217,6 +236,9 @@ class AboutActivity : AppCompatActivity() {
 
     private companion object {
         const val SHARPEMU = "https://github.com/sharpemu/sharpemu"
+
+        /** FEX's repository rather than its site, since the repository is what this pins. */
+        const val FEXCORE = "https://github.com/FEX-Emu/FEX"
         const val EDEN = "https://eden-emu.dev/"
         const val GAMENATIVE = "https://github.com/utkarshdalal/GameNative"
         const val REPOSITORY = "https://github.com/sharpemu-android/sharpemu-android"

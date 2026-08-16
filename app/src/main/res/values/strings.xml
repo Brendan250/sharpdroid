@@ -480,7 +480,9 @@
     <string name="about_version">%1$s · %2$s</string>
     <string name="about_version_copied">Version copied</string>
 
-    <string name="about_label_emulator">Emulator</string>
+    <!-- **plural, because there are two and they are stacked.** SharpEmu emulates a PlayStation 5;
+         FEXCore is what executes SharpEmu, which is x86-64, on an arm64 CPU. -->
+    <string name="about_label_emulator">Emulators</string>
     <string name="about_label_references">Read against</string>
     <string name="about_label_licence">Licence</string>
 
@@ -489,6 +491,8 @@
          build at all. neither is a fault and neither leaves the line blank. -->
     <string name="about_build_none">no build on this device</string>
     <string name="about_build_no_commit">%1$s · commit not recorded</string>
+
+    <string name="about_fexcore">FEXCore ↗</string>
 
     <string name="about_eden">Eden ↗</string>
     <string name="about_gamenative">GameNative ↗</string>

@@ -477,7 +477,8 @@ def build_with_gradle(toolchain, package, label, offline):
                  "-PsharpemuBundleAssets=" + str(paths.BUILD_BUNDLE),
                  "-PsharpemuApplicationId=" + package,
                  "-PsharpemuAppLabel=" + label,
-                 "-PsharpemuCommit=" + repository_commit()]
+                 "-PsharpemuCommit=" + repository_commit(),
+                 "-PsharpemuFexVersion=" + fex_version()]
     if offline:
         arguments.append("--offline")
 
@@ -532,6 +533,29 @@ def repository_commit():
     if dirt.returncode == 0 and dirt.stdout.strip():
         commit += "-dirty"
     return commit
+
+
+def fex_version():
+    """the FEXCore the host layer is linked against, in FEX's own release naming.
+
+    FEX tags a release a month and names it for the month -- `FEX-2607` -- so `describe` against the
+    tags is the version a person would quote, and it degrades by itself: a commit past a tag is that
+    tag with a count and an abbreviated hash after it, which is still the right answer and still
+    readable.
+
+    **the dirty marker is the one this repository should never see.** FEX is a pinned submodule that
+    is never modified, so a suffix here is not a stale working tree -- it is that rule having been
+    broken, and the About screen is a reasonable place for it to surface.
+
+    empty when there is no git, no submodule or no tags, for the reason `repository_commit` is: not
+    knowing is a state the screen is written for, and a placeholder is a string somebody would try to
+    resolve.
+    """
+    described = subprocess.run(["git", "-C", str(paths.ROOT / "external" / "FEX"),
+                                "describe", "--tags", "--dirty"],
+                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                               encoding="utf-8", errors="replace")
+    return described.stdout.strip() if described.returncode == 0 else ""
 
 
 def gradle_output():

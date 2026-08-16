@@ -169,6 +169,8 @@ both identities refuse a build whose contract generation the app does not speak,
 
 **the APK also records the commit of this repository it was built from**, which the app shows on its About screen beside its version and which a bug report is worth having: a version alone names a fortnight of commits. a working tree with uncommitted changes in it is marked as such, because an APK built from one is not the commit it names. **not knowing is a supported state and never a refusal** — a source archive carries no `.git` and a machine may have no `git` at all, and the app then shows the version by itself.
 
+**it records the FEXCore it was built against the same way**, described out of the pinned submodule against FEX's own release tags. the same empty-string fallback applies, and the same dirty marker — which here would mean the rule that FEX is never modified had been broken, rather than an ordinary development tree.
+
 ## the shared package
 
 `scripts/sharpemu/` is the half every entry point shares, eight modules: `shell` is how a script talks, runs things and refuses; `paths` is where every artefact in this repository is; `toolchain` resolves the compilers and SDKs; `native` is the cmake build both native steps use; `vocabulary` is the argument scheme; `device` is `adb` and the app's identity; `builds` reads the build format; and `resolve` turns one of the vocabulary's values into a thing on a device.

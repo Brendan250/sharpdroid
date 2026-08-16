@@ -43,16 +43,59 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/sharpemu"
-                style="@style/AboutLink"
-                android:text="@string/about_sharpemu" />
+            <!-- **two names on one line and two versions under them, mapping by order.** it is the
+                 shape the references row below already has, and it is here because the alternative -
+                 an entry each, stacked - gives this label four lines where every other label on the
+                 screen has two, and the row that breaks the table's rhythm is the one at the top of
+                 it.
 
-            <!-- the version and commit of the build **a launch would actually run**, which is not
-                 always the one this APK ships. monospaced, for the reason the app's own version line
-                 is: it is quoted into a bug report by hand. -->
+                 **the second emulator is not a footnote.** one runs the game and the other runs *it*:
+                 the whole SharpEmu process is x86-64, and this is what executes it on an arm64 CPU,
+                 so a page naming what this app is built on and omitting it would be missing the half
+                 that makes any of it possible on this hardware. -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/sharpemu"
+                    style="@style/AboutLink"
+                    android:text="@string/about_sharpemu" />
+
+                <TextView
+                    android:id="@+id/fexcore"
+                    style="@style/AboutLink"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/about_fexcore" />
+
+            </LinearLayout>
+
+            <!-- both versions on one line, divided by the dot this screen already separates values
+                 with, mapping by order onto the two names above.
+
+                 **one view holding one string, rather than a field each with a separator view between
+                 them.** the dot between the two emulators is meant to be the same mark as the dot
+                 inside a version, and the only way to be certain of that is for it to be the same
+                 character of the same string in the same font at the same colour — matched instead by
+                 setting three attributes on a view of its own, it comes out subtly wrong, and the
+                 first two attempts here differed in alpha alone. it is also less to keep in step: the
+                 activity composes this with the same format string the app's own version line uses,
+                 so the two lines cannot drift apart.
+
+                 **what it costs is that the line's two levels look alike.** the dot inside a version
+                 divides it from its own commit and the dot between the two divides one emulator from
+                 the other, so which version belongs to which name is carried by order rather than
+                 shown. the alternative is whitespace at the width of the gap between the two names,
+                 which keeps the grouping visible and reads as a missing character; this is the trade
+                 the other way, taken deliberately.
+
+                 the version and commit are of the build **a launch would actually run**, which is not
+                 always the one this APK ships, and FEX's half is its own release naming. monospaced
+                 for the reason the app's own version line is: it is quoted into a bug report by
+                 hand. -->
             <TextView
-                android:id="@+id/build"
+                android:id="@+id/versions"
                 style="@style/AboutSub"
                 android:fontFamily="monospace" />
 
