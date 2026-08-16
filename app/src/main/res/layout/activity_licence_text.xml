@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  one licence document, read as it ships.
+
+  **monospaced, wrapped, and not reformatted.** these files are plain text written by the people whose
+  terms they state, and every one of them is laid out for a fixed-width column - indented lists,
+  aligned clause numbers, a title centred by spaces. rendering them as prose would reflow all of that
+  into something that reads as damaged, and rendering them as markdown would find headings and emphasis
+  in text that has none.
+
+  **long lines wrap rather than scrolling sideways.** a horizontal scroll would keep every line
+  verbatim and cost a page that has to be dragged in two directions to read one paragraph; the text is
+  set small enough that the wrapping is rare, and where it happens a continued line is still readable
+  where an unreachable one is not.
+
+  the text is selectable, because the point of shipping a notice is that somebody can take it away with
+  them.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:navigationIcon="@drawable/ic_back" />
+
+    <ScrollView
+        android:id="@+id/scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="24dp"
+        android:scrollbarStyle="outsideOverlay">
+
+        <TextView
+            android:id="@+id/text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textIsSelectable="true"
+            android:textSize="12sp" />
+
+    </ScrollView>
+
+</LinearLayout>

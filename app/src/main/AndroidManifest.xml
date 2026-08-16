@@ -105,6 +105,22 @@
             android:exported="false" />
 
         <!--
+          the list of licence documents this APK redistributes its guest libraries under, and the
+          reader that shows one.
+
+          neither is exported, which is the rule every screen behind the cog follows, and here it
+          costs nothing: the texts are assets of this APK, so anything that could send the intent
+          could read them directly.
+        -->
+        <activity
+            android:name=".LicencesActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".LicenceTextActivity"
+            android:exported="false" />
+
+        <!--
           **a process of its own, and it is the guest's exit that asks for it.** a guest calling
           exit_group ends the process it is in - that is what the syscall means, and the host layer
           answers it with _exit because the other guest threads are inside translated code and

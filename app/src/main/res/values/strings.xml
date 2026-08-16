@@ -443,4 +443,19 @@
     <string name="driver_failed">The graphics driver you chose failed to load. Pick another in settings.</string>
     <string name="driver_failed_missing">The graphics driver you chose is gone. Pick another in settings.</string>
 
+    <!-- ==========================================================================================
+         the Third-party licences screen and the reader behind it.
+         ========================================================================================== -->
+
+    <string name="licences_title">Third-party licences</string>
+    <!-- the index the packaging step writes, first in the list because it is the one document here
+         that explains the others. -->
+    <string name="licences_notice">These libraries</string>
+    <string name="licences_notice_kind">What this app carries, and where its source is kept</string>
+    <string name="licences_copyright">Copyright statement</string>
+    <string name="licences_text">Licence text</string>
+    <!-- an APK is asserted to carry every one of these when it is packaged, so this is the answer to
+         something having gone wrong rather than to a normal state. -->
+    <string name="licences_unreadable">Could not read that document</string>
+
 </resources>
