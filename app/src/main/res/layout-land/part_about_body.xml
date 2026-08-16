@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the About screen on a screen wider than it is tall: the drawing on one side, everything it introduces
+  on the other.
+
+  **the same views and the same ids as the stacked variant, and only the axis differs.** the facts
+  themselves are an include shared by both, so what is duplicated between the two files is a choice of
+  direction and nothing that carries a word.
+
+  **it exists because the stacked composition does not fit.** the drawing alone is 252dp and the block
+  under it another 200; a landscape handheld has about 404dp under its toolbar, so upright the screen
+  would open on the portrait with every fact below the fold - on the one device this is developed
+  against. side by side the whole page is the drawing's own height and nothing scrolls.
+
+  **the text is start-aligned here and centred there, and that is the axis rather than a preference.**
+  a centred column beside a picture has no edge to line up with and reads as drifting; stacked under
+  one, a centred column shares the picture's own axis.
+
+  the pair is centred as a block rather than the text taking the rest of the width, so the drawing
+  stays near the middle instead of being pushed to the edge by however long the longest line happens to
+  be.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:paddingHorizontal="28dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="12dp">
+
+    <!-- **the drawing is the largest thing on the screen and is meant to be.** the page is a colophon
+         and a colophon's decoration is its one image; at the size a settings screen would give it, it
+         reads as an icon beside a table rather than as the thing the table is arranged around. what
+         caps it is the space: this is the tallest view in the row, so it sets the row's height, and
+         the row plus its padding has to stay inside the roughly 404dp a landscape handheld leaves
+         under its toolbar. -->
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="320dp"
+        android:layout_marginEnd="28dp">
+
+        <!-- **the glow is smaller than the drawing rather than larger**, so the paws and the tuft of
+             hair carry past it and it reads as light falling on a body rather than as a disc with a
+             character stamped in the middle of it. it is centred on the frame, which puts it behind
+             the torso. everything else about it is the stacked variant's: a white ramp, tinted with
+             the accent, at a fifth of it. -->
+        <View
+            android:layout_width="252dp"
+            android:layout_height="252dp"
+            android:layout_gravity="center"
+            android:alpha="0.22"
+            android:background="@drawable/bg_hero_glow"
+            android:backgroundTint="?attr/colorPrimary" />
+
+        <!-- it answers a tap by moving and carries no ripple, for the reason the stacked variant
+             states. -->
+        <ImageView
+            android:id="@+id/mirco"
+            android:layout_width="wrap_content"
+            android:layout_height="320dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:adjustViewBounds="true"
+            android:contentDescription="@string/about_by"
+            android:scaleType="fitCenter"
+            android:src="@drawable/mirco" />
+
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/about_title"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textColor="?attr/colorOnSurface" />
+
+        <!-- **pulled back by the padding it carries**, so its text starts on the same vertical as the
+             title above rather than a few dp inside it. -->
+        <TextView
+            android:id="@+id/version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="-12dp"
+            android:layout_marginTop="3dp"
+            android:background="?attr/selectableItemBackground"
+            android:fontFamily="monospace"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="5dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <include
+            android:id="@+id/facts"
+            layout="@layout/part_about_facts"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

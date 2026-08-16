@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the soft light behind the drawing at the top of the About screen.
+
+  **it is what makes that screen a page rather than the first card of a list**, and it is the only
+  ornament on it: a portrait dropped onto a flat surface floats, and a shape drawn behind it with an
+  edge would be a second object competing with it. a radius that fades to nothing reads as light rather
+  than as a thing.
+
+  it is solid white and the layout tints it, which is `bg_badge.xml`'s rule and is here for the same
+  reason — a shape's own colour cannot be a theme attribute on every API this app supports, where
+  `android:backgroundTint` on the view can. the tint replaces the colour and keeps the alpha, so a
+  white-to-transparent ramp becomes an accent-to-transparent one in whichever palette is on.
+
+  **the middle stop is what shapes it.** two stops give a linear falloff, which has a visible disc in
+  it; a third at just over a third of the alpha pulls the ramp in and leaves no edge anywhere. the view
+  carries the overall strength as `android:alpha`, so the same drawable is a whisper under a near-white
+  accent and a glow under a violet one.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:type="radial"
+        android:gradientRadius="50%"
+        android:startColor="#FFFFFFFF"
+        android:centerColor="#59FFFFFF"
+        android:endColor="#00FFFFFF" />
+</shape>

@@ -1,10 +1,10 @@
 # the app
 
-the APK: seven activities. `GameListActivity` is what the launcher icon opens and lists the games on the device; `SettingsActivity` and `SettingsSectionActivity` are the settings scene behind its cog, with `BuildsActivity` the build manager, `DriversActivity` the GPU driver manager and `FoldersActivity` the game folder manager behind three of its rows; `MainActivity` holds a `SurfaceView` with a guest running underneath it — it gets a window from android, hands it down, chooses a build and a driver, assembles an argument vector and calls into the host layer, which blocks until the guest is done. it is the one activity in a **process of its own**, given to one run and ended with it.
+the APK: eleven activities. `GameListActivity` is what the launcher icon opens and lists the games on the device; `SettingsActivity` and `SettingsSectionActivity` are the settings scene behind its cog, with `BuildsActivity` the build manager, `DriversActivity` the GPU driver manager, `FoldersActivity` the game folder manager, `UserDataActivity` the user data screen and `AboutActivity` the credits page behind five of its cards, and `LicencesActivity` and `LicenceTextActivity` behind that last one; `MainActivity` holds a `SurfaceView` with a guest running underneath it — it gets a window from android, hands it down, chooses a build and a driver, assembles an argument vector and calls into the host layer, which blocks until the guest is done. it is the one activity in a **process of its own**, given to one run and ended with it.
 
 **it is an early frontend.** there is a game list, a tap to run one, a settings scene with a handful of rows in it, and a build manager, a driver manager and a game folder manager behind three of them, and a run is left through the one-button panel the back button opens over it: no per-game menu. most of what a run does is still a launch extra with a compiled-in default, and a run started by an intent reaches the same activity the list does. everything below describes it as it is rather than as something on the way somewhere.
 
-`app/src/main/AndroidManifest.xml`, a small `res/` tree, four java files and thirty-five kotlin files are all of it, with `host/src/entry_jni.cpp` on the other side of the JNI boundary — and, since a game can come from a grant rather than a path, `GuestFiles.kt` on the *other* side of it, called from the host layer rather than into it. [`host-layer.md`](host-layer.md) describes everything below `RunMain`; [`guest-files.md`](guest-files.md) describes that callback and what it costs; [`build-format.md`](build-format.md) describes what the app installs and launches; [`repo-structure.md`](repo-structure.md) says where the APK is built and under which application id, and [`scripts.md`](scripts.md) says how to drive any of it.
+`app/src/main/AndroidManifest.xml`, a small `res/` tree, four java files and forty-six kotlin files are all of it, with `host/src/entry_jni.cpp` on the other side of the JNI boundary — and, since a game can come from a grant rather than a path, `GuestFiles.kt` on the *other* side of it, called from the host layer rather than into it. [`host-layer.md`](host-layer.md) describes everything below `RunMain`; [`guest-files.md`](guest-files.md) describes that callback and what it costs; [`build-format.md`](build-format.md) describes what the app installs and launches; [`repo-structure.md`](repo-structure.md) says where the APK is built and under which application id, and [`scripts.md`](scripts.md) says how to drive any of it.
 
 ## three invariants
 
@@ -29,7 +29,7 @@ the APK: seven activities. `GameListActivity` is what the launcher icon opens an
 | | |
 | --- | --- |
 | API | `minSdk` 28, `targetSdk` 35, `compileSdk` 35 — in `app/build.gradle.kts`, not the manifest |
-| the activities | seven. `GameListActivity` carries the `MAIN`/`LAUNCHER` filter; `MainActivity` is exported with no filter at all, so `am start -n` reaches it and nothing resolves it implicitly; the two settings activities and the three managers are not exported, since they are reached from the cog and from nowhere else |
+| the activities | eleven. `GameListActivity` carries the `MAIN`/`LAUNCHER` filter; `MainActivity` is exported with no filter at all, so `am start -n` reaches it and nothing resolves it implicitly; the two settings activities and everything behind them are not exported, since they are reached from the cog and from nowhere else |
 | processes | two. `MainActivity` declares `android:process=":guest"` and every other activity is in the app's own — see [the guest's own process](#the-guests-own-process) |
 | orientation | `MainActivity` is **locked landscape**, and its `configChanges` claims orientation, screen size, layout, density and UI mode so it is never recreated under a running guest. the game list is unconstrained |
 | theme | `Theme.SharpEmu` on the application, Material3 following the platform between light and dark. it is what an activity wears for the moment before `Theme.kt` sets the chosen one and is not itself offered in the list. every palette is set per activity before `setContentView`, since a theme is resolved while a view hierarchy is inflated. `MainActivity` overrides all of it back to `Theme.Black.NoTitleBar.Fullscreen`, because its window is a surface a guest renders into |
@@ -140,9 +140,13 @@ a subsection is a label above a run of rows rather than another button press. a 
 | --- | --- |
 | App | Theme, Theme color while Custom is chosen, Fullscreen mode |
 | Emulation | under a SharpEmu label, SharpEmu build; under a FEXCore label, FEXCore preset |
-| Graphics | Internal resolution, and under a Vulkan label, Custom driver |
+| Graphics | Internal resolution, and under a Vulkan label, Custom driver and Disk shader cache |
 | Controls | Automatic controller mapping, Vibrate handheld motor |
-| Data | under a Game files label, Game folders, and All files access where the platform has it |
+| Game files | Game folders, and All files access where the platform has it |
+| User data | none. the card opens `UserDataActivity` |
+| About | none. the card opens `AboutActivity` |
+
+**two of the seven cards open a screen rather than a list of rows**, and the enum carries that as a class rather than the scene carrying a special case. User data is a manager screen and About is a page; neither is a set of settings, and a list holding one row that opened the real thing would be a screen nobody wanted to be on.
 
 **the two Controls rows are the only ones that reach neither an argument vector nor the guest environment.** every other row here becomes something on the payload's command line or in its environment; these two are read by the process that runs the guest and change what the app does with events it receives and with a request it is handed. [`pad.md`](pad.md) owns what they govern and why they are two switches rather than one.
 
@@ -484,6 +488,39 @@ the copy's directory is **per driver**, so switching between two packages cannot
 the app then passes `--vulkan-driver` and `--vulkan-hooks` together or neither. the hooks path is `nativeLibraryDir` and can only be `nativeLibraryDir` — the app is the only thing that knows it, which is why it is passed down rather than derived below. [`vulkan.md`](vulkan.md) describes what adrenotools does with the two.
 
 **with no driver staged the flags are simply not passed**, and the host layer opens the platform loader exactly as it does from a shell. that is what keeps the stock-driver baseline reproducible from the same build rather than merely equivalent.
+
+## the About screen
+
+**Settings -> About** is `AboutActivity`: a drawing, the project's name, who made it, what version this is, and three labelled facts — what emulator it runs, what it was read against, and what it is under.
+
+**a colophon rather than a list of credits**, which is the shape and the argument at once. five facts do not want five cards to live in: a label column and a value column states all of it, on a landscape handheld, with nothing scrolled, nothing expanded and nothing hidden behind a tap that only reveals text. **a card is a container for a thing among other things and this page is one statement**, so there is no card anywhere on it and no adapter behind it.
+
+**it credits without thanking, and the reason is worth writing down** because it was learned the expensive way. an earlier shape gave every name a card that opened onto a paragraph, and every paragraph ended in *thank you* — not out of feeling but because the shape asked for prose and there was no prose of fact to give, so what filled it was sentiment. a labelled line states the same relationship. listing somebody under **Read against** is the credit.
+
+**there is not one image on the screen but the drawing.** no logo, no avatar, no glyph on a link: each would be a second thing to look at, and three of them turn a page into a list. a link says where it goes with a character in its own text — an arrow out of the app, a chevron to a screen of this one — which costs no drawable, takes the line's own colour and size, and keeps the whole link inside one ripple.
+
+**the drawing is the largest thing on the page and is meant to be.** a colophon's decoration is its one image; at the size a settings screen would give it, it reads as an icon beside a table rather than as the thing the table is arranged around. what caps it is the space — in the wide variant it is the tallest view in the row, so it sets the row's height, and the row has to stay inside the roughly 404dp a landscape handheld leaves under its toolbar. **the glow behind it is deliberately smaller than it is**, so the paws and the tuft of hair carry past the light and it reads as something being lit rather than as a disc with a character stamped in the middle.
+
+**the drawing is a link, it moves before it leaves, and nothing on the screen says so.** a tap rocks it about its bottom edge for about six tenths of a second and opens the donation URL when that finishes, rather than on the press: a browser that arrived first would take the screen away before anybody saw it react. it carries no ripple, which makes it the one deliberate touch target in this app that does not look like one — the movement is the affordance and it is the only one. **the page does not sign itself and carries no attribution line**, which is what leaves the link unannounced: this screen names what the app is built on and declines to ask anybody for anything. the image's content description is where the destination is named, so a screen reader is told what the page does not print.
+
+**the layout files are the frame, the composition and the table.** `activity_about.xml` is the toolbar and a scroll view; `part_about_body.xml` is the composition and has a `-land` variant, because the one thing the shape of the screen changes is whether the drawing sits above the text or beside it; `part_about_facts.xml` is the three-row table and is shared by both, so what differs between the two variants is a choice of axis and nothing that carries a word. **the scroll view sets `fillViewport`**, which is what lets the composition centre in the space rather than hang from the top of it, and it still scrolls on a screen shorter than either variant was written for.
+
+**what a launch would run is asked of `BuildLibrary` rather than resolved again.** the emulator's version and commit come from the same listing the build manager and [choosing a build](#choosing-a-build) use, so this screen cannot name a build the launcher would not. a device with no build at all is a normal state, since a development APK ships none, and so is a build recording no commit, which is one packaged from a published archive.
+
+**the version line carries the commit this APK was built from, and a tap copies it.** `scripts/build-apk.py` resolves it and passes it to gradle, which emits it as a string resource; a tree with uncommitted changes in it is marked, because an APK built from one is not the commit it names and that is the ordinary case during development. an APK built outside a checkout knows no commit, and the line is then the version alone — a placeholder there would be a string somebody quotes into a report and then tries to resolve. **the copy is acknowledged by the platform above API 32** and by a toast below it, rather than by both: android draws its own preview of what was taken, and a toast on top of that is the same news twice.
+
+## the licences the APK redistributes
+
+**About -> Third-party licences** is `LicencesActivity`, and one document opens in `LicenceTextActivity`.
+
+the x86-64 set the guest's own linker searches is mostly unmodified Debian binaries, so the APK redistributes them, and the terms they travel under are packaged beside them: an index, each source package's own copyright statement as Debian writes it, and the full text of every licence those statements refer to. `scripts/build-apk.py` refuses to package a set missing any of them and asserts them again inside the finished archive — **so the obligation is met by the artefact, and these two screens are what makes it reachable.** a notice nobody can open without unzipping the APK is doing half the job.
+
+- **read out of the assets, never copied into `res/`.** the files beside the binaries are the notice; a second copy in string resources is one that can silently disagree with the one that shipped.
+- **the unpacked copy on internal storage is deliberately not used.** it only exists after a launch has needed it, and this has to work on an install that has never started a game.
+- **a set staged over `adb` is not shown either.** that override is a development path, and what a recipient was handed is what the APK carries.
+- **the list is not hardcoded.** `AssetManager.list` over the licence directory is what names the entries, so a package added to the set appears with nothing in the app changing.
+- **the app's own licence is one of these documents.** sharpemu-android is GPL-2.0-or-later and the GPL text already ships beside the guest libraries, so the About screen's *Read it* link opens that one rather than a second copy of it.
+- **nothing is reformatted and the read does not trim.** these are laid out for a fixed-width column, and every one of them opens with a title centred by leading spaces — so a monospaced view that wraps and strips nothing is both the honest shape and the only correct one.
 
 ## the log
 

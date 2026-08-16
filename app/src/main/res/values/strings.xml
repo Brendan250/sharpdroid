@@ -71,6 +71,12 @@
     <string name="settings_game_files_summary">Where this app reads your games from</string>
     <string name="settings_user_data">User data</string>
     <string name="settings_user_data_summary">Everything this emulator stores and writes</string>
+    <!-- **last in the grid, and it is the one section that is not a setting.** nothing behind it
+         changes what a launch does. it is here because a settings scene is where somebody looks for a
+         version number and for what the app is under, and a seventh card is cheaper to find than a
+         menu item on a screen nobody opens twice. -->
+    <string name="settings_about">About</string>
+    <string name="settings_about_summary">Credits, versions and licences</string>
 
     <string name="settings_group_sharpemu">SharpEmu</string>
 
@@ -444,9 +450,63 @@
     <string name="driver_failed_missing">The graphics driver you chose is gone. Pick another in settings.</string>
 
     <!-- ==========================================================================================
-         the Third-party licences screen and the reader behind it.
+         the About screen.
+
+         **it credits and it does not thank.** an earlier draft gave every name a paragraph ending in
+         "Thank you", which read as effusive for one reason worth writing down: the shape asked for a
+         paragraph and there was no paragraph of fact to give, so what filled it was sentiment. a
+         labelled line states the same relationship - what this runs, what it was read against - and
+         listing somebody under a label is the credit. so nothing here is written in the second person
+         and nothing here is grateful at anybody.
+
+         **an arrow or a chevron is part of a link's own text**, and neither is decoration: one means a
+         browser and the other a screen of this app, which is a distinction somebody can act on before
+         pressing rather than after. they live in the strings because they are read as characters of
+         the line rather than drawn beside it: there is no image on this screen but the drawing.
          ========================================================================================== -->
 
+    <!-- the project's own name, and it is lower case because that is how it is written, as yuzu is,
+         and for the same reason. it is deliberately not the app's launcher label: a credits page is
+         about the thing that was made rather than about which of its identities is installed. -->
+    <string name="about_title">sharpemu-android</string>
+
+    <!-- **the drawing's description, and it appears nowhere on the screen.** the page names what this
+         app is built on and does not sign itself: an attribution line under the title is the one thing
+         here that would be asking for something rather than stating something. so the words survive as
+         what a screen reader is told about the image, which is also the only place the link it carries
+         is named at all. -->
+    <string name="about_by">by mircowuffwuff</string>
+
+    <string name="about_version">%1$s · %2$s</string>
+    <string name="about_version_copied">Version copied</string>
+
+    <string name="about_label_emulator">Emulator</string>
+    <string name="about_label_references">Read against</string>
+    <string name="about_label_licence">Licence</string>
+
+    <string name="about_sharpemu">SharpEmu ↗</string>
+    <!-- a build packaged from a published archive records no commit, and a development APK ships no
+         build at all. neither is a fault and neither leaves the line blank. -->
+    <string name="about_build_none">no build on this device</string>
+    <string name="about_build_no_commit">%1$s · commit not recorded</string>
+
+    <string name="about_eden">Eden ↗</string>
+    <string name="about_gamenative">GameNative ↗</string>
+    <!-- the two reasons, in the order of the two names above them, and no adjective on either. -->
+    <string name="about_references_sub">for these screens, and for x86-64 on Android</string>
+
+    <string name="about_licence">GPL-2.0-or-later</string>
+    <string name="about_source">Source ↗</string>
+    <string name="about_read_licence">Read it ›</string>
+    <string name="about_third_party">Third-party licences ›</string>
+    <string name="about_separator">·</string>
+
+    <!-- **a device with no browser is a real state for this one**, and a handheld set up to run games
+         and nothing else is exactly where it happens. every link on the screen fails the same way and
+         none of them takes the app with it. -->
+    <string name="about_link_failed">Nothing on this device can open links</string>
+
+    <!-- the Third-party licences screen and the reader behind it. -->
     <string name="licences_title">Third-party licences</string>
     <!-- the index the packaging step writes, first in the list because it is the one document here
          that explains the others. -->

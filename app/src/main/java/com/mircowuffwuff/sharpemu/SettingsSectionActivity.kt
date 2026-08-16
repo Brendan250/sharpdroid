@@ -99,10 +99,11 @@ class SettingsSectionActivity : AppCompatActivity() {
         SettingsActivity.Section.GRAPHICS -> graphicsRows()
         SettingsActivity.Section.CONTROLS -> controlsRows()
         SettingsActivity.Section.GAME_FILES -> gameFilesRows()
-        // User data is a manager screen of its own, so its card never opens this activity. a
+        // User data and About are screens of their own, so neither card ever opens this activity. a
         // hand-written intent still can, and an empty list is what it gets - the same answer the
         // section guard in onCreate gives a name that is not a section at all.
         SettingsActivity.Section.USER_DATA -> emptyList()
+        SettingsActivity.Section.ABOUT -> emptyList()
     }
 
     private fun appRows(): List<SettingRow> {

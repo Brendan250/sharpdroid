@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the three labelled facts on the About screen: what emulator this runs, what it was read against, and
+  what it is under.
+
+  **one file, included by both orientations**, which is what keeps the two body variants to a choice of
+  axis. everything that differs between upright and wide is where this block sits; nothing that differs
+  is inside it.
+
+  **a label column at a fixed width and a value column filling the rest.** sizing both halves to their
+  content would put the three values at three different distances from the edge, which is the one thing
+  a table exists to avoid. the labels are the quiet half and take the accent at small caps, so the eye
+  reads down them and across to whichever line it wants.
+
+  **there is not one image on this screen but the drawing**, and that is the whole design rather than a
+  restriction it is working under: a mark beside a name, an avatar beside a label or a glyph on a link
+  each add a second thing to look at, and three of them turn a page into a list. so a link says where
+  it goes with a character in its own text - an arrow out of the app, a chevron to a screen of this one
+  - which costs no drawable, takes the text's own colour and size, and keeps the whole line inside one
+  ripple.
+
+  **the sub-line under a value is what that value is, never what to think about it.** a version, a pair
+  of reasons in the same order as the pair of names above it, and three places to read the terms.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- ============================================================ the emulator -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            style="@style/AboutLabel"
+            android:text="@string/about_label_emulator" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/sharpemu"
+                style="@style/AboutLink"
+                android:text="@string/about_sharpemu" />
+
+            <!-- the version and commit of the build **a launch would actually run**, which is not
+                 always the one this APK ships. monospaced, for the reason the app's own version line
+                 is: it is quoted into a bug report by hand. -->
+            <TextView
+                android:id="@+id/build"
+                style="@style/AboutSub"
+                android:fontFamily="monospace" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- ============================================================ the references -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <TextView
+            style="@style/AboutLabel"
+            android:text="@string/about_label_references" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/eden"
+                    style="@style/AboutLink"
+                    android:text="@string/about_eden" />
+
+                <TextView
+                    android:id="@+id/gamenative"
+                    style="@style/AboutLink"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/about_gamenative" />
+
+            </LinearLayout>
+
+            <!-- the two reasons, in the order of the two names above them. -->
+            <TextView
+                style="@style/AboutSub"
+                android:text="@string/about_references_sub" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- ============================================================ the licence -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <TextView
+            style="@style/AboutLabel"
+            android:text="@string/about_label_licence" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- **the only value on the screen that is not a link**, because the terms are a fact
+                 rather than a destination. the three places to act on it are the line beneath. -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingVertical="5dp"
+                android:text="@string/about_licence"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textColor="?attr/colorOnSurface" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- the first of the row, and the only one pulled back by its own padding, so the
+                     line starts on the same vertical as the value above it. -->
+                <TextView
+                    android:id="@+id/source"
+                    style="@style/AboutSubLink"
+                    android:layout_marginStart="-6dp"
+                    android:text="@string/about_source" />
+
+                <TextView
+                    style="@style/AboutSeparator"
+                    android:text="@string/about_separator" />
+
+                <TextView
+                    android:id="@+id/read_licence"
+                    style="@style/AboutSubLink"
+                    android:text="@string/about_read_licence" />
+
+                <TextView
+                    style="@style/AboutSeparator"
+                    android:text="@string/about_separator" />
+
+                <TextView
+                    android:id="@+id/third_party"
+                    style="@style/AboutSubLink"
+                    android:text="@string/about_third_party" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

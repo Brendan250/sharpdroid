@@ -112,6 +112,21 @@ class SettingsActivity : AppCompatActivity() {
             R.string.settings_user_data_summary,
             R.drawable.ic_section_user_data,
             UserDataActivity::class.java,
+        ),
+
+        /**
+         * **The one section that is not a setting**, and it is here rather than somewhere of its own
+         * because this is where somebody looks for a version number and for what the app is under.
+         * Nothing behind it changes what a launch does.
+         *
+         * It is last for the same reason: the grid is read top to bottom by somebody who came to
+         * change something, and this is the card for a different errand entirely.
+         */
+        ABOUT(
+            R.string.settings_about,
+            R.string.settings_about_summary,
+            R.drawable.ic_section_about,
+            AboutActivity::class.java,
         );
 
         companion object {
@@ -122,7 +137,8 @@ class SettingsActivity : AppCompatActivity() {
              * since 1.9 — a member shadowing it compiles with a deprecation warning and then means
              * something different from what it reads as.
              */
-            val shown = listOf(APP, EMULATION, GRAPHICS, CONTROLS, GAME_FILES, USER_DATA)
+            val shown =
+                listOf(APP, EMULATION, GRAPHICS, CONTROLS, GAME_FILES, USER_DATA, ABOUT)
         }
     }
 

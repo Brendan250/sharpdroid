@@ -56,6 +56,67 @@
         <item name="cornerSize">8dp</item>
     </style>
 
+    <!--
+      the four kinds of text on the About screen.
+
+      **they are styles rather than repeated attributes because that screen is a table**, and a table
+      whose columns drift apart is a table that has stopped being one: the label column's width, the
+      padding that pulls each link back to the column's own edge, and the gap under a value all have to
+      be one number rather than eleven copies of one number.
+
+      **the paddings are the ripples.** every link here is a bare TextView with a bounded ripple on it,
+      so its padding is both the touch target and the ink, and the negative start margin is that
+      padding given back so the text still starts where the column does. change one and the column
+      steps sideways.
+    -->
+    <style name="AboutLabel">
+        <!-- **a fixed width, and it is what makes three rows read as one table.** sizing it to its
+             own text would put the three values at three different distances from the edge. -->
+        <item name="android:layout_width">104dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceLabelSmall</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:alpha">0.85</item>
+    </style>
+
+    <style name="AboutLink">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">-8dp</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:paddingHorizontal">8dp</item>
+        <item name="android:paddingVertical">5dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceBodyLarge</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="AboutSub">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAppearance">?attr/textAppearanceBodySmall</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <!-- **no negative margin here, unlike AboutLink.** three of these sit in a row separated by dots,
+         so a style that pulled every one of them back would pull each dot into the word after it. only
+         the first of the row is flush with the column, and it says so itself. -->
+    <style name="AboutSubLink" parent="AboutSub">
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:paddingHorizontal">6dp</item>
+        <item name="android:paddingVertical">4dp</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <!-- the dot between two of those, and it is deliberately not part of either: a separator inside a
+         link's own text would be inside that link's ripple and would read as pressable. -->
+    <style name="AboutSeparator" parent="AboutSub">
+        <item name="android:paddingHorizontal">2dp</item>
+        <item name="android:alpha">0.5</item>
+    </style>
+
     <style name="Theme.SharpEmu" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:statusBarColor">?attr/colorSurface</item>
         <item name="android:navigationBarColor">?attr/colorSurface</item>

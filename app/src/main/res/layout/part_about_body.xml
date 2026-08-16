@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  the whole of the About screen, stacked: the drawing, what this is, and three labelled facts.
+
+  **a colophon rather than a list.** what the screen carries is five things - what this is, what
+  version of it, what emulator it runs, what it was read against, and what it is under - and five
+  facts do not want five cards to live in. a label column and a value column is how a book states who
+  set it and in what, and it is the shape that holds all of this at once: nothing here scrolls on a
+  landscape handheld, nothing expands, and nothing is hidden behind a tap that only reveals text.
+
+  **the drawing is the only decoration and everything else is type.** there is no card anywhere on
+  this screen, which is deliberate: a card is a container for a thing among other things, and this
+  page is one statement.
+
+  **there is a `-land` variant, and only the axis differs.** stacked, this is taller than a landscape
+  handheld has under its toolbar; laid side by side it is the drawing's own height. both carry the
+  same ids, so the activity binds one set and never asks which is on, and every string is a resource
+  so the words are written once for both.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="8dp">
+
+    <!-- **the drawing and the light behind it, and the light is centred on the frame rather than on
+         the drawing.** the portrait is transparent above the head and sits on the frame's bottom
+         edge, so a glow centred on the image's own box would be high; centred here it lands behind
+         the body and spills a little past the feet, which is what makes it read as something being
+         sat on. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_marginTop="4dp">
+
+        <!-- **the glow is smaller than the drawing rather than larger**, so the paws and the tuft of
+             hair carry past it and it reads as light falling on a body rather than as a disc with a
+             character stamped in the middle of it. it is centred on the frame, which puts it behind
+             the torso.
+
+             tinted with the accent and drawn at a fifth of it. **the alpha is on the view rather than
+             in the drawable** so the ramp keeps its shape: an alpha baked into the gradient's stops
+             would flatten the falloff the middle stop exists to bend. -->
+        <View
+            android:layout_width="252dp"
+            android:layout_height="252dp"
+            android:layout_gravity="center"
+            android:alpha="0.22"
+            android:background="@drawable/bg_hero_glow"
+            android:backgroundTint="?attr/colorPrimary" />
+
+        <!-- **fitCenter with a fixed height and adjustViewBounds**, so the width follows the drawing's
+             own aspect and the frame never letterboxes it. it is the largest thing on the screen and
+             is meant to be: the page is a colophon and a colophon's decoration is its one image.
+
+             it answers a tap by moving, and it **carries no ripple** - the one deliberate touch target
+             in this app that does not look like one. a borderless ripple on a view this size is a grey
+             disc the width of the glow and would make the drawing read as a button about to navigate
+             somewhere; the movement is the cue instead, and it is the only cue there is. see
+             AboutActivity. -->
+        <ImageView
+            android:id="@+id/mirco"
+            android:layout_width="wrap_content"
+            android:layout_height="300dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:adjustViewBounds="true"
+            android:contentDescription="@string/about_by"
+            android:scaleType="fitCenter"
+            android:src="@drawable/mirco" />
+
+    </FrameLayout>
+
+    <!-- the project's own name, which is lower case because that is how it is written. -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center_horizontal"
+        android:paddingHorizontal="24dp"
+        android:text="@string/about_title"
+        android:textAppearance="?attr/textAppearanceHeadlineSmall"
+        android:textColor="?attr/colorOnSurface" />
+
+    <!-- the version and the commit this APK was built from. a tap copies it, because a bug report
+         wants both spelled exactly and a commit typed off a screen is where one letter goes missing.
+         it is drawn quietly because it is the one thing here nobody comes looking for until something
+         has already gone wrong. -->
+    <TextView
+        android:id="@+id/version"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="3dp"
+        android:background="?attr/selectableItemBackground"
+        android:fontFamily="monospace"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="5dp"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <include
+        android:id="@+id/facts"
+        layout="@layout/part_about_facts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_marginHorizontal="24dp" />
+
+</LinearLayout>

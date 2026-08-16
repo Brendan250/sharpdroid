@@ -105,13 +105,18 @@
             android:exported="false" />
 
         <!--
-          the list of licence documents this APK redistributes its guest libraries under, and the
+          the About screen, opened by its own card on the settings scene, and the two screens behind
+          it: the list of licence documents this APK redistributes its guest libraries under, and the
           reader that shows one.
 
-          neither is exported, which is the rule every screen behind the cog follows, and here it
-          costs nothing: the texts are assets of this APK, so anything that could send the intent
-          could read them directly.
+          none is exported, which is the rule every screen behind the cog follows. there is nothing
+          here worth reaching by intent - the texts are assets of this APK, so anything that could
+          send the intent could read them directly.
         -->
+        <activity
+            android:name=".AboutActivity"
+            android:exported="false" />
+
         <activity
             android:name=".LicencesActivity"
             android:exported="false" />
