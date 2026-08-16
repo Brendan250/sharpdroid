@@ -27,6 +27,14 @@ val identityAppLabel: String = (findProperty("sharpemuAppLabel") as String?)?.ta
 // whatever happens to be sitting in app/src/main/assets.
 val bundleAssets: String? = (findProperty("sharpemuBundleAssets") as String?)?.takeIf { it.isNotBlank() }
 
+// the commit this APK is built from, as scripts/build-apk.py resolved it, short and with a marker
+// when the tree it was built from had uncommitted changes in it.
+//
+// **empty is a state the About screen is written for.** a build from a source archive or from a
+// checkout with no git in it cannot know its commit, and there is no answer to invent: a placeholder
+// on that line is a string somebody then quotes into a bug report and tries to resolve.
+val identityCommit: String = (findProperty("sharpemuCommit") as String?)?.takeIf { it.isNotBlank() } ?: ""
+
 // the build-tools revision, as scripts/build-apk.py resolved it out of toolchain.json.
 //
 // **saying nothing here does not mean "whatever is installed".** AGP has a default of its own, and
@@ -60,6 +68,12 @@ android {
         // the label, which a renamed build has to change too: two entries in the launcher both
         // called "SharpEmu" and no way to tell which is which is the failure this avoids.
         resValue("string", "app_name", identityAppLabel)
+
+        // what the About screen puts beside the version, and what a bug report is worth having.
+        // **a resource rather than a BuildConfig field**, so that reading it needs neither the
+        // buildConfig feature nor a generated class -- it is a string on a screen and nothing else
+        // consumes it.
+        resValue("string", "app_commit", identityCommit)
 
         ndk {
             // arm64 only, and that is the architecture rather than a packaging choice: FEXCore's

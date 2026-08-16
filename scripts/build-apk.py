@@ -23,6 +23,7 @@ import hashlib
 import json
 import re
 import shutil
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
@@ -475,7 +476,8 @@ def build_with_gradle(toolchain, package, label, offline):
                  "-PsharpemuBuildTools=" + toolchain.build_tools_version,
                  "-PsharpemuBundleAssets=" + str(paths.BUILD_BUNDLE),
                  "-PsharpemuApplicationId=" + package,
-                 "-PsharpemuAppLabel=" + label]
+                 "-PsharpemuAppLabel=" + label,
+                 "-PsharpemuCommit=" + repository_commit()]
     if offline:
         arguments.append("--offline")
 
@@ -491,6 +493,45 @@ def build_with_gradle(toolchain, package, label, offline):
         written.unlink()
 
     run(arguments, cwd=paths.ROOT, env=gradle_environment(toolchain))
+
+
+def repository_commit():
+    """the commit this APK is built from, short, with a marker when the tree is not clean.
+
+    the app puts it beside its version on the About screen, and what it is for is a bug report: the
+    version alone names a fortnight of commits, so a report against one is a report against whichever
+    of them the reporter happened to install.
+
+    **an empty answer is a supported state and not a failure.** a source archive carries no `.git`, and
+    a machine may have no `git` on its path at all -- neither is a reason to refuse a build, and the
+    screen is written to show the version alone when this says nothing. so every way of not knowing
+    lands on the same empty string rather than on an exception or on a word like "unknown", which would
+    be a string somebody quotes into a report and then tries to resolve.
+
+    **the dirty marker is the half that earns this.** an APK built from a working tree with edits in it
+    is not the commit it names, and it is the ordinary case during development -- so a commit printed
+    without one would be the most confident wrong answer this project could put on a screen.
+    """
+    head = subprocess.run(["git", "-C", str(paths.ROOT), "rev-parse", "--short", "HEAD"],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                          encoding="utf-8", errors="replace")
+    if head.returncode != 0:
+        return ""
+    commit = head.stdout.strip()
+    if not commit:
+        return ""
+
+    # `status --porcelain` over `diff --quiet`, because the second answers about tracked files that
+    # differ and says nothing about a file that was added and never committed. the submodules are
+    # excluded: a submodule at a commit other than the recorded one is a real thing to know about and
+    # it is not what this line claims, which is what the app's own sources were.
+    dirt = subprocess.run(["git", "-C", str(paths.ROOT), "status", "--porcelain",
+                           "--ignore-submodules=all"],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                          encoding="utf-8", errors="replace")
+    if dirt.returncode == 0 and dirt.stdout.strip():
+        commit += "-dirty"
+    return commit
 
 
 def gradle_output():
