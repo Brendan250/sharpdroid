@@ -126,7 +126,13 @@ class AboutActivity : AppCompatActivity() {
         val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }
             .getOrNull().orEmpty()
         val commit = getString(R.string.app_commit)
-        return if (commit.isEmpty()) version else getString(R.string.about_version, version, commit)
+        // **the same two formats the build manager states a version with**, so the leading v that
+        // upstream tags its releases with is spelled one way in this app rather than two.
+        return if (commit.isEmpty()) {
+            getString(R.string.version_only, version)
+        } else {
+            getString(R.string.version_commit, version, commit)
+        }
     }
 
     /**
@@ -170,7 +176,9 @@ class AboutActivity : AppCompatActivity() {
         return if (commit.isEmpty()) {
             getString(R.string.about_build_no_commit, chosen.sharpemuVersion)
         } else {
-            getString(R.string.about_version, chosen.sharpemuVersion, commit)
+            // the build manager's own format for this pair, so one build reads identically on both
+            // screens rather than nearly identically.
+            getString(R.string.version_commit, chosen.sharpemuVersion, commit)
         }
     }
 

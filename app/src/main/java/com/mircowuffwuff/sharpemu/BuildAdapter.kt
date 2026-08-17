@@ -102,7 +102,7 @@ class BuildAdapter(
             val version = if (build.commit.isEmpty()) {
                 context.getString(R.string.build_version, build.sharpemuVersion, build.packagedAt)
             } else {
-                context.getString(R.string.build_version_commit, build.sharpemuVersion, build.shortCommit())
+                context.getString(R.string.version_commit, build.sharpemuVersion, build.shortCommit())
             }
             // **whoever produced it goes on the version line, where a driver card puts the same
             // claim.** it is a build's second identity — two zips of one commit differ by who made

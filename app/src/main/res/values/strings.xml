@@ -274,8 +274,13 @@
     <string name="manager_delete">Delete</string>
     <!-- version first because that is what a bug report is asked for. the commit is second and is
          what actually tells two builds of one upstream version apart, which is the common case. the
-         build-number form is the fallback for a build that recorded no commit. -->
-    <string name="build_version_commit">v%1$s · %2$s</string>
+         build-number form is the fallback for a build that recorded no commit.
+
+         **the first two are named for the pair rather than for the build manager, because the About
+         screen states the same pair.** upstream tags its releases with a leading v and so does this
+         screen, and two places spelling one convention two ways is how they drift apart. -->
+    <string name="version_commit">v%1$s · %2$s</string>
+    <string name="version_only">v%1$s</string>
     <string name="build_version">v%1$s, packaged %2$d</string>
     <!-- the version line with whoever produced the build after it, the separator a driver card
          already uses for the same claim. -->
@@ -477,6 +482,9 @@
          is named at all. -->
     <string name="about_by">by mircowuffwuff</string>
 
+    <!-- **the join between the two emulators' entries, and the one version-ish format here with no
+         leading v.** what it separates is two whole entries rather than a version from its commit, and
+         the halves it joins carry their own prefixes already. -->
     <string name="about_version">%1$s · %2$s</string>
     <string name="about_version_copied">Version copied</string>
 
@@ -490,7 +498,7 @@
     <!-- a build packaged from a published archive records no commit, and a development APK ships no
          build at all. neither is a fault and neither leaves the line blank. -->
     <string name="about_build_none">no build on this device</string>
-    <string name="about_build_no_commit">%1$s · commit not recorded</string>
+    <string name="about_build_no_commit">v%1$s · commit not recorded</string>
 
     <string name="about_fexcore">FEXCore ↗</string>
 
