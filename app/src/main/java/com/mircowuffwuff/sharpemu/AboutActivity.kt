@@ -258,7 +258,7 @@ class AboutActivity : AppCompatActivity() {
         const val EDEN = "https://eden-emu.dev/"
         const val GAMENATIVE = "https://github.com/utkarshdalal/GameNative"
         const val REPOSITORY = "https://github.com/sharpemu-android/sharpemu-android"
-        const val DONATE = "https://donate.mircowuffwuff.com/"
+        const val DONATE = "https://support.mircowuffwuff.com/"
 
         /** The licence text this app is itself under, which ships beside the guest libraries. */
         const val GPL = "GPL-2"
