@@ -82,6 +82,10 @@
         <item name="android:alpha">0.85</item>
     </style>
 
+    <!-- **the mark at the end of a link is tinted from the same attribute the text is**, and both
+         styles say so rather than each of the six links saying it. a mark that has to be told its
+         colour separately is a mark that is one palette away from disagreeing with the word it
+         follows. -->
     <style name="AboutLink">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
@@ -89,6 +93,8 @@
         <item name="android:background">?attr/selectableItemBackground</item>
         <item name="android:paddingHorizontal">8dp</item>
         <item name="android:paddingVertical">5dp</item>
+        <item name="android:drawablePadding">5dp</item>
+        <item name="android:drawableTint">?attr/colorPrimary</item>
         <item name="android:textAppearance">?attr/textAppearanceBodyLarge</item>
         <item name="android:textColor">?attr/colorPrimary</item>
     </style>
@@ -107,6 +113,8 @@
         <item name="android:background">?attr/selectableItemBackground</item>
         <item name="android:paddingHorizontal">6dp</item>
         <item name="android:paddingVertical">4dp</item>
+        <item name="android:drawablePadding">4dp</item>
+        <item name="android:drawableTint">?attr/colorPrimary</item>
         <item name="android:textColor">?attr/colorPrimary</item>
     </style>
 

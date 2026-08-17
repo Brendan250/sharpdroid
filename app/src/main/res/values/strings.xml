@@ -464,10 +464,12 @@
          listing somebody under a label is the credit. so nothing here is written in the second person
          and nothing here is grateful at anybody.
 
-         **an arrow or a chevron is part of a link's own text**, and neither is decoration: one means a
-         browser and the other a screen of this app, which is a distinction somebody can act on before
-         pressing rather than after. they live in the strings because they are read as characters of
-         the line rather than drawn beside it: there is no image on this screen but the drawing.
+         **a link's text is its words and nothing else.** the mark that says where it goes - an arrow
+         out of the app for a browser, a chevron for a screen of this one - is a drawable placed by the
+         layout rather than a character in the string. it was a character first, and the characters
+         that say it are not in the app's own face: the platform substitutes them from elsewhere and
+         they arrive at the wrong weight and the wrong height. keeping them out of the strings also
+         keeps presentation out of the copy.
          ========================================================================================== -->
 
     <!-- the project's own name, and it is lower case because that is how it is written, as yuzu is,
@@ -494,23 +496,23 @@
     <string name="about_label_references">Read against</string>
     <string name="about_label_licence">Licence</string>
 
-    <string name="about_sharpemu">SharpEmu ↗</string>
+    <string name="about_sharpemu">SharpEmu</string>
     <!-- a build packaged from a published archive records no commit, and a development APK ships no
          build at all. neither is a fault and neither leaves the line blank. -->
     <string name="about_build_none">no build on this device</string>
     <string name="about_build_no_commit">v%1$s · commit not recorded</string>
 
-    <string name="about_fexcore">FEXCore ↗</string>
+    <string name="about_fexcore">FEXCore</string>
 
-    <string name="about_eden">Eden ↗</string>
-    <string name="about_gamenative">GameNative ↗</string>
+    <string name="about_eden">Eden</string>
+    <string name="about_gamenative">GameNative</string>
     <!-- the two reasons, in the order of the two names above them, and no adjective on either. -->
     <string name="about_references_sub">for these screens, and for x86-64 on Android</string>
 
     <string name="about_licence">GPL-2.0-or-later</string>
-    <string name="about_source">Source ↗</string>
-    <string name="about_read_licence">Read it ›</string>
-    <string name="about_third_party">Third-party licences ›</string>
+    <string name="about_source">Source</string>
+    <string name="about_read_licence">Read it</string>
+    <string name="about_third_party">Third-party licences</string>
     <string name="about_separator">·</string>
 
     <!-- **a device with no browser is a real state for this one**, and a handheld set up to run games

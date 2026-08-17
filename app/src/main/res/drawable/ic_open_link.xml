@@ -1,0 +1,41 @@
+<!--
+  a link that leaves the app, set at the end of the link's own text.
+
+  **the arrow leaving the box is the whole of it.** every other link on the About screen opens a screen
+  of this app; these hand the tap to a browser, and the mark is what says so before it is pressed
+  rather than after.
+
+  **it is a drawable rather than the character U+2197, which is what stood here first.** the app's own
+  face does not carry that character, so the platform substituted one from elsewhere: the arrow came
+  out a lighter stroke than the word beside it and sat nearer cap height than the text's optical
+  centre. a vector is the same shape at the weight and position this app chooses.
+
+  **it is sized for the line it is set on rather than at Material's 24dp.** a compound drawable is
+  drawn at its own intrinsic size, so the size is this file's to state, and 24dp beside body text is an
+  icon rather than a mark.
+
+  Material's `open_in_new`, at Material Symbols' 960 viewport. it carries no colour: the style that
+  places it tints it with the same attribute the text takes, so the two cannot drift.
+
+  **the box carries empty space above the glyph, and that is how it is aligned.** a compound drawable
+  is centred on the text view's line box, whose centre sits above the text's own optical centre, so
+  left alone the mark rides high. nothing at the point of use can move it, but a taller box does:
+  adding E of space above the glyph keeps the box centred and therefore moves the glyph down by E/2.
+  so the space above is twice the shift wanted, 3.4dp here, measured against the line this mark
+  follows rather than guessed.
+
+  **it scales with the text and is not a constant.** the shift comes out of the font's metrics, so a
+  different text size wants it measured again rather than copied. `ratio.py` and `align.py` beside this
+  project's notes are what measure it.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="14dp"
+    android:height="17.4dp"
+    android:viewportWidth="960"
+    android:viewportHeight="1193">
+    <group android:translateY="233">
+        <path
+            android:fillColor="@android:color/white"
+            android:pathData="M200,840Q167,840 143.5,816.5Q120,793 120,760L120,200Q120,167 143.5,143.5Q167,120 200,120L440,120L440,200L200,200L200,760L760,760L760,520L840,520L840,760Q840,793 816.5,816.5Q793,840 760,840L200,840ZM376,640L320,584L704,200L560,200L560,120L840,120L840,400L760,400L760,256L376,640Z" />
+    </group>
+</vector>

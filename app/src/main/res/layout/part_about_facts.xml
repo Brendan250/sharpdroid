@@ -13,11 +13,16 @@
   reads down them and across to whichever line it wants.
 
   **there is not one image on this screen but the drawing**, and that is the whole design rather than a
-  restriction it is working under: a mark beside a name, an avatar beside a label or a glyph on a link
-  each add a second thing to look at, and three of them turn a page into a list. so a link says where
-  it goes with a character in its own text - an arrow out of the app, a chevron to a screen of this one
-  - which costs no drawable, takes the text's own colour and size, and keeps the whole line inside one
-  ripple.
+  restriction it is working under: a logo beside a name or an avatar beside a label is a second thing
+  to look at, and three of them turn a page into a list.
+
+  **the mark at the end of a link is not one of those.** it is punctuation - an arrow out of the app
+  means a browser and a chevron means a screen of this one, which is a distinction somebody can act on
+  before pressing rather than after. it is a drawable rather than a character of the text because the
+  characters that would say it are not in the app's own face: the platform substitutes them from
+  elsewhere, and they arrive at a lighter stroke than the word beside them and sitting nearer cap
+  height than its optical centre. the drawables say the same thing at the weight this app chooses, and
+  the style tints them from the attribute the text takes, so the two cannot disagree.
 
   **the sub-line under a value is what that value is, never what to think about it.** a version, a pair
   of reasons in the same order as the pair of names above it, and three places to read the terms.
@@ -61,12 +66,14 @@
                 <TextView
                     android:id="@+id/sharpemu"
                     style="@style/AboutLink"
+                    android:drawableEnd="@drawable/ic_open_link"
                     android:text="@string/about_sharpemu" />
 
                 <TextView
                     android:id="@+id/fexcore"
                     style="@style/AboutLink"
                     android:layout_marginStart="8dp"
+                    android:drawableEnd="@drawable/ic_open_link"
                     android:text="@string/about_fexcore" />
 
             </LinearLayout>
@@ -127,12 +134,14 @@
                 <TextView
                     android:id="@+id/eden"
                     style="@style/AboutLink"
+                    android:drawableEnd="@drawable/ic_open_link"
                     android:text="@string/about_eden" />
 
                 <TextView
                     android:id="@+id/gamenative"
                     style="@style/AboutLink"
                     android:layout_marginStart="8dp"
+                    android:drawableEnd="@drawable/ic_open_link"
                     android:text="@string/about_gamenative" />
 
             </LinearLayout>
@@ -181,10 +190,14 @@
 
                 <!-- the first of the row, and the only one pulled back by its own padding, so the
                      line starts on the same vertical as the value above it. -->
+                <!-- the smaller of the two marks, because this line's text is about a third smaller
+                     than the value lines above it and one size leaves the mark taller than the
+                     capitals it follows. -->
                 <TextView
                     android:id="@+id/source"
                     style="@style/AboutSubLink"
                     android:layout_marginStart="-6dp"
+                    android:drawableEnd="@drawable/ic_open_link_small"
                     android:text="@string/about_source" />
 
                 <TextView
@@ -194,6 +207,7 @@
                 <TextView
                     android:id="@+id/read_licence"
                     style="@style/AboutSubLink"
+                    android:drawableEnd="@drawable/ic_go"
                     android:text="@string/about_read_licence" />
 
                 <TextView
@@ -203,6 +217,7 @@
                 <TextView
                     android:id="@+id/third_party"
                     style="@style/AboutSubLink"
+                    android:drawableEnd="@drawable/ic_go"
                     android:text="@string/about_third_party" />
 
             </LinearLayout>

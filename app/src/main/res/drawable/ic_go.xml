@@ -1,0 +1,48 @@
+<!--
+  a link that opens a screen of this app, set at the end of the link's own text.
+
+  **it is the counterpart to `ic_open_link` and the pair is the point.** an arrow out of a box means a
+  browser and this means a screen of this app, which is a distinction somebody can act on before
+  pressing rather than after.
+
+  **it is a drawable rather than the character U+203A, which is what stood here first.** that character
+  is a single right-pointing angle *quotation mark*: punctuation, drawn at punctuation's size and
+  sitting where punctuation sits, so it read as a stray quote rather than as a chevron. this is an
+  arrowhead at the weight of the text it follows.
+
+  the same shape `ic_expand` carries, turned a quarter. it is a file of its own rather than that one
+  rotated, because a compound drawable cannot be rotated where it is placed, and a rotation wrapper
+  around a vector is a second indirection to read through for one glyph.
+
+  Material's `chevron_right`, at Material Symbols' 960 viewport, sized and tinted for the reasons
+  `ic_open_link` states.
+
+  **the box carries empty space above the glyph, and that is how it is aligned.** a compound drawable
+  is centred on the text view's line box, whose centre sits above the text's own optical centre, so
+  left alone the mark rides high. nothing at the point of use can move it, but a taller box does:
+  adding E of space above the glyph keeps the box centred and therefore moves the glyph down by E/2.
+  so the space above is twice the shift wanted, 3.4dp here, measured against the line this mark
+  follows rather than guessed.
+
+  **it scales with the text and is not a constant.** the shift comes out of the font's metrics, so a
+  different text size wants it measured again rather than copied. `ratio.py` and `align.py` beside this
+  project's notes are what measure it.
+  **the box is trimmed to the glyph, which the arrow's already was.** `open_in_new` fills its viewport
+  to within 120 units of each edge; a chevron drawn at Material's own scale leaves 320 on the left and
+  344 on the right, so at the same drawable padding it sat further from its word and pushed whatever
+  followed further away again. the viewport here is cut to leave the same 120 either side, so both
+  marks keep the same distance from the text without either of them being told a different padding.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="6.14dp"
+    android:height="14.4dp"
+    android:viewportWidth="536"
+    android:viewportHeight="1257">
+    <group
+        android:translateX="-200"
+        android:translateY="297">
+        <path
+            android:fillColor="@android:color/white"
+            android:pathData="M504,480L320,296L376,240L616,480L376,720L320,664L504,480Z" />
+    </group>
+</vector>
