@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.mircowuffwuff.sharpemu.databinding.ActivityLicenceTextBinding
+import java.io.File
 import java.util.concurrent.Executors
 
 /**
@@ -43,17 +44,18 @@ class LicenceTextActivity : AppCompatActivity() {
         SystemBars.apply(this, binding.root)
 
         val asset = intent.getStringExtra(EXTRA_ASSET)
+        val path = intent.getStringExtra(EXTRA_PATH)
         binding.toolbar.title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        if (asset == null) {
+        if (asset == null && path == null) {
             // nothing but a hand-written intent reaches this. finishing beats an empty page that
             // looks like a licence with no text in it.
             finish()
             return
         }
         worker.execute {
-            val text = read(asset)
+            val text = if (asset != null) read(asset) else readFile(path!!)
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
                 binding.text.text = text ?: getString(R.string.licences_unreadable)
@@ -80,23 +82,43 @@ class LicenceTextActivity : AppCompatActivity() {
         null
     }
 
+    /**
+     * A file on the device, for a document that is not this app's.
+     *
+     * **A selected emulator build's notices are files rather than assets**, since the build may have
+     * been imported from a zip this project never packaged. It can be deleted while this screen is
+     * open, so a read that fails is the unreadable message rather than a crash.
+     */
+    private fun readFile(path: String): String? = try {
+        File(path).readText()
+    } catch (e: Exception) {
+        Log.e(TAG, "[app] could not read $path", e)
+        null
+    }
+
     companion object {
         private const val TAG = "sharpemu"
 
         private const val EXTRA_ASSET = "asset"
+        private const val EXTRA_PATH = "path"
         private const val EXTRA_TITLE = "title"
 
         /**
-         * Opens [asset], titled [title].
+         * Opens one document, titled [title] — [asset] out of the APK, or [path] off the device.
          *
          * **The title is passed rather than derived from the path**, because the two differ: a
          * copyright statement is named for its source package and lives in a file with a suffix on it,
          * and the list is where that is already worked out.
          */
-        fun open(context: Context, asset: String, title: String) = context.startActivity(
-            Intent(context, LicenceTextActivity::class.java)
-                .putExtra(EXTRA_ASSET, asset)
-                .putExtra(EXTRA_TITLE, title)
-        )
+        fun open(context: Context, asset: String?, path: String?, title: String) =
+            context.startActivity(
+                Intent(context, LicenceTextActivity::class.java)
+                    .putExtra(EXTRA_ASSET, asset)
+                    .putExtra(EXTRA_PATH, path)
+                    .putExtra(EXTRA_TITLE, title)
+            )
+
+        /** Opens an asset, for a caller that has no file to offer. */
+        fun open(context: Context, asset: String, title: String) = open(context, asset, null, title)
     }
 }

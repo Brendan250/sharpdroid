@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.mircowuffwuff.sharpemu.databinding.ActivityManagerBinding
 import com.mircowuffwuff.sharpemu.databinding.ItemLicenceBinding
 import org.json.JSONObject
+import java.io.File
 
 /**
  * Everything this APK redistributes but did not write, and the terms each of those is under.
@@ -68,7 +69,7 @@ class LicencesActivity : AppCompatActivity() {
         binding.list.layoutManager =
             GridLayoutManager(this, resources.getInteger(R.integer.settings_section_columns))
         binding.list.adapter = Adapter(documents) {
-            LicenceTextActivity.open(this, it.asset, it.name)
+            LicenceTextActivity.open(this, it.asset, it.path, it.name)
         }
 
         // packaging asserts every one of these is in the APK, so an empty list is something having
@@ -86,14 +87,22 @@ class LicencesActivity : AppCompatActivity() {
     }
 
     /**
-     * One row: a library, its licence, and where in the APK that licence is stated.
+     * One row: a library, its licence, and where that licence is stated.
      *
-     * [kind] is the row's second line and is always a licence identifier — `MIT`, `Apache-2.0`,
+     * [kind] is the row's second line and is always a licence — `MIT`, `Apache-2.0`,
      * `GPL-3.0-or-later WITH GCC-exception-3.1`. **Every row means the same thing**, which is what
-     * lets one list hold three provenances without a reader having to work out which kind of row they
+     * lets one list hold four provenances without a reader having to work out which kind of row they
      * are looking at.
+     *
+     * Exactly one of [asset] and [path] is set. The APK's own notices are assets; a selected build's
+     * are files on the device, since that build is not part of this app and may not have come from it.
      */
-    private class Document(val name: String, val kind: String, val asset: String)
+    private class Document(
+        val name: String,
+        val kind: String,
+        val asset: String? = null,
+        val path: String? = null,
+    )
 
     /**
      * Every library, sorted by name and case-insensitively.
@@ -108,17 +117,129 @@ class LicencesActivity : AppCompatActivity() {
      * lowercase one, which puts `okio` after `Transition` and reads as unsorted rather than as sorted
      * by a rule.
      */
-    private fun documents(): List<Document> = try {
+    private fun documents(): List<Document> =
+        (packaged() + selectedBuild()).sortedBy { it.name.lowercase() }
+
+    /** What packaging wrote: everything the APK itself redistributes. */
+    private fun packaged(): List<Document> = try {
         val index = assets.open(NOTICES).use { it.readBytes().decodeToString() }
         val libraries = JSONObject(index).getJSONArray("libraries")
         (0 until libraries.length()).map { at ->
             val library = libraries.getJSONObject(at)
             Document(library.getString("name"), library.getString("licence"),
-                "$OURS/" + library.getString("text"))
-        }.sortedBy { it.name.lowercase() }
+                asset = "$OURS/" + library.getString("text"))
+        }
     } catch (e: Exception) {
         Log.e(TAG, "[app] could not read $NOTICES", e)
         emptyList()
+    }
+
+    /**
+     * What the emulator build a launch would run brings with it, read when this screen opens.
+     *
+     * **A build is not part of this app and its notices are not packaging's to write.** One can be
+     * imported from a zip this project never packaged, so the set of libraries a build carries is
+     * known only to that build — which is why these are read at the moment they are shown rather than
+     * baked into the index beside everything else. **A build that starts shipping a notice it does not
+     * ship today appears here with nothing in this app changing, and without an update.**
+     *
+     * **The bundled build is read from the APK, never from its unpacked copy.** That copy only exists
+     * after a launch has needed it, and this screen has to work on an install that has never started a
+     * game — and the asset is what the unpack copies anyway, so it is the same bytes either way.
+     *
+     * **Only the selected build.** What is shown is what a launch would run; listing every build on
+     * the device would state terms for code this install may never execute, and the reader has no way
+     * to tell which of the rows applied to them.
+     */
+    private fun selectedBuild(): List<Document> = try {
+        val internalRoot = AppStorage.installedBuilds(filesDir)
+        // a device with no external storage has nothing staged on it, so the internal root answers
+        // for both and finds nothing in the second.
+        val staged = AppStorage.stagedBuilds(getExternalFilesDir(null) ?: filesDir)
+        val listing = BuildLibrary.of(this, internalRoot, staged, Settings.of(this).build)
+        val chosen = (listOfNotNull(listing.bundled) + listing.entries)
+            .firstOrNull { it.selected }?.build
+        when {
+            chosen == null -> emptyList()
+            chosen.inApk -> bundledNotices()
+            else -> stagedNotices(chosen.dir)
+        }
+    } catch (e: Exception) {
+        // the rest of the list is the APK's own and is still true, so a build that cannot be read
+        // costs its own rows rather than the screen.
+        Log.e(TAG, "[app] could not read the selected build's licences", e)
+        emptyList()
+    }
+
+    /** The bundled build's, out of the asset tree the unpack copies from. */
+    private fun bundledNotices(): List<Document> {
+        val listed = assets.list("$BUNDLED/$BUILD_LICENCES").orEmpty().sorted()
+        return buildNotice(
+            { assets.open("$BUNDLED/$it").use { stream -> stream.readBytes().decodeToString() } },
+            { Document(SHARPEMU, it, asset = "$BUNDLED/$BUILD_LICENCE") },
+            listed.map { name ->
+                name to { title: String ->
+                    Document(name.removeSuffix(TEXT), title,
+                        asset = "$BUNDLED/$BUILD_LICENCES/$name")
+                }
+            },
+        )
+    }
+
+    /** A staged or imported build's, out of the directory it runs from. */
+    private fun stagedNotices(directory: File): List<Document> {
+        val listed = File(directory, BUILD_LICENCES).listFiles()
+            ?.filter { it.isFile && it.name.endsWith(TEXT) }
+            ?.map { it.name }
+            .orEmpty()
+            .sorted()
+        return buildNotice(
+            { File(directory, it).readText() },
+            { Document(SHARPEMU, it, path = File(directory, BUILD_LICENCE).path) },
+            listed.map { name ->
+                name to { title: String ->
+                    Document(name.removeSuffix(TEXT), title,
+                        path = File(File(directory, BUILD_LICENCES), name).path)
+                }
+            },
+        )
+    }
+
+    /**
+     * The build's own licence, then one row per document beside it, each titled from what it says.
+     *
+     * **The licence is quoted from the document rather than worked out from it.** These files are
+     * written by whoever packaged the build, so nothing here knows in advance which licence any of
+     * them states — and an identifier inferred from prose is a confident wrong answer on the one
+     * screen whose value is that every line of it is true. A licence text names itself on its first
+     * line, so that line is what the row says.
+     */
+    private fun buildNotice(
+        read: (String) -> String,
+        own: (String) -> Document,
+        others: List<Pair<String, (String) -> Document>>,
+    ): List<Document> {
+        val documents = mutableListOf<Document>()
+        runCatching { own(titleOf(read(BUILD_LICENCE))) }.getOrNull()?.let { documents.add(it) }
+        for ((name, make) in others) {
+            runCatching { make(titleOf(read("$BUILD_LICENCES/$name"))) }
+                .onFailure { Log.e(TAG, "[app] could not read the build's $name", it) }
+                .getOrNull()?.let { documents.add(it) }
+        }
+        return documents
+    }
+
+    /**
+     * What a licence document calls itself: its first non-blank line, and the version line under it.
+     *
+     * The GPL's title and its version are two lines and the pair is the identity — a row saying only
+     * *GNU GENERAL PUBLIC LICENSE* names three different licences at once.
+     */
+    private fun titleOf(text: String): String {
+        val lines = text.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.take(2).toList()
+        val title = lines.firstOrNull().orEmpty().ifEmpty { getString(R.string.licences_untitled) }
+        val version = lines.getOrNull(1).orEmpty()
+        return if (version.startsWith("Version ", ignoreCase = true)) "$title, $version" else title
     }
 
     private class Adapter(
@@ -160,6 +281,22 @@ class LicencesActivity : AppCompatActivity() {
          * than read from here, so what a reader opens is one document per library like every other.
          */
         private const val LICENCES = "guest-libs/licences"
+
+        /** The bundled build's asset tree, which is also where its own notices are. */
+        private const val BUNDLED = "sharpemu"
+
+        /**
+         * What a build calls its own licence, and the directory beside it holding the rest.
+         *
+         * **These are the emulator's spelling and not this project's.** Everything written here says
+         * *licence*; a build's layout is upstream's, so it is read under the name upstream gives it.
+         */
+        private const val BUILD_LICENCE = "LICENSE.txt"
+        private const val BUILD_LICENCES = "licenses"
+        private const val TEXT = ".txt"
+
+        /** What the build's own licence row is called, which is the emulator rather than a library. */
+        private const val SHARPEMU = "SharpEmu"
 
         /** Where a licence text named [name] lives, for a caller that wants one by name. */
         fun textAsset(name: String) = "$LICENCES/$name"

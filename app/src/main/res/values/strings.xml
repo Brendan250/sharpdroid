@@ -522,7 +522,10 @@
     <!-- the Third-party licences screen and the reader behind it. -->
     <string name="licences_title">Third-party licences</string>
     <!-- every row on this screen is a library and states its licence, so the second line is a licence
-         identifier out of the index packaging wrote rather than a string from here. -->
+         identifier out of the index packaging wrote rather than a string from here. the exception is a
+         selected build's own documents, which are read as they are found and quote their own first
+         line. this is for one that has no line to quote. -->
+    <string name="licences_untitled">Licence text</string>
 
     <!-- an APK is asserted to carry every one of these when it is packaged, so this is the answer to
          something having gone wrong rather than to a normal state. -->

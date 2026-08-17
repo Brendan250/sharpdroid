@@ -540,6 +540,16 @@ three provenances land in the one list, because they are one obligation and read
 | compiled into the host layer, or shipped beside it | FEXCore and the five vendored libraries that reach the binary, libadrenotools, and LLVM |
 | resolved into the dex | whatever gradle actually put there, which is far more than the app declares |
 | the x86-64 set the guest's own linker searches | mostly unmodified Debian binaries, with Debian's own per-package statements |
+| committed here as source | the icons taken from Google's Material set, which no resolver can see |
+| **the selected emulator build** | its own licence and whatever it carries beside it, **read when this screen opens** rather than packaged |
+
+**the first four are packaged and the last is not, and that difference is the point.** a build can be imported from a zip this project never packaged, so what it carries is known only to itself — and reading it at the moment it is shown means **a build that starts shipping a notice it does not ship today appears here with nothing in this app changing, and without an update**. only the selected build is listed: what a launch would run is the code a reader is being told about, and listing every build on the device would state terms for code this install may never execute.
+
+**the bundled build is read from the APK, never from its unpacked copy**, for the same reason the guest set is: that copy only exists after a launch has needed it. the asset is what the unpack copies from, so it is the same bytes either way.
+
+**a build's licence is quoted, not identified.** those files are written by whoever packaged the build, so nothing here knows in advance which licence any of them states, and an identifier inferred from prose is a confident wrong answer on the one screen whose value is that every line of it is true. a licence text names itself on its first line, so that line is what the row says — with the version line under it where there is one, since *GNU GENERAL PUBLIC LICENSE* alone names three different licences.
+
+**a build that cannot be read costs its own rows and not the screen.** the packaged four are still true.
 
 - **every row is a library and every row means the same thing** — a name, its licence identifier, and the terms behind it. that is what lets one list hold three provenances without a heading per provenance, which would sort a reader's attention by a distinction they did not come here to make.
 - **a debian binary package is a library here**, because a `.deb` and a maven artefact are the same kind of thing: a named, versioned unit somebody redistributes. so `libc6` is a row beside `coil` and `FEXCore`, rather than a set of libraries folded into one entry about the set.
