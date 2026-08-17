@@ -27,6 +27,10 @@ EXTERNAL = ROOT / "external"
 FEX = EXTERNAL / "FEX"
 ADRENOTOOLS = EXTERNAL / "libadrenotools"
 
+# the licence texts this repository keeps a copy of, for terms that are not derivable from anything
+# else here -- a dependency that states a licence by name and URL rather than shipping its text.
+LICENCE_TEXTS = ROOT / "LICENSES"
+
 # the x86-64 set the guest's own ld.so searches: debian glibc, plus the two generated thunk
 # libraries that are built rather than downloaded.
 GUEST_LIBS_X86_64 = GUEST_LIBS / "x86_64"

@@ -539,6 +539,22 @@ def stage_stl_notice(toolchain, texts):
             "text": "texts/" + target.name}
 
 
+# a third-party work carried *inside* one of the resolved dependencies, under terms of its own.
+#
+# **this is not a dependency and a row of its own would say it was.** the app asks for okhttp; the
+# Public Suffix List arrives inside it as a data file. listing it as a peer of okhttp and coil would
+# state a relationship this build does not have, so instead the row it arrived in names both licences
+# and the document behind that row carries both texts.
+#
+# `evidence` is the entry the carrier ships to say so, and it is asserted in the finished APK -- the
+# claim made here is then the artefact's rather than this table's.
+EMBEDDED_WORKS = (
+    {"carrier": "okhttp", "work": "the Public Suffix List", "licence": "MPL-2.0",
+     "text": "MPL-2.0.txt", "source": "https://publicsuffix.org/list/public_suffix_list.dat",
+     "evidence": "okhttp3/internal/publicsuffix/NOTICE"},
+)
+
+
 # one block of the guest set's index: a source package and its version, then the binary packages cut
 # from it, the statement covering them and where their source is kept.
 GUEST_BLOCK = re.compile(
@@ -700,7 +716,58 @@ def stage_dex_notices(toolchain, texts, offline):
         licence = sorted(set(library.get("licenses") or ()) & known)[0]
         rows.append({"name": library.get("name") or library["uniqueId"], "licence": licence,
                      "text": "texts/" + file_name(licence)})
+    return fold_embedded_works(rows, texts)
+
+
+def fold_embedded_works(rows, texts):
+    """give a row that carries somebody else's work under other terms both licences and both texts.
+
+    **the carrier is rewritten rather than joined by a second row**, for the reason the table says: a
+    peer row would state a dependency this build does not have.
+
+    a resolved list that no longer contains the carrier is a refusal. the alternative is a declaration
+    that quietly stops applying -- which is the failure mode of every hand-written entry beside a
+    generated list, and the one thing worth guarding here.
+    """
+    by_name = {row["name"].lower(): row for row in rows}
+    for embedded in EMBEDDED_WORKS:
+        row = by_name.get(embedded["carrier"].lower())
+        if row is None:
+            raise Refusal(
+                "{} is declared to carry {} and gradle resolved no such library, so the declaration "
+                "describes something this APK does not contain. remove it, or name the library that "
+                "replaced it.".format(embedded["carrier"], embedded["work"]))
+
+        text = paths.LICENCE_TEXTS / embedded["text"]
+        if not text.exists():
+            raise Refusal("{} states the terms of {} and is not there".format(
+                paths.relative(text), embedded["work"]))
+        carried = texts / file_name(row["name"])
+        write_text(carried, "\n".join([
+            embedded_preamble(row, embedded),
+            (texts / file_name(row["licence"])).read_text(encoding="utf-8"),
+            "{0}\n{1}\n{0}\n".format("=" * 78, embedded["licence"]),
+            text.read_text(encoding="utf-8"),
+        ]).rstrip("\n") + "\n")
+
+        row["licence"] = "{}, and {} for {}".format(row["licence"], embedded["licence"],
+                                                    embedded["work"])
+        row["text"] = "texts/" + carried.name
     return rows
+
+
+def embedded_preamble(row, embedded):
+    """what the row's two licences are and which part of it each one covers."""
+    return (
+        "{carrier} is under {licence}, and carries {work} under {other}.\n"
+        "\n"
+        "{work_capitalised} is kept at\n"
+        "  {source}\n"
+        "\n"
+        "both texts follow: {licence} first, covering {carrier} itself, then {other}.\n".format(
+            carrier=row["name"], licence=row["licence"], work=embedded["work"],
+            other=embedded["licence"], source=embedded["source"],
+            work_capitalised=embedded["work"][0].upper() + embedded["work"][1:]))
 
 
 # --- gradle -----------------------------------------------------------------------------------------
@@ -962,7 +1029,46 @@ def verify(apk, bundled, guest_libraries, notices):
     say("  {:>12,}  the licence notices, {} native and {} in the dex".format(
         sum(count for name, count in sizes.items() if name.startswith("assets/licences/")),
         host_notices, dex_notices))
+    check_embedded_works(sizes)
+    check_bundled_build(sizes, bundled)
 
+
+def check_embedded_works(sizes):
+    """**every notice a dependency ships inside itself is one this build has accounted for.**
+
+    a library that carries somebody else's work under other terms says so in a `NOTICE` beside it, and
+    the packer puts that file in the APK whether or not anybody looked at it. so the APK knows the
+    answer, and the only way this stays true as dependencies move is to ask it rather than to
+    remember: an undeclared one is a refusal here, on this machine, rather than a licence found by
+    accident a third time.
+
+    the declared ones are asserted in the other direction too. an `evidence` entry that is no longer
+    in the APK means the carrier stopped shipping it -- which is the moment the claim in the table
+    stops being the artefact's and starts being ours alone.
+    """
+    declared = {work["evidence"]: work for work in EMBEDDED_WORKS}
+    for entry, work in declared.items():
+        if entry not in sizes:
+            raise Refusal(
+                "packaging failed: {} is declared to carry {}, evidenced by {}, and the APK does not "
+                "contain it. the carrier no longer says what this build says it says.".format(
+                    work["carrier"], work["work"], entry))
+
+    # signature manifests are the packer's own and are not a dependency saying anything.
+    found = [name for name in sizes
+             if name.rsplit("/", 1)[-1] in ("NOTICE", "NOTICE.txt")
+             and not name.startswith(("META-INF/MANIFEST", "assets/"))]
+    undeclared = sorted(set(found) - set(declared))
+    if undeclared:
+        raise Refusal(
+            "packaging failed: {} in the APK, shipped by a dependency to state terms of its own, and "
+            "nothing accounts for it. read it, and either add it to the embedded-works table or say "
+            "why it needs no entry.".format(", ".join(undeclared)))
+    say("  {:>12}  {} embedded work(s), each evidenced in the archive".format("", len(declared)))
+
+
+def check_bundled_build(sizes, bundled):
+    """the build inside the APK, when one was asked for."""
     assets = [name for name in sizes if name.startswith("assets/sharpemu/")]
     if bundled is None:
         if assets:

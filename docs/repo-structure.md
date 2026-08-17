@@ -265,6 +265,16 @@ the texts are intersected rather than assumed. a statement covers a whole source
 
 **the guest set also keeps its own notices in its own tree**, and that is not duplication for its own sake: the directory is redistributable on its own — it is staged to a device as a plain directory — so a copy of it travelling without its terms would be one this project had stripped.
 
+### a work carried inside a dependency
+
+a dependency can carry somebody else's work under terms of its own, and then the licence naming that dependency covers only part of what arrived. okhttp is Apache-2.0 and embeds the Public Suffix List, which is MPL-2.0.
+
+**that is not a dependency and a row of its own would say it was.** the app asks for okhttp; the list arrives inside it as a data file, so a row beside okhttp and coil would state a relationship this build does not have. instead the carrier's own row names both licences and the document behind it carries both texts, which is the same shape a debian binary's row already has.
+
+**the APK is asked rather than remembered.** a library that does this ships a `NOTICE` beside the work to say so, and the packer puts that file in the APK whether or not anybody read it — so packaging refuses on a `NOTICE` in the finished archive that nothing accounts for, and refuses in the other direction when a declared one is no longer there. that turns a licence found by accident into one that fails the build on the machine that can fix it.
+
+**MPL-2.0's text is kept in `LICENSES/`**, with the other texts for terms not derivable from anything else in the tree, because the Public Suffix List is distributed as data with no licence file beside it.
+
 ## what is deliberately not here
 
 - **games.** PS5 titles are the user's own dumps and never appear here
