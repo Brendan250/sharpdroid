@@ -203,19 +203,17 @@
                     android:drawableEnd="@drawable/ic_open_link_small"
                     android:text="@string/about_source" />
 
-                <!-- **no margin between these, unlike the two rows above.** the links there are set
-                     in the larger face and carry 8dp of padding each; these carry 6dp, and their own
-                     padding alone is the gap. it comes out about two thirds of the rows above, which
-                     is close to the ratio between the two text sizes. -->
                 <TextView
                     android:id="@+id/read_licence"
                     style="@style/AboutSubLink"
+                    android:layout_marginStart="4dp"
                     android:drawableEnd="@drawable/ic_go"
                     android:text="@string/about_read_licence" />
 
                 <TextView
                     android:id="@+id/third_party"
                     style="@style/AboutSubLink"
+                    android:layout_marginStart="4dp"
                     android:drawableEnd="@drawable/ic_go"
                     android:text="@string/about_third_party" />
 
