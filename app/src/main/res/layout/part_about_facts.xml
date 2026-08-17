@@ -91,13 +91,12 @@
                  the other way, taken deliberately.
 
                  the version and commit are of the build **a launch would actually run**, which is not
-                 always the one this APK ships, and FEX's half is its own release naming. monospaced
-                 for the reason the app's own version line is: it is quoted into a bug report by
-                 hand. -->
+                 always the one this APK ships, and FEX's half is its own release naming. both are set
+                 in the app's own face, like every other version label in the app and for the reason
+                 the app's own version line states. -->
             <TextView
                 android:id="@+id/versions"
-                style="@style/AboutSub"
-                android:fontFamily="monospace" />
+                style="@style/AboutSub" />
 
         </LinearLayout>
 

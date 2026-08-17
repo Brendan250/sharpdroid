@@ -81,10 +81,16 @@
         android:textAppearance="?attr/textAppearanceHeadlineSmall"
         android:textColor="?attr/colorOnSurface" />
 
-    <!-- the version and the commit this APK was built from. a tap copies it, because a bug report
-         wants both spelled exactly and a commit typed off a screen is where one letter goes missing.
-         it is drawn quietly because it is the one thing here nobody comes looking for until something
-         has already gone wrong. -->
+    <!-- the version and the commit this APK was built from. a tap copies it, which is the answer to
+         wanting it spelled exactly in a bug report. it is drawn quietly because it is the one thing
+         here nobody comes looking for until something has already gone wrong.
+
+         **it is set in the app's own face, like every other version label in the app.** a fixed-width
+         one was here first, on the argument that a hand-copied identifier wants unambiguous glyphs -
+         but a short git hash is lower-case hex, which contains no `l` to confuse with a `1` and no `O`
+         to confuse with a `0`, and the build manager has always shown this same pair of values
+         proportionally without trouble. what a fixed-width face still buys is help tracking position
+         in a long string, and that did not turn out to be worth a second typeface. -->
     <TextView
         android:id="@+id/version"
         android:layout_width="wrap_content"
@@ -92,7 +98,6 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="3dp"
         android:background="?attr/selectableItemBackground"
-        android:fontFamily="monospace"
         android:paddingHorizontal="12dp"
         android:paddingVertical="5dp"
         android:textAppearance="?attr/textAppearanceBodySmall"
