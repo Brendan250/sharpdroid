@@ -106,7 +106,9 @@ each of these is one job, and `scripts/build.py` runs them in this order. **the 
 
 **the guest libraries always ship and no argument says otherwise.** a build is chosen because a person picks between several; the x86-64 set is the one right set for a given APK, so the only thing an argument could decide is whether the APK can run a game at all. missing, the APK step **refuses** and names the fetch — which is what makes the first link in the order above an actual refusal rather than an editorial one.
 
-**it refuses just as hard without the licences.** an APK carrying those binaries redistributes them, so the notice, the per-package copyright statements and the full licence texts are packaged with them and asserted inside the finished archive. [`repo-structure.md`](repo-structure.md) has what each is and why.
+**it refuses just as hard without the licences**, and that covers everything the APK redistributes rather than the guest set alone: the guest set's index and per-package statements, the notices for what is compiled into the host layer or shipped beside it, and an attribution list for whatever gradle resolved into the dex. all of it is asserted inside the finished archive, the index line by line, so a row that would open onto nothing is a refusal here instead. [`repo-structure.md`](repo-structure.md) has what each is and why.
+
+**the dex half runs gradle once before the build**, to ask what it resolved rather than to trust what is declared. `--offline` reaches that invocation too — it is asked for to find out whether anything is being fetched that nobody declared, and an invocation exempt from it is one the question is not being asked of.
 
 `py scripts/build.py --list` prints the whole sequence and says what each step will do. it also reports when the committed thunk sources no longer match the NDK's headers, which is the only thing that would otherwise need someone to think of asking.
 

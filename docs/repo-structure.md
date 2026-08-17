@@ -215,6 +215,8 @@ that is a deliberate choice rather than a default. code moves across the boundar
 
 dependencies keep their own licences and their texts are carried in `LICENSES/`: **FEXCore is MIT**, **libadrenotools is BSD-2-Clause**, both compatible.
 
+**that covers somebody who cloned this and nobody who was handed an APK**, which is a separate obligation with a separate answer — the section below.
+
 **the licence is declared once, in `REUSE.toml`, and no source file carries an SPDX header.** that is a deliberate choice: the GPL's *"attach them to the start of each source file"* language is in its **How to Apply These Terms** appendix, which is advice rather than a condition — what the licence requires is a notice on each copy of the program, and the root `LICENSE` is that. one aggregate annotation keeps the tree machine-readable for a scanner and stays true on its own as files come and go, where a header per file is a chance per file to forget one — and the file count only grows.
 
 **the fork is the exception, and it is not ours to change.** SharpEmu follows REUSE strictly and its CI rejects a new file without a header. code does move across that boundary in both directions, so **anything that crosses into the fork gains a header at the moment it crosses** — which is one line of work at the time it happens rather than a standing tax on every file here.
@@ -232,6 +234,28 @@ what those terms ask for is that a recipient be given the terms and be able to g
 **the packages are pinned to `snapshot.debian.org` by content hash.** the ordinary mirror keeps only what a suite currently references, so a pinned filename is retired at the next point release; snapshot keeps every version permanently, which makes both the build and the source pointers stable. `scripts/build-apk.py` refuses to package a set missing any of the above.
 
 **the directory is replaceable with any compatible set**, which is what the LGPL cares about most: a set on external storage is preferred over the one inside the APK, and the launch log names whichever answered.
+
+### what the APK carries for its own dependencies
+
+the guest set above is one of three provenances, and the same reasoning covers the other two: an APK is a binary redistribution, and a permission notice is addressed to whoever holds one rather than to whoever can read `external/`.
+
+**compiled into the host layer, or shipped beside it.** the notices are copied out of the submodules the code was compiled from, so they cannot drift from it, and the C++ runtime's comes from the NDK that produced the copy in the APK.
+
+| | |
+| --- | --- |
+| FEXCore | MIT |
+| {fmt}, unordered_dense | MIT |
+| xxHash | BSD-2-Clause |
+| SoftFloat-3e | BSD-3-Clause |
+| cephes | BSD, by a relicensing permission rather than a standard text |
+| libadrenotools | BSD-2-Clause |
+| libc++ | Apache-2.0 WITH LLVM-exception, as `libc++_shared.so` |
+
+**membership is decided by what is in the binary rather than by what the build configures.** FEX's `External/` holds several more than this and four of them reach no APK — two are built and linked into nothing, one is header-only and never instantiated, and the allocator is a stub whose real implementation is not compiled. each entry above was checked against the symbols in `libsharpemu-host-layer.so`. a notice for a library a recipient did not receive is noise in a list whose whole value is that every line of it is true.
+
+**SoftFloat is the one that cannot be copied from a file**: the vendored copy carries no licence document, stating its terms in a header block at the top of every source file instead, so the notice is lifted out of one and the extraction refuses rather than shipping something shorter than the terms it claims to be.
+
+**resolved into the dex.** the app declares a dozen or so libraries and gradle resolves several times that, nearly all of it transitively — so a hand-written list would state something true about `build.gradle` and false about the APK. an attribution plugin is asked what gradle resolved, and packaging refuses on an artefact whose terms are unstated or have no text behind them, rather than shipping a row that opens onto nothing. its output is flattened into the same shape as everything else, so the plugin's schema stays a packaging concern.
 
 ## what is deliberately not here
 

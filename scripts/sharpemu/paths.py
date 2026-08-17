@@ -21,6 +21,12 @@ GUEST_LIBS = ROOT / "guest-libs"
 TOOLCHAIN = ROOT / "toolchain"
 TOOLCHAIN_JSON = ROOT / "toolchain.json"
 
+# the three submodules. two of them are read for the terms their code is redistributed under, which
+# is the only reason packaging looks in here at all.
+EXTERNAL = ROOT / "external"
+FEX = EXTERNAL / "FEX"
+ADRENOTOOLS = EXTERNAL / "libadrenotools"
+
 # the x86-64 set the guest's own ld.so searches: debian glibc, plus the two generated thunk
 # libraries that are built rather than downloaded.
 GUEST_LIBS_X86_64 = GUEST_LIBS / "x86_64"

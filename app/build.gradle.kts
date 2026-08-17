@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.aboutlibraries)
 }
 
 // the identity, as scripts/build-apk.py resolved it. absent means the manifest's own -- which is what

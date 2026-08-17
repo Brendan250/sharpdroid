@@ -531,12 +531,23 @@ what it costs is that the versions line's two levels look alike — the dot insi
 
 **About -> Third-party licences** is `LicencesActivity`, and one document opens in `LicenceTextActivity`.
 
-the x86-64 set the guest's own linker searches is mostly unmodified Debian binaries, so the APK redistributes them, and the terms they travel under are packaged beside them: an index, each source package's own copyright statement as Debian writes it, and the full text of every licence those statements refer to. `scripts/build-apk.py` refuses to package a set missing any of them and asserts them again inside the finished archive — **so the obligation is met by the artefact, and these two screens are what makes it reachable.** a notice nobody can open without unzipping the APK is doing half the job.
+an APK is a binary redistribution of everything compiled into it or shipped beside it, and the permission notices in those are addressed to whoever holds one. a reader who can open `external/` cloned the repository; the person handed an APK cannot, which is why the notices travel inside it. `scripts/build-apk.py` assembles them, refuses to package without them and asserts them again inside the finished archive — **so the obligation is met by the artefact, and these two screens are what makes it reachable.** a notice nobody can open without unzipping the APK is doing half the job.
 
-- **read out of the assets, never copied into `res/`.** the files beside the binaries are the notice; a second copy in string resources is one that can silently disagree with the one that shipped.
+three provenances land in the one list, because they are one obligation and read as one thing:
+
+| | |
+| --- | --- |
+| compiled into the host layer, or shipped beside it | FEXCore and the five vendored libraries that reach the binary, libadrenotools, and the C++ runtime |
+| resolved into the dex | whatever gradle actually put there, which is far more than the app declares |
+| the x86-64 set the guest's own linker searches | mostly unmodified Debian binaries, with Debian's own per-package statements |
+
+- **one row per library, and the row opens its terms.** a heading per provenance would sort a reader's attention by a distinction they did not come here to make.
+- **read out of the assets, never copied into `res/`.** the files packaging wrote are the notice; a second copy in string resources is one that can silently disagree with the one that shipped.
 - **the unpacked copy on internal storage is deliberately not used.** it only exists after a launch has needed it, and this has to work on an install that has never started a game.
-- **a set staged over `adb` is not shown either.** that override is a development path, and what a recipient was handed is what the APK carries.
-- **the list is not hardcoded.** `AssetManager.list` over the licence directory is what names the entries, so a package added to the set appears with nothing in the app changing.
+- **a guest set staged over `adb` is not shown either.** that override is a development path, and what a recipient was handed is what the APK carries.
+- **nothing is hardcoded.** the index packaging wrote and the guest set's own directory are what name the entries, so a dependency arriving transitively appears with nothing in the app changing.
+- **the generator's own file is not what the app reads.** the attribution list for the dex is written by a build-time gradle plugin whose schema is its own; packaging flattens it into the same name, licence and document every other row is in, so a plugin upgrade is a packaging concern rather than something the app has to keep parsing correctly.
+- **one text per licence where the licence does not name a holder, one per library where it does.** MIT and BSD state a copyright line inside the text, so those are per-library; the ninety-odd Apache-2.0 rows share one document, because there the attribution *is* the row.
 - **the app's own licence is one of these documents.** sharpemu-android is GPL-2.0-or-later and the GPL text already ships beside the guest libraries, so the About screen's *Read it* link opens that one rather than a second copy of it.
 - **nothing is reformatted and the read does not trim.** these are laid out for a fixed-width column, and every one of them opens with a title centred by leading spaces — so a monospaced view that wraps and strips nothing is both the honest shape and the only correct one.
 

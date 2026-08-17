@@ -69,20 +69,24 @@ def entry():
     say("APK:            {}".format(paths.relative(apk)))
 
     check_sdk_levels(toolchain)
-    # **emptied once, here, rather than by whichever step runs first.** two asset trees are staged
+    # **written before anything asks gradle a question**, rather than beside the build it configures.
+    # staging the notices runs gradle to find out what it resolved, and gradle cannot configure an
+    # android project without being told where the SDK is.
+    write_local_properties(toolchain)
+    # **emptied once, here, rather than by whichever step runs first.** three asset trees are staged
     # into it and each would otherwise wipe the other's work depending on the order they were called
     # in -- a failure that would show up as an APK missing whichever one was packed first.
     fresh(paths.BUILD_BUNDLE)
     bundled = stage_bundle(arguments.sharpemu, package)
     guest_libraries = stage_guest_libs()
+    notices = stage_notices(toolchain, arguments.offline)
 
-    write_local_properties(toolchain)
     keystore(toolchain)
 
     step("gradle")
     build_with_gradle(toolchain, package, label, arguments.offline)
     collect(apk)
-    verify(apk, bundled, guest_libraries)
+    verify(apk, bundled, guest_libraries, notices)
 
     say("")
     say("built: {}  {}".format(paths.relative(apk), size(apk.stat().st_size)))
@@ -401,7 +405,202 @@ def write_contents(asset):
     return len(lines)
 
 
+# --- the terms everything else is redistributed under -----------------------------------------------
+
+
+# what is compiled into the host layer or shipped beside it, and where each one's terms are kept.
+#
+# **membership is decided by what is in the binary, not by what the build configures.** FEX's
+# `External/` holds several more libraries than this, and four of them reach no APK: two are built and
+# then linked into nothing, one is header-only and never instantiated, and the allocator is a stub
+# whose real implementation is not compiled. a notice for a library a recipient did not receive is
+# noise in a list whose whole value is that every line of it is true, so each entry here was checked
+# against the symbols in `libsharpemu-host-layer.so` rather than against the CMake graph.
+#
+# the identifiers are SPDX where an SPDX identifier is accurate. `cephes` is deliberately not one: its
+# terms are a relicensing permission rather than a standard text, so the name says BSD and the
+# document itself is what states the grant.
+HOST_NOTICES = (
+    ("FEXCore", "MIT", ("FEX", "LICENSE")),
+    ("{fmt}", "MIT", ("FEX", "External/fmt/LICENSE")),
+    ("unordered_dense", "MIT", ("FEX", "External/unordered_dense/LICENSE")),
+    ("xxHash", "BSD-2-Clause", ("FEX", "External/xxhash/LICENSE")),
+    ("cephes", "BSD", ("FEX", "External/cephes/LICENSE")),
+    ("libadrenotools", "BSD-2-Clause", ("ADRENOTOOLS", "LICENSE")),
+)
+
+# SoftFloat is the one that cannot be copied from a file. the vendored copy carries no licence
+# document at all -- upstream keeps it in a directory that was not vendored -- and states its terms in
+# a header block at the top of every source file instead. so the notice is lifted out of one, and the
+# extraction refuses rather than shipping something shorter than the terms it claims to be.
+SOFTFLOAT_SOURCE = ("FEX", "External/SoftFloat-3e/src/extF80_add.c")
+SOFTFLOAT_HEADER = re.compile(r"/\*=+\s*(.*?)\s*=+\*/", re.DOTALL)
+
+
+def stage_notices(toolchain, offline):
+    """assemble the asset tree holding the terms of everything the APK redistributes but did not write.
+
+    **an APK is a binary redistribution and the notice travels with it.** the repository carrying
+    `external/FEX/LICENSE` satisfies somebody who cloned the repository; a person handed an APK never
+    sees `external/`, and they are the ones the permission notices are addressed to.
+
+    three provenances land in one directory, because they are one obligation and the screen that reads
+    them is one screen. what is compiled into the host layer is copied out of the submodules it was
+    compiled from, so it cannot drift from the code it describes. what lands in the dex is whatever
+    gradle resolved, written by the attribution plugin, because the declared dependency list is a
+    fraction of the distributed one and a hand-written list would be a statement about the wrong set.
+    the guest's x86-64 libraries keep their own tree and are not touched here.
+    """
+    step("the licence notices")
+    asset = ensure(paths.BUILD_BUNDLE / "licences")
+    texts = ensure(asset / "texts")
+    roots = {"FEX": paths.FEX, "ADRENOTOOLS": paths.ADRENOTOOLS}
+
+    libraries = []
+    for name, licence, (root, relative) in HOST_NOTICES:
+        source = roots[root] / relative
+        if not source.exists():
+            raise Refusal(
+                "{} is not there, so the terms {} is redistributed under cannot be packaged. the "
+                "submodules are what these are read from:\n"
+                "  git submodule update --init --recursive".format(
+                    paths.relative(source), name))
+        target = texts / file_name(name)
+        shutil.copyfile(str(source), str(target))
+        libraries.append({"name": name, "licence": licence,
+                          "text": "texts/" + target.name})
+
+    libraries.append(stage_softfloat_notice(texts))
+    libraries.append(stage_stl_notice(toolchain, texts))
+    native = len(libraries)
+
+    libraries.extend(stage_dex_notices(toolchain, texts, offline))
+    libraries.sort(key=lambda entry: entry["name"].lower())
+
+    write_text(asset / "notices.json",
+               json.dumps({"libraries": libraries}, indent=2) + "\n")
+
+    say("  {} compiled in or shipped beside the host layer".format(native))
+    say("  {} resolved into the dex, from the attribution plugin".format(len(libraries) - native))
+    return native, len(libraries) - native
+
+
+def file_name(name):
+    """one library's name as a filename, since two of them are punctuation a path should not carry."""
+    return re.sub(r"[^A-Za-z0-9._+-]", "-", name).strip("-")
+
+
+def stage_softfloat_notice(texts):
+    """SoftFloat's terms, lifted out of a source file's header because it ships no licence document.
+
+    the block is the copyright line, the three BSD conditions and the disclaimer, which is the whole
+    of what the licence asks be reproduced. an extraction that came back short would be a notice that
+    looked complete and was not, so the length is checked against the disclaimer that ends it.
+    """
+    source = paths.FEX / SOFTFLOAT_SOURCE[1]
+    if not source.exists():
+        raise Refusal("{} is not there, so SoftFloat's terms cannot be read. the submodules are what "
+                      "these are read from:\n"
+                      "  git submodule update --init --recursive".format(paths.relative(source)))
+    found = SOFTFLOAT_HEADER.search(source.read_text(encoding="utf-8", errors="replace"))
+    if not found or "THIS SOFTWARE IS PROVIDED" not in found.group(1):
+        raise Refusal(
+            "the licence header at the top of {} is not the shape this reads. SoftFloat states its "
+            "terms per file rather than in a document, so that block is the notice and packaging "
+            "will not invent one.".format(paths.relative(source)))
+    target = texts / "SoftFloat-3e"
+    write_text(target, found.group(1) + "\n")
+    return {"name": "SoftFloat-3e", "licence": "BSD-3-Clause", "text": "texts/" + target.name}
+
+
+def stage_stl_notice(toolchain, texts):
+    """the C++ runtime's terms, from the NDK that produced the copy in the APK.
+
+    **it is the toolchain's notice rather than a licence text**, and it is over-inclusive on purpose:
+    it covers the whole LLVM project where the APK ships one library out of it. that is the document
+    the NDK provides for the purpose and trimming it to the parts that apply would mean deciding which
+    of its grants a reader may not need, which is not packaging's call to make.
+    """
+    source = toolchain.ndk_prebuilt / "NOTICE"
+    if not source.exists():
+        raise Refusal(
+            "the NDK's notice is not at {}, so the terms the C++ runtime in this APK is redistributed "
+            "under cannot be packaged. the APK ships libc++_shared.so out of this same "
+            "NDK.".format(paths.relative(source)))
+    target = texts / "libc++"
+    shutil.copyfile(str(source), str(target))
+    return {"name": "libc++", "licence": "Apache-2.0 WITH LLVM-exception",
+            "text": "texts/" + target.name}
+
+
+def stage_dex_notices(toolchain, texts, offline):
+    """what gradle actually resolved into the dex, and the terms each of those is under.
+
+    **the declared dependency list is not the distributed one.** the app names a dozen or so libraries
+    and the resolved runtime classpath is several times that, nearly all of it arriving transitively,
+    so a list written by hand states something true about `build.gradle` and false about the APK. this
+    asks gradle what it resolved instead.
+
+    the export runs as its own invocation because the answer has to exist before the asset tree is
+    handed to the build that packages it. it is cheap and it is cached.
+
+    **an entry with no licence is a refusal rather than a blank row.** the terms come from each
+    artefact's published metadata, and metadata that is missing or names a licence the generator has
+    no text for is exactly how an attribution list ends up with a confident-looking gap in it.
+
+    **the generator's own file is not what ships.** its schema belongs to a build-time plugin and
+    would become something the app has to keep reading correctly across upgrades of that plugin, for
+    no gain: what the screen needs is a name, a licence and a document, which is the shape everything
+    else here is already in. so this returns rows in that shape and the plugin's file stays behind.
+
+    one text per licence rather than one per library, because these state their terms without naming
+    a holder in them -- the attribution is the entry, and ninety-odd copies of one identical document
+    is bytes in the APK that no reader is better off for.
+    """
+    produced_json = (paths.BUILD / "gradle" / "app" / "generated" / "aboutLibraries"
+                     / "aboutlibraries.json")
+    # removed first, so a plugin that fails without saying so is caught by the file not being there
+    # rather than by the previous build's answer being packaged as this one's.
+    produced_json.unlink(missing_ok=True)
+    # `--offline` reaches here too. it is asked for to find out whether anything is being fetched that
+    # nobody declared, and an invocation exempt from it is one the question is not being asked of.
+    run([str(gradle_launcher()), "-p", str(paths.ROOT), ":app:exportLibraryDefinitions",
+         "--console=plain", "-q"] + (["--offline"] if offline else []),
+        env=gradle_environment(toolchain))
+    if not produced_json.exists():
+        raise Refusal("the attribution plugin did not write {}".format(paths.relative(produced_json)))
+
+    described = json.loads(produced_json.read_text(encoding="utf-8"))
+    known = {name for name, text in described.get("licenses", {}).items() if text.get("content")}
+    unstated = sorted(library.get("name") or library.get("uniqueId", "?")
+                      for library in described.get("libraries", [])
+                      if not (set(library.get("licenses") or ()) & known))
+    if unstated:
+        raise Refusal(
+            "gradle resolved {} into the APK and the terms are unstated or have no text: {}. every "
+            "line of this list has to be true, so packaging refuses rather than shipping a row with "
+            "nothing behind it.".format(
+                "a dependency" if len(unstated) == 1 else "dependencies", ", ".join(unstated)))
+
+    for name in sorted(known):
+        write_text(texts / file_name(name), described["licenses"][name]["content"].rstrip("\n") + "\n")
+
+    rows = []
+    for library in described.get("libraries", []):
+        licence = sorted(set(library.get("licenses") or ()) & known)[0]
+        rows.append({"name": library.get("name") or library["uniqueId"], "licence": licence,
+                     "text": "texts/" + file_name(licence)})
+    return rows
+
+
 # --- gradle -----------------------------------------------------------------------------------------
+
+
+def gradle_launcher():
+    launcher = paths.ROOT / ("gradlew.bat" if tc.IS_WINDOWS else "gradlew")
+    if not launcher.exists():
+        raise Refusal("missing {}".format(paths.relative(launcher)))
+    return launcher
 
 
 def write_local_properties(toolchain):
@@ -456,9 +655,7 @@ def gradle_environment(toolchain):
 
 
 def build_with_gradle(toolchain, package, label, offline):
-    launcher = paths.ROOT / ("gradlew.bat" if tc.IS_WINDOWS else "gradlew")
-    if not launcher.exists():
-        raise Refusal("missing {}".format(paths.relative(launcher)))
+    launcher = gradle_launcher()
 
     # the C++ runtime, from the resolver rather than from gradle's own idea of which NDK is
     # installed. the host layer links it dynamically and the copy in the APK has to be the one it
@@ -580,7 +777,7 @@ def collect(apk):
 # --- what is actually in it ---------------------------------------------------------------------------
 
 
-def verify(apk, bundled, guest_libraries):
+def verify(apk, bundled, guest_libraries, notices):
     """open the APK and assert what it holds, while the artefact is still on this machine.
 
     an APK missing its dex installs and then dies at a missing class; one missing the host layer
@@ -632,6 +829,29 @@ def verify(apk, bundled, guest_libraries):
     say("  {:>12,}  the guest libraries, {} files".format(
         sum(count for name, count in sizes.items() if name.startswith("assets/guest-libs/")),
         guest_libraries))
+
+    # **the notices, in the archive rather than only in the tree it was assembled from.** the index
+    # is checked line by line rather than as a filename, because an index naming a document the APK
+    # does not carry is a row in the list that opens onto nothing -- and that failure looks like a
+    # broken screen rather than like a missing notice, which is what it is.
+    host_notices, dex_notices = notices
+    if sizes.get("assets/licences/notices.json", 0) <= 0:
+        raise Refusal("packaging failed: assets/licences/notices.json is missing or empty in the APK")
+    with zipfile.ZipFile(str(apk)) as archive:
+        index = json.loads(archive.read("assets/licences/notices.json").decode("utf-8"))
+    listed = index.get("libraries", [])
+    if len(listed) != host_notices + dex_notices:
+        raise Refusal("packaging failed: {} notices were staged and the APK's index names {}".format(
+            host_notices + dex_notices, len(listed)))
+    for library in listed:
+        entry = "assets/licences/" + library["text"]
+        if entry not in sizes or sizes[entry] <= 0:
+            raise Refusal(
+                "packaging failed: the notice index names {} for {} and the APK does not carry "
+                "it".format(library["text"], library["name"]))
+    say("  {:>12,}  the licence notices, {} native and {} in the dex".format(
+        sum(count for name, count in sizes.items() if name.startswith("assets/licences/")),
+        host_notices, dex_notices))
 
     assets = [name for name in sizes if name.startswith("assets/sharpemu/")]
     if bundled is None:

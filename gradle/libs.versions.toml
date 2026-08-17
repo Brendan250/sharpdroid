@@ -32,6 +32,10 @@ swiperefreshlayout = "1.1.0"
 splashscreen = "1.0.1"
 coil = "2.2.2"
 
+# the attribution list for what lands in the dex. build-time only -- the plugin's own runtime and its
+# Compose UI are not used, only the JSON it writes.
+aboutlibraries = "11.6.3"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
@@ -61,3 +65,4 @@ coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
+aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }
