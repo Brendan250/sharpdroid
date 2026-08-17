@@ -95,9 +95,17 @@ class AboutActivity : AppCompatActivity() {
 
         // the entrance, once, on the way in. deliberately not repeated by onResume: a screen that
         // replays its animation every time something closes over it reads as a screen reloading.
+        //
+        // **it rises to where the layout put the drawing rather than to zero.** the layout lifts it
+        // off the block by translating it, so an entrance that ended at zero would animate that lift
+        // away on every visit -- silently, since the drawing would simply settle a few dp lower than
+        // it was drawn. the resting value is read here rather than named, so moving it is still a
+        // one-attribute change in the layout.
+        val resting = body.mirco.translationY
         body.mirco.alpha = 0f
-        body.mirco.translationY = 20f
-        body.mirco.animate().alpha(1f).translationY(0f).setDuration(380).setStartDelay(40).start()
+        body.mirco.translationY = resting + ENTRANCE_RISE
+        body.mirco.animate().alpha(1f).translationY(resting)
+            .setDuration(380).setStartDelay(40).start()
     }
 
     override fun onResume() {
@@ -257,5 +265,8 @@ class AboutActivity : AppCompatActivity() {
 
         /** Long enough to read as a reaction, short enough that nobody waits on it to leave. */
         const val WIGGLE_MS = 620L
+
+        /** How far below its resting place the drawing starts, in pixels. */
+        const val ENTRANCE_RISE = 20f
     }
 }

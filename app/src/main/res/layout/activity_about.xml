@@ -6,36 +6,35 @@
   variant, because the one thing that changes with the shape of the screen is whether the drawing sits
   above the text or beside it.
 
-  **the scroll view is insurance rather than the design.** both variants are written to hold everything
-  at once - upright on a phone and side by side on a landscape handheld - and neither is meant to be
-  scrolled. it is here because a screen shorter than either was written for should clip nothing, and it
-  costs a view.
+  **the toolbar is laid over the content rather than above it**, and that is what lets the drawing
+  reach full height. stacked in a column, the content begins at the toolbar's bottom edge and every
+  container between the two clips there, so the topmost few pixels of the drawing were sliced flat -
+  and the drawing's own file has ink in its second row, so there is nothing to spare. here the scroll
+  view fills the window and is padded down by the toolbar's height instead: the content still starts
+  below the toolbar, and `clipToPadding` being off lets what overflows draw up into that band.
+
+  **the toolbar carries no background of its own, which is the other half of it.** a surface behind it
+  would hide exactly what this arrangement exists to show. the cost is that anything scrolled up would
+  pass behind the title rather than under a solid band, and it is a cost worth naming rather than a
+  free lunch - this page is written to fit without scrolling on the screens it is built for, and the
+  scroll view below is insurance for a shorter one.
+
+  **the scroll view sets `fillViewport`**, which is what lets the composition centre in the space
+  rather than hang from the top of it, and a screen too short for the composition still scrolls.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
-    android:orientation="vertical">
+    android:background="?attr/colorSurface">
 
-    <!-- the manager screens' toolbar band, without the progress bar: nothing on this screen waits. -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        app:navigationIcon="@drawable/ic_back" />
-
-    <!-- **fillViewport, and it is what centres the page.** without it the scroll view measures its
-         child at the height that child wants and pins it to the top, which on a screen with room to
-         spare leaves the whole composition riding high with a band of nothing under it. with it the
-         child is given the viewport's height and can centre inside it, and a screen too short for the
-         composition still scrolls exactly as it would have. -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
         android:clipToPadding="false"
         android:fillViewport="true"
+        android:paddingTop="?attr/actionBarSize"
         android:paddingBottom="16dp"
         android:scrollbarStyle="outsideOverlay">
 
@@ -47,4 +46,12 @@
 
     </androidx.core.widget.NestedScrollView>
 
-</LinearLayout>
+    <!-- last, so it draws over the content it is laid on. -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_gravity="top"
+        app:navigationIcon="@drawable/ic_back" />
+
+</FrameLayout>

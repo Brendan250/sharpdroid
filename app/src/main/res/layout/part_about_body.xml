@@ -21,6 +21,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:paddingBottom="8dp">
 
     <!-- **the drawing and the light behind it, and the light is centred on the frame rather than on
@@ -31,6 +33,7 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="300dp"
+        android:clipChildren="false"
         android:layout_marginTop="4dp">
 
         <!-- **the glow is smaller than the drawing rather than larger**, so the paws and the tuft of
@@ -57,13 +60,21 @@
              in this app that does not look like one. a borderless ripple on a view this size is a grey
              disc the width of the glow and would make the drawing read as a button about to navigate
              somewhere; the movement is the cue instead, and it is the only cue there is. see
-             AboutActivity. -->
+
+
+             **the lift is a translation rather than a margin, and the frame lets it out.** the frame
+             is exactly as tall as the drawing, so a margin that moved it would have to change the
+             frame's height too, and that height is what sets the block's; the whole page would shift
+             by half of whatever was asked for. a translation moves what is drawn and nothing that is
+             measured, so the lift is exactly the number written on it. the frame stops clipping its
+             children because the drawing now reaches above its top edge. -->
         <ImageView
             android:id="@+id/mirco"
             android:layout_width="wrap_content"
             android:layout_height="300dp"
             android:layout_gravity="bottom|center_horizontal"
             android:adjustViewBounds="true"
+            android:translationY="-12dp"
             android:contentDescription="@string/about_by"
             android:scaleType="fitCenter"
             android:src="@drawable/mirco" />
