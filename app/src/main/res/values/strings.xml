@@ -76,7 +76,7 @@
          version number and for what the app is under, and a seventh card is cheaper to find than a
          menu item on a screen nobody opens twice. -->
     <string name="settings_about">About</string>
-    <string name="settings_about_summary">Credits, versions and licences</string>
+    <string name="settings_about_summary">Version info, credits, and licences</string>
 
     <string name="settings_group_sharpemu">SharpEmu</string>
 
@@ -493,7 +493,7 @@
     <!-- **plural, because there are two and they are stacked.** SharpEmu emulates a PlayStation 5;
          FEXCore is what executes SharpEmu, which is x86-64, on an arm64 CPU. -->
     <string name="about_label_emulator">Emulators</string>
-    <string name="about_label_references">Read against</string>
+    <string name="about_label_references">References</string>
     <string name="about_label_licence">Licence</string>
 
     <string name="about_sharpemu">SharpEmu</string>
@@ -507,7 +507,7 @@
     <string name="about_eden">Eden</string>
     <string name="about_gamenative">GameNative</string>
     <!-- the two reasons, in the order of the two names above them, and no adjective on either. -->
-    <string name="about_references_sub">for these screens, and for x86-64 on Android</string>
+    <string name="about_references_sub">for the user interface and x86 on Android</string>
 
     <string name="about_licence">GPL-2.0-or-later</string>
     <string name="about_source">Source</string>
