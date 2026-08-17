@@ -86,81 +86,39 @@ class LicencesActivity : AppCompatActivity() {
     }
 
     /**
-     * One row: what it is called, what its terms are, and where in the APK those terms are.
+     * One row: a library, its licence, and where in the APK that licence is stated.
      *
-     * [kind] is the row's second line and is a licence identifier for a library — `MIT`,
-     * `Apache-2.0`. The two rows that are not libraries carry a phrase there instead, which is why it
-     * is a string rather than a resource id.
+     * [kind] is the row's second line and is always a licence identifier — `MIT`, `Apache-2.0`,
+     * `GPL-3.0-or-later WITH GCC-exception-3.1`. **Every row means the same thing**, which is what
+     * lets one list hold three provenances without a reader having to work out which kind of row they
+     * are looking at.
      */
     private class Document(val name: String, val kind: String, val asset: String)
 
     /**
-     * The guest set's index first, then every library, sorted by name and case-insensitively.
+     * Every library, sorted by name and case-insensitively.
      *
-     * **The index leads because it is the one document here that explains another.** It says what the
-     * guest set is and, more to the point, where each of its packages' *source* is kept — which is
-     * what the copyleft terms in that set actually ask for, and the one thing no per-library row
-     * carries.
+     * **One index, and this does not second-guess it.** Which libraries are in the APK was settled
+     * where it can be settled — against the symbols in the host layer, against gradle's resolved
+     * classpath, and against the pins the guest set was fetched with — and packaging refuses rather
+     * than writing a row it cannot back with a document. So a malformed index is logged and dropped
+     * whole; recovering half of it would produce a list that looks complete and is not.
      *
      * Sorting is case-insensitive because otherwise every capitalised name sorts ahead of every
      * lowercase one, which puts `okio` after `Transition` and reads as unsorted rather than as sorted
      * by a rule.
      */
-    private fun documents(): List<Document> {
-        val guestIndex = if (AssetTree.text(this, NOTICE) == null) {
-            emptyList()
-        } else {
-            listOf(
-                Document(getString(R.string.licences_notice),
-                    getString(R.string.licences_notice_kind), NOTICE)
-            )
-        }
-        val libraries = packagedNotices() + guestPackages()
-        return guestIndex + libraries.sortedBy { it.name.lowercase() }
-    }
-
-    /**
-     * What packaging resolved: the host layer's own dependencies, and everything gradle put in the dex.
-     *
-     * **The index is packaging's answer and this does not second-guess it.** Which libraries are in
-     * the binary was settled where it can be settled — against the symbols in the host layer and
-     * against gradle's resolved classpath — and packaging refuses rather than writing a row it cannot
-     * back with a document. So a malformed index is logged and dropped whole; recovering half of it
-     * would produce a list that looks complete and is not.
-     */
-    private fun packagedNotices(): List<Document> = try {
+    private fun documents(): List<Document> = try {
         val index = assets.open(NOTICES).use { it.readBytes().decodeToString() }
         val libraries = JSONObject(index).getJSONArray("libraries")
         (0 until libraries.length()).map { at ->
             val library = libraries.getJSONObject(at)
             Document(library.getString("name"), library.getString("licence"),
                 "$OURS/" + library.getString("text"))
-        }
+        }.sortedBy { it.name.lowercase() }
     } catch (e: Exception) {
         Log.e(TAG, "[app] could not read $NOTICES", e)
         emptyList()
-    }
-
-    /**
-     * The guest set's Debian source packages, one row each, opening that package's own statement.
-     *
-     * **A source package is a row and a shared licence text is not.** Debian states its terms as a
-     * per-package copyright statement that refers to a licence by the path it lives at, and several
-     * packages refer to the same one — so the texts are reached through the packages that use them
-     * rather than listed beside them as rows nobody arrived looking for.
-     *
-     * The package is named for itself rather than for its file: `glibc` is what a reader is looking
-     * for and `glibc.copyright` is where this app happens to keep it.
-     */
-    private fun guestPackages(): List<Document> {
-        val listed = runCatching { assets.list(LICENCES)?.toList() }
-            .onFailure { Log.e(TAG, "[app] could not list $LICENCES", it) }
-            .getOrNull()
-            .orEmpty()
-        return listed.filter { it.endsWith(COPYRIGHT) }.map {
-            Document(it.removeSuffix(COPYRIGHT), getString(R.string.licences_copyright),
-                "$LICENCES/$it")
-        }
     }
 
     private class Adapter(
@@ -187,19 +145,21 @@ class LicencesActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "sharpemu"
 
-        /** The directory in the APK holding the guest set's copyright statements and licence texts. */
-        const val LICENCES = "guest-libs/licences"
-
-        /** The index over it, which is also the one document here that explains the others. */
-        const val NOTICE = "guest-libs/licences.txt"
-
-        /** Where packaging puts the notices for what this repository compiles and packages. */
+        /** Where packaging puts the terms of everything this APK redistributes. */
         private const val OURS = "licences"
 
         /** Its index: one entry per library, each naming its licence and the document stating it. */
         private const val NOTICES = "$OURS/notices.json"
 
-        private const val COPYRIGHT = ".copyright"
+        /**
+         * The directory in the APK holding the guest set's own notices.
+         *
+         * **That set carries its own terms because it is redistributable on its own** — it is a plain
+         * directory staged to a device, and a copy of it that travelled without them would be one this
+         * app had stripped. The rows on this screen are assembled from it at packaging time rather
+         * than read from here, so what a reader opens is one document per library like every other.
+         */
+        private const val LICENCES = "guest-libs/licences"
 
         /** Where a licence text named [name] lives, for a caller that wants one by name. */
         fun textAsset(name: String) = "$LICENCES/$name"

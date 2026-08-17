@@ -257,6 +257,14 @@ the guest set above is one of three provenances, and the same reasoning covers t
 
 **resolved into the dex.** the app declares a dozen or so libraries and gradle resolves several times that, nearly all of it transitively — so a hand-written list would state something true about `build.gradle` and false about the APK. an attribution plugin is asked what gradle resolved, and packaging refuses on an artefact whose terms are unstated or have no text behind them, rather than shipping a row that opens onto nothing. its output is flattened into the same shape as everything else, so the plugin's schema stays a packaging concern.
 
+**searched by the guest, one row per debian binary package.** a `.deb` and a maven artefact are the same kind of thing — a named, versioned unit somebody redistributes — so `libc6`, `libgcc-s1`, `libstdc++6` and `libssl3` are rows like any other, each stating its own licence rather than being folded into one entry about the set. packaging builds them by reading `licences.txt`, which the fetch generates from the same table that pins the binaries, so the two cannot drift; a parse that finds nothing is a refusal rather than an empty set.
+
+each of those rows opens a preamble and then debian's own statement verbatim, and then the full text of every licence that statement refers to **which applies here**. the preamble carries what a debian statement does not: the version, and the `snapshot.debian.org` URL for the complete corresponding source. that pointer is load-bearing rather than a courtesy — glibc is LGPL and the gcc runtime is GPL with an exception, both of which ask that the corresponding source of the *binary distributed* be available, and debian's statement points at **upstream**, which is not the corresponding source of a debian-patched binary.
+
+the texts are intersected rather than assumed. a statement covers a whole source package, so `gcc-12` refers to licences covering compilers and documentation this ships no binary of, and `openssl` likewise; naming those would be a claim the APK cannot back.
+
+**the guest set also keeps its own notices in its own tree**, and that is not duplication for its own sake: the directory is redistributable on its own — it is staged to a device as a plain directory — so a copy of it travelling without its terms would be one this project had stripped.
+
 ## what is deliberately not here
 
 - **games.** PS5 titles are the user's own dumps and never appear here
