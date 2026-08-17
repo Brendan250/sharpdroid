@@ -265,6 +265,12 @@ the texts are intersected rather than assumed. a statement covers a whole source
 
 **the guest set also keeps its own notices in its own tree**, and that is not duplication for its own sake: the directory is redistributable on its own — it is staged to a device as a plain directory — so a copy of it travelling without its terms would be one this project had stripped.
 
+### somebody else's work committed here as source
+
+not everything third-party arrives as a dependency. the icons in the app's drawable resources are Google's Material set, taken and committed, so no resolver has anything to resolve and an attribution plugin sees nothing — the only record that they are here is a declaration in the packaging step.
+
+**that is exactly why the declaration names a marker.** an entry nothing checks outlives what it describes: the row would go on being written long after the last of those icons had been replaced by a drawing of our own, which is an attribution for work the APK no longer carries. so the entry names a string only the real thing has — the viewport a Material Symbols export uses — and finding none of it is a refusal.
+
 ### a work carried inside a dependency
 
 a dependency can carry somebody else's work under terms of its own, and then the licence naming that dependency covers only part of what arrived. okhttp is Apache-2.0 and embeds the Public Suffix List, which is MPL-2.0.

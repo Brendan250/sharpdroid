@@ -479,7 +479,12 @@ def stage_notices(toolchain, offline):
     libraries.extend(stage_guest_notices(texts))
     native = len(libraries)
 
-    libraries.extend(stage_dex_notices(toolchain, texts, offline))
+    dex = stage_dex_notices(toolchain, texts, offline)
+    libraries.extend(dex)
+    # after the dex, because these share the texts it wrote: an icon set states terms without naming a
+    # holder in them, so its row points at the same document ninety-odd others do.
+    vendored = vendored_asset_notices(texts)
+    libraries.extend(vendored)
     libraries.sort(key=lambda entry: entry["name"].lower())
 
     write_text(asset / "notices.json",
@@ -487,8 +492,9 @@ def stage_notices(toolchain, offline):
 
     say("  {} native: compiled into the host layer, shipped beside it, or searched by the "
         "guest".format(native))
-    say("  {} resolved into the dex, from the attribution plugin".format(len(libraries) - native))
-    return native, len(libraries) - native
+    say("  {} resolved into the dex, from the attribution plugin".format(len(dex)))
+    say("  {} committed here as source, which nothing resolves".format(len(vendored)))
+    return native, len(dex), len(vendored)
 
 
 def file_name(name):
@@ -537,6 +543,19 @@ def stage_stl_notice(toolchain, texts):
     shutil.copyfile(str(source), str(target))
     return {"name": "libc++", "licence": "Apache-2.0 WITH LLVM-exception",
             "text": "texts/" + target.name}
+
+
+# somebody else's work that lives in this repository as an ordinary source file.
+#
+# **nothing generated can find these.** they are not a dependency of anything -- they were taken and
+# committed -- so a resolver has nothing to resolve, an attribution plugin sees nothing, and the only
+# record that they are here is this table. that is precisely why the entry carries a `marker`: a
+# declaration nothing checks is one that outlives what it describes.
+VENDORED_ASSETS = (
+    {"name": "Material Symbols", "licence": "Apache-2.0",
+     "what": "icons in the app's drawable resources, taken from Google's Material icon set",
+     "marker": ('viewportWidth="960"', "app/src/main/res/drawable")},
+)
 
 
 # a third-party work carried *inside* one of the resolved dependencies, under terms of its own.
@@ -717,6 +736,41 @@ def stage_dex_notices(toolchain, texts, offline):
         rows.append({"name": library.get("name") or library["uniqueId"], "licence": licence,
                      "text": "texts/" + file_name(licence)})
     return fold_embedded_works(rows, texts)
+
+
+def vendored_asset_notices(texts):
+    """somebody else's work committed here as source, which no resolver can see.
+
+    **the marker is the point of this function.** an icon taken from a set and committed leaves no
+    trace a build can resolve, so the row would go on being written long after the last of those icons
+    had been replaced by a drawing of our own -- an attribution for something the APK no longer
+    carries, in a list whose whole value is that every line of it is true. so the entry names a string
+    that only the real thing has, and finding none of it is a refusal.
+    """
+    rows = []
+    for asset in VENDORED_ASSETS:
+        marker, where = asset["marker"]
+        directory = paths.ROOT / where
+        found = [path for path in sorted(directory.rglob("*"))
+                 if path.is_file()
+                 and marker in path.read_text(encoding="utf-8", errors="replace")]
+        if not found:
+            raise Refusal(
+                "nothing under {} carries {}, so {} describes work this APK no longer contains -- "
+                "drop the entry, or correct what identifies it.".format(
+                    paths.relative(directory), marker, asset["name"]))
+
+        text = texts / file_name(asset["licence"])
+        if not text.exists():
+            raise Refusal(
+                "{} is under {} and nothing wrote that text. it is shared with what gradle resolved, "
+                "so this needs a resolved dependency under the same licence or a copy of its "
+                "own.".format(asset["name"], asset["licence"]))
+        say("  {} covers {} file(s) under {}".format(
+            asset["name"], len(found), paths.relative(directory)))
+        rows.append({"name": asset["name"], "licence": asset["licence"],
+                     "text": "texts/" + text.name})
+    return rows
 
 
 def fold_embedded_works(rows, texts):
@@ -1011,24 +1065,25 @@ def verify(apk, bundled, guest_libraries, notices):
     # is checked line by line rather than as a filename, because an index naming a document the APK
     # does not carry is a row in the list that opens onto nothing -- and that failure looks like a
     # broken screen rather than like a missing notice, which is what it is.
-    host_notices, dex_notices = notices
+    host_notices, dex_notices, vendored_notices = notices
     if sizes.get("assets/licences/notices.json", 0) <= 0:
         raise Refusal("packaging failed: assets/licences/notices.json is missing or empty in the APK")
     with zipfile.ZipFile(str(apk)) as archive:
         index = json.loads(archive.read("assets/licences/notices.json").decode("utf-8"))
     listed = index.get("libraries", [])
-    if len(listed) != host_notices + dex_notices:
+    staged = host_notices + dex_notices + vendored_notices
+    if len(listed) != staged:
         raise Refusal("packaging failed: {} notices were staged and the APK's index names {}".format(
-            host_notices + dex_notices, len(listed)))
+            staged, len(listed)))
     for library in listed:
         entry = "assets/licences/" + library["text"]
         if entry not in sizes or sizes[entry] <= 0:
             raise Refusal(
                 "packaging failed: the notice index names {} for {} and the APK does not carry "
                 "it".format(library["text"], library["name"]))
-    say("  {:>12,}  the licence notices, {} native and {} in the dex".format(
+    say("  {:>12,}  the licence notices, {} native, {} in the dex, {} committed here".format(
         sum(count for name, count in sizes.items() if name.startswith("assets/licences/")),
-        host_notices, dex_notices))
+        host_notices, dex_notices, vendored_notices))
     check_embedded_works(sizes)
     check_bundled_build(sizes, bundled)
 
