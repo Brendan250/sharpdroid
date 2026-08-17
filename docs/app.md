@@ -537,7 +537,7 @@ three provenances land in the one list, because they are one obligation and read
 
 | | |
 | --- | --- |
-| compiled into the host layer, or shipped beside it | FEXCore and the five vendored libraries that reach the binary, libadrenotools, and the C++ runtime |
+| compiled into the host layer, or shipped beside it | FEXCore and the five vendored libraries that reach the binary, libadrenotools, and LLVM |
 | resolved into the dex | whatever gradle actually put there, which is far more than the app declares |
 | the x86-64 set the guest's own linker searches | mostly unmodified Debian binaries, with Debian's own per-package statements |
 

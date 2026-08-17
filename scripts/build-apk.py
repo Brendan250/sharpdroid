@@ -526,22 +526,25 @@ def stage_softfloat_notice(texts):
 
 
 def stage_stl_notice(toolchain, texts):
-    """the C++ runtime's terms, from the NDK that produced the copy in the APK.
+    """the LLVM runtime's terms, from the NDK that produced the copies in the APK.
 
-    **it is the toolchain's notice rather than a licence text**, and it is over-inclusive on purpose:
-    it covers the whole LLVM project where the APK ships one library out of it. that is the document
-    the NDK provides for the purpose and trimming it to the parts that apply would mean deciding which
-    of its grants a reader may not need, which is not packaging's call to make.
+    **the row is the project rather than one library out of it, because more than one arrives.**
+    `libc++_shared.so` is the visible part and the one anybody would think to name, but the compiler's
+    builtins are linked statically into the host layer by every NDK link, so a row saying `libc++`
+    would name a subset of what this notice actually covers. the notice is the NDK's own and is
+    over-inclusive on purpose: trimming it to the parts that apply would mean deciding which of its
+    grants a reader may not need, which is not packaging's call to make.
     """
     source = toolchain.ndk_prebuilt / "NOTICE"
     if not source.exists():
         raise Refusal(
-            "the NDK's notice is not at {}, so the terms the C++ runtime in this APK is redistributed "
-            "under cannot be packaged. the APK ships libc++_shared.so out of this same "
-            "NDK.".format(paths.relative(source)))
-    target = texts / "libc++"
+            "the NDK's notice is not at {}, so the terms the LLVM runtime in this APK is "
+            "redistributed under cannot be packaged. the APK ships libc++_shared.so out of this same "
+            "NDK, and links its compiler builtins into the host layer.".format(
+                paths.relative(source)))
+    target = texts / "LLVM"
     shutil.copyfile(str(source), str(target))
-    return {"name": "libc++", "licence": "Apache-2.0 WITH LLVM-exception",
+    return {"name": "LLVM", "licence": "Apache-2.0 WITH LLVM-exception",
             "text": "texts/" + target.name}
 
 

@@ -239,7 +239,9 @@ what those terms ask for is that a recipient be given the terms and be able to g
 
 the guest set above is one of three provenances, and the same reasoning covers the other two: an APK is a binary redistribution, and a permission notice is addressed to whoever holds one rather than to whoever can read `external/`.
 
-**compiled into the host layer, or shipped beside it.** the notices are copied out of the submodules the code was compiled from, so they cannot drift from it, and the C++ runtime's comes from the NDK that produced the copy in the APK.
+**compiled into the host layer, or shipped beside it.** the notices are copied out of the submodules the code was compiled from, so they cannot drift from it, and LLVM's comes from the NDK that produced what is in the APK.
+
+that row is the project rather than one library out of it, because more than one arrives: `libc++_shared.so` is the visible part, and the compiler's builtins are linked statically into the host layer by every NDK link. a row saying `libc++` would name a subset of what the NDK's notice covers.
 
 | | |
 | --- | --- |
@@ -249,7 +251,7 @@ the guest set above is one of three provenances, and the same reasoning covers t
 | SoftFloat-3e | BSD-3-Clause |
 | cephes | BSD, by a relicensing permission rather than a standard text |
 | libadrenotools | BSD-2-Clause |
-| libc++ | Apache-2.0 WITH LLVM-exception, as `libc++_shared.so` |
+| LLVM | Apache-2.0 WITH LLVM-exception, as `libc++_shared.so` and the compiler builtins every NDK link puts in the host layer |
 
 **membership is decided by what is in the binary rather than by what the build configures.** FEX's `External/` holds several more than this and four of them reach no APK — two are built and linked into nothing, one is header-only and never instantiated, and the allocator is a stub whose real implementation is not compiled. each entry above was checked against the symbols in `libsharpemu-host-layer.so`. a notice for a library a recipient did not receive is noise in a list whose whole value is that every line of it is true.
 
