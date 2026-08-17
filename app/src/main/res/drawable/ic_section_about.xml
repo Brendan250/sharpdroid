@@ -1,18 +1,18 @@
 <!--
-  the About section: who made this, what it is built on, and what it is under.
+  the About section: what this is, what it runs, what it was read against, and what it is under.
 
-  **a heart rather than an i in a circle, and the choice is what the screen is about.** an information
-  glyph would be right for a screen of facts, and most of this one is thanks — the emulator it is a
-  port of, the two frontends it was read against, everyone who has sent something in. the versions and
-  the licences are on it because that is where somebody looks for them, not because they are the
-  subject.
+  **an i in a circle rather than a heart, and the screen is what settles it.** the page credits without
+  thanking - it states what this app is built on in labelled lines and spends no sentence being
+  grateful at anybody - so a heart on the card promises a register the screen behind it does not keep.
+  what is on that screen is versions, terms and places to go, and this is the mark for that.
 
-  it is also distinct from the five it sits beside at a glance, which is the whole requirement for an
-  icon in a grid: nothing else in the settings scene is round or filled.
+  it is distinct at a glance from the six it sits beside, which is the whole requirement for an icon in
+  a grid: nothing else in the settings scene is a circle.
 
-  Material's own shape, at Material Symbols' 960 viewport, tinted with the theme's primary colour by
-  the layout rather than here — a vector carrying a colour of its own is one that is wrong in three of
-  the four palettes.
+  Material's own shape, at Material Symbols' 960 viewport, **with the tint it was exported carrying
+  stripped**. the section grid tints these with the theme's primary colour, so a vector holding a
+  colour of its own is one that is wrong in three of the four palettes - `?attr/colorControlNormal` is
+  what the download had, and it is the same mistake the Game files folder arrived with.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
@@ -21,5 +21,5 @@
     android:viewportHeight="960">
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M480,840L422,788Q321,696 255,629.5Q189,563 150,510.5Q111,458 95.5,414Q80,370 80,324Q80,230 143,167Q206,104 300,104Q352,104 399,126Q446,148 480,188Q514,148 561,126Q608,104 660,104Q754,104 817,167Q880,230 880,324Q880,370 864.5,414Q849,458 810,510.5Q771,563 705,629.5Q639,696 538,788L480,840Z" />
+        android:pathData="M440,680L520,680L520,440L440,440L440,680ZM508.5,348.5Q520,337 520,320Q520,303 508.5,291.5Q497,280 480,280Q463,280 451.5,291.5Q440,303 440,320Q440,337 451.5,348.5Q463,360 480,360Q497,360 508.5,348.5ZM480,880Q397,880 324,848.5Q251,817 197,763Q143,709 111.5,636Q80,563 80,480Q80,397 111.5,324Q143,251 197,197Q251,143 324,111.5Q397,80 480,80Q563,80 636,111.5Q709,143 763,197Q817,251 848.5,324Q880,397 880,480Q880,563 848.5,636Q817,709 763,763Q709,817 636,848.5Q563,880 480,880ZM480,800Q614,800 707,707Q800,614 800,480Q800,346 707,253Q614,160 480,160Q346,160 253,253Q160,346 160,480Q160,614 253,707Q346,800 480,800ZM480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Q480,480 480,480Z" />
 </vector>
