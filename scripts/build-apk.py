@@ -552,12 +552,19 @@ def stage_stl_notice(toolchain, texts):
 #
 # **nothing generated can find these.** they are not a dependency of anything -- they were taken and
 # committed -- so a resolver has nothing to resolve, an attribution plugin sees nothing, and the only
-# record that they are here is this table. that is precisely why the entry carries a `marker`: a
-# declaration nothing checks is one that outlives what it describes.
+# record that they are here is this table.
+#
+# **the icons are attributed by exception rather than by resemblance.** an icon in this app comes from
+# Google's Material set unless it was drawn here, so the set is every icon drawable minus the ones
+# named below -- and each of those says in its own comment that it was drawn rather than taken.
+# matching a shape instead would attribute by how Material something looks, which is a judgement a
+# packaging step should not be making and would get wrong in the safe-looking direction: quietly
+# dropping an icon that is Google's because it was redrawn at a different grid.
 VENDORED_ASSETS = (
     {"name": "Material Symbols", "licence": "Apache-2.0",
      "what": "icons in the app's drawable resources, taken from Google's Material icon set",
-     "marker": ('viewportWidth="960"', "app/src/main/res/drawable")},
+     "icons": ("app/src/main/res/drawable", "ic_*.xml"),
+     "drawn_here": ("ic_add.xml", "ic_game_placeholder.xml")},
 )
 
 
@@ -744,24 +751,36 @@ def stage_dex_notices(toolchain, texts, offline):
 def vendored_asset_notices(texts):
     """somebody else's work committed here as source, which no resolver can see.
 
-    **the marker is the point of this function.** an icon taken from a set and committed leaves no
+    **the counting is the point of this function.** an icon taken from a set and committed leaves no
     trace a build can resolve, so the row would go on being written long after the last of those icons
     had been replaced by a drawing of our own -- an attribution for something the APK no longer
-    carries, in a list whose whole value is that every line of it is true. so the entry names a string
-    that only the real thing has, and finding none of it is a refusal.
+    carries, in a list whose whole value is that every line of it is true.
+
+    **so both ends of the exception are checked.** nothing left to attribute is a refusal, and so is
+    an exception naming a file that is gone: the second is what stops the list quietly shrinking as
+    drawings are renamed, since a stale exception subtracts something that no longer exists and takes
+    a real icon's attribution with it the day that name is reused.
     """
     rows = []
     for asset in VENDORED_ASSETS:
-        marker, where = asset["marker"]
+        where, pattern = asset["icons"]
         directory = paths.ROOT / where
-        found = [path for path in sorted(directory.rglob("*"))
-                 if path.is_file()
-                 and marker in path.read_text(encoding="utf-8", errors="replace")]
+        drawn_here = set(asset["drawn_here"])
+
+        missing = sorted(name for name in drawn_here if not (directory / name).exists())
+        if missing:
+            raise Refusal(
+                "{} is excluded from {} as drawn here and is not in {} -- an exception for a file "
+                "that is gone subtracts nothing today and the wrong thing the day its name comes "
+                "back.".format(", ".join(missing), asset["name"], paths.relative(directory)))
+
+        found = [path for path in sorted(directory.glob(pattern))
+                 if path.name not in drawn_here]
         if not found:
             raise Refusal(
-                "nothing under {} carries {}, so {} describes work this APK no longer contains -- "
-                "drop the entry, or correct what identifies it.".format(
-                    paths.relative(directory), marker, asset["name"]))
+                "every {} under {} is excluded as drawn here, so {} describes work this APK no "
+                "longer contains -- drop the entry.".format(
+                    pattern, paths.relative(directory), asset["name"]))
 
         text = texts / file_name(asset["licence"])
         if not text.exists():

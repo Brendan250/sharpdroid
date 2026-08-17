@@ -271,7 +271,9 @@ the texts are intersected rather than assumed. a statement covers a whole source
 
 not everything third-party arrives as a dependency. the icons in the app's drawable resources are Google's Material set, taken and committed, so no resolver has anything to resolve and an attribution plugin sees nothing — the only record that they are here is a declaration in the packaging step.
 
-**that is exactly why the declaration names a marker.** an entry nothing checks outlives what it describes: the row would go on being written long after the last of those icons had been replaced by a drawing of our own, which is an attribution for work the APK no longer carries. so the entry names a string only the real thing has — the viewport a Material Symbols export uses — and finding none of it is a refusal.
+**they are attributed by exception rather than by resemblance.** an icon in this app comes from Google's set unless it was drawn here, so the attribution covers every icon drawable minus the few named in the declaration — and each of those says in its own comment that it was drawn rather than taken. matching a shape instead would attribute by how Material something looks, which is a judgement a packaging step should not be making, and it would get it wrong in the direction that looks safe: quietly dropping an icon that is Google's because it was redrawn at a different grid.
+
+**an entry nothing checks outlives what it describes**, so both ends are asserted. nothing left to attribute is a refusal, and so is an exception naming a file that is gone — the second is what stops the list quietly shrinking as drawings are renamed, since a stale exception subtracts nothing today and takes a real icon's attribution with it the day that name comes back.
 
 ### a work carried inside a dependency
 
