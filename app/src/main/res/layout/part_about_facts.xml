@@ -78,8 +78,11 @@
 
             </LinearLayout>
 
-            <!-- both versions on one line, divided by the dot this screen already separates values
-                 with, mapping by order onto the two names above.
+            <!-- both versions on one line, mapping by order onto the two names above.
+
+                 **a dot separates values and a space separates links.** that is the whole rule here:
+                 this line divides its versions with dots, as a version is divided from its own commit,
+                 and the three rows of links put nothing between them but the gap.
 
                  **one view holding one string, rather than a field each with a separator view between
                  them.** the dot between the two emulators is meant to be the same mark as the dot
@@ -200,19 +203,15 @@
                     android:drawableEnd="@drawable/ic_open_link_small"
                     android:text="@string/about_source" />
 
-                <TextView
-                    style="@style/AboutSeparator"
-                    android:text="@string/about_separator" />
-
+                <!-- **no margin between these, unlike the two rows above.** the links there are set
+                     in the larger face and carry 8dp of padding each; these carry 6dp, and their own
+                     padding alone is the gap. it comes out about two thirds of the rows above, which
+                     is close to the ratio between the two text sizes. -->
                 <TextView
                     android:id="@+id/read_licence"
                     style="@style/AboutSubLink"
                     android:drawableEnd="@drawable/ic_go"
                     android:text="@string/about_read_licence" />
-
-                <TextView
-                    style="@style/AboutSeparator"
-                    android:text="@string/about_separator" />
 
                 <TextView
                     android:id="@+id/third_party"

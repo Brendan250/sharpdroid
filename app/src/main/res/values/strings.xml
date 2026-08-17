@@ -513,7 +513,6 @@
     <string name="about_source">Source</string>
     <string name="about_read_licence">Read it</string>
     <string name="about_third_party">Third-party licences</string>
-    <string name="about_separator">·</string>
 
     <!-- **a device with no browser is a real state for this one**, and a handheld set up to run games
          and nothing else is exactly where it happens. every link on the screen fails the same way and

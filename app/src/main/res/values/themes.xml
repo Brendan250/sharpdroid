@@ -106,9 +106,9 @@
         <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
     </style>
 
-    <!-- **no negative margin here, unlike AboutLink.** three of these sit in a row separated by dots,
-         so a style that pulled every one of them back would pull each dot into the word after it. only
-         the first of the row is flush with the column, and it says so itself. -->
+    <!-- **no negative margin here, unlike AboutLink.** three of these sit in a row, and a style that
+         pulled every one of them back would close the gaps between them as well as the one at the
+         column's edge. only the first is flush with the column, and it says so itself. -->
     <style name="AboutSubLink" parent="AboutSub">
         <item name="android:background">?attr/selectableItemBackground</item>
         <item name="android:paddingHorizontal">6dp</item>
@@ -116,13 +116,6 @@
         <item name="android:drawablePadding">4dp</item>
         <item name="android:drawableTint">?attr/colorPrimary</item>
         <item name="android:textColor">?attr/colorPrimary</item>
-    </style>
-
-    <!-- the dot between two of those, and it is deliberately not part of either: a separator inside a
-         link's own text would be inside that link's ripple and would read as pressable. -->
-    <style name="AboutSeparator" parent="AboutSub">
-        <item name="android:paddingHorizontal">2dp</item>
-        <item name="android:alpha">0.5</item>
     </style>
 
     <style name="Theme.SharpEmu" parent="Theme.Material3.DayNight.NoActionBar">
