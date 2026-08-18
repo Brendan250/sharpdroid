@@ -5,10 +5,12 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import android.text.format.Formatter
 import androidx.recyclerview.widget.GridLayoutManager
 import coil.load
 import com.mircowuffwuff.sharpemu.databinding.ActivityGameSettingsBinding
 import java.io.File
+import java.util.concurrent.Executors
 
 /**
  * One game's settings: which game, on the left, and what can be set for it on the right.
@@ -18,9 +20,11 @@ import java.io.File
  * than a second implementation, and a row added to Emulation, Graphics or Controls is offered here the
  * day it is written.
  *
- * **Everything it needs travels in the intent.** The list that opened it had already opened the dump
- * to draw the row, so the name, the artwork and the identity are handed over rather than read again —
- * which for a game inside a granted tree is a provider round trip saved on every long press.
+ * **Everything it draws travels in the intent, except the one thing that costs a walk.** The list that
+ * opened it had already opened the dump to draw the row, so the name, the artwork and the identity are
+ * handed over rather than read again — which for a game inside a granted tree is a provider round trip
+ * saved on every long press. The dump's *size* is the exception: it is hundreds of files either way, so
+ * what travels is where to look and this screen measures it on a worker.
  *
  * **It is reached by holding a cover and by nothing else.** Not exported, like every screen behind the
  * cog: what is set here decides what a launch runs.
@@ -34,6 +38,9 @@ class GameSettingsActivity : AppCompatActivity() {
 
     private lateinit var configKey: String
     private lateinit var gameName: String
+
+    /** One thread, for the one measurement this screen makes. */
+    private val worker = Executors.newSingleThreadExecutor()
 
     override fun onCreate(state: Bundle?) {
         // before setContentView, or the theme is resolved after the views are already inflated.
@@ -69,6 +76,7 @@ class GameSettingsActivity : AppCompatActivity() {
         fact(binding.facts.titleIdRow, binding.facts.titleId, intent.getStringExtra(EXTRA_TITLE_ID))
         fact(binding.facts.versionRow, binding.facts.version, intent.getStringExtra(EXTRA_VERSION))
         fact(binding.facts.pathRow, binding.facts.path, intent.getStringExtra(EXTRA_PATH))
+        measureSize()
         binding.icon.load(icon()) {
             placeholder(R.drawable.ic_game_placeholder)
             error(R.drawable.ic_game_placeholder)
@@ -84,6 +92,45 @@ class GameSettingsActivity : AppCompatActivity() {
                         .putExtra(SettingsSectionActivity.EXTRA_GAME, configKey)
                 )
             }
+    }
+
+    /**
+     * Measures the whole dump and fills the size row in when it lands.
+     *
+     * **The row is on screen before the number is**, drawn with its label and an empty value, so the
+     * path under it does not jump a line down a moment after the screen opens. A measurement that
+     * finds nothing takes the row away instead: a game that reads as `0 B` is a wrong answer stated
+     * confidently, where a missing row is the same thing said honestly.
+     *
+     * **The walk is off the main thread and the result is checked against the screen still being
+     * there**, since a dump is hundreds of files and a granted one is that many through a provider.
+     */
+    private fun measureSize() {
+        val directory = intent.getStringExtra(EXTRA_DIRECTORY)
+        val tree = intent.getStringExtra(EXTRA_TREE)
+        val document = intent.getStringExtra(EXTRA_DOCUMENT_ID)
+        binding.facts.size.text = ""
+        worker.execute {
+            val bytes = when {
+                !directory.isNullOrEmpty() -> GameSize.of(File(directory))
+                !tree.isNullOrEmpty() && !document.isNullOrEmpty() ->
+                    GameSize.of(applicationContext.contentResolver, Uri.parse(tree), document)
+                else -> 0L
+            }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                fact(
+                    binding.facts.sizeRow,
+                    binding.facts.size,
+                    if (bytes > 0) Formatter.formatShortFileSize(this, bytes) else null,
+                )
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        worker.shutdown()
+        super.onDestroy()
     }
 
     /** One row of the fact table, or no row at all where the dump does not carry that fact. */
@@ -122,6 +169,15 @@ class GameSettingsActivity : AppCompatActivity() {
         const val EXTRA_TITLE_ID = "titleId"
         const val EXTRA_VERSION = "version"
         const val EXTRA_PATH = "path"
+
+        /**
+         * Where to look to measure the dump: a directory for a staged game, or the tree and document
+         * id for a granted one. **Not a size**, because measuring one is a walk of hundreds of files
+         * and the gesture that opens this screen is a finger held down on a cover.
+         */
+        const val EXTRA_DIRECTORY = "directory"
+        const val EXTRA_TREE = "tree"
+        const val EXTRA_DOCUMENT_ID = "documentId"
         const val EXTRA_ICON_PATH = "iconPath"
         const val EXTRA_ICON_URI = "iconUri"
 
@@ -134,6 +190,14 @@ class GameSettingsActivity : AppCompatActivity() {
                 .putExtra(EXTRA_VERSION, game.version)
                 .putExtra(EXTRA_PATH, game.ebootPath)
                 .apply {
+                    when (val source = game.source) {
+                        is GameSource.Staged ->
+                            putExtra(EXTRA_DIRECTORY, source.directory.absolutePath)
+                        is GameSource.Granted -> {
+                            putExtra(EXTRA_TREE, source.tree.toString())
+                            putExtra(EXTRA_DOCUMENT_ID, source.documentId)
+                        }
+                    }
                     when (val icon = game.icon) {
                         is File -> putExtra(EXTRA_ICON_PATH, icon.absolutePath)
                         is Uri -> putExtra(EXTRA_ICON_URI, icon.toString())

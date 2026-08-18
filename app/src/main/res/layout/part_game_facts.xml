@@ -69,6 +69,33 @@
 
     </LinearLayout>
 
+    <!-- **it sits between the version and the path, and it is the one row that arrives late.** the
+         value is a walk of the whole dump rather than something the list already read, so the row is
+         drawn with its label and nothing beside it and filled in when the measurement lands — which
+         is what keeps the path below it from jumping down a line a moment after the screen opens. -->
+    <LinearLayout
+        android:id="@+id/sizeRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <TextView
+            style="@style/FactLabel"
+            android:layout_width="@dimen/game_fact_label"
+            android:text="@string/game_settings_label_size" />
+
+        <TextView
+            android:id="@+id/size"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+    </LinearLayout>
+
     <LinearLayout
         android:id="@+id/pathRow"
         android:layout_width="match_parent"
