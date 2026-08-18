@@ -7,10 +7,16 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.mircowuffwuff.sharpemu.databinding.ActivitySettingsBinding
 
 /**
- * The global settings scene: large section buttons, each with a line saying what is behind it.
+ * The global settings scene: large section buttons, each with a line saying what is behind it, and
+ * About in the toolbar's corner.
  *
  * The shape is Eden's settings menu — buttons with a brief explanation, and a scrolling list of rows
  * behind each one.
+ *
+ * **About is a button and not a section, because nothing behind it is a setting.** It is the one
+ * thing reachable from here that does not change what a launch does, and a card for it in a grid of
+ * cards that do is a card read past. The corner is where the game list's cog is, one press earlier,
+ * which is the position it was given deliberately rather than the position that was free.
  *
  * **Only the sections that have something in them are here.** Controls and Logging are sections this
  * app will grow, and every row in both is a later piece of work; a button that opens an empty screen
@@ -34,6 +40,7 @@ class SettingsActivity : AppCompatActivity() {
         SystemBars.apply(this, binding.root)
 
         binding.toolbar.setNavigationOnClickListener { finish() }
+        binding.about.setOnClickListener { startActivity(Intent(this, AboutActivity::class.java)) }
         // **one column upright, two on a wide screen** — Eden's shape, and the reason is that a
         // section button is a title and one line, so a single column in landscape wastes two thirds
         // of the width. the count is a resource with a `-land` qualifier rather than a measurement:
@@ -128,21 +135,6 @@ class SettingsActivity : AppCompatActivity() {
             UserDataActivity::class.java,
             GameUserDataActivity::class.java,
             R.string.settings_user_data_game_summary,
-        ),
-
-        /**
-         * **The one section that is not a setting**, and it is here rather than somewhere of its own
-         * because this is where somebody looks for a version number and for what the app is under.
-         * Nothing behind it changes what a launch does.
-         *
-         * It is last for the same reason: the grid is read top to bottom by somebody who came to
-         * change something, and this is the card for a different errand entirely.
-         */
-        ABOUT(
-            R.string.settings_about,
-            R.string.settings_about_summary,
-            R.drawable.ic_section_about,
-            AboutActivity::class.java,
         );
 
         companion object {
@@ -154,19 +146,20 @@ class SettingsActivity : AppCompatActivity() {
              * something different from what it reads as.
              */
             val shown =
-                listOf(APP, EMULATION, GRAPHICS, CONTROLS, GAME_FILES, USER_DATA, ABOUT)
+                listOf(APP, EMULATION, GRAPHICS, CONTROLS, GAME_FILES, USER_DATA)
 
             /**
              * The sections a single game answers for, in the order [GameSettingsActivity] draws them.
              *
              * **App and Game files are absent because they belong to the install rather than to a
-             * title** — a theme and a folder grant are set once and apply to everything — and About
-             * because nothing behind it is a setting at all. What is left is the three that describe
-             * how one game is run, and User data, which is what one game has left behind.
+             * title** — a theme and a folder grant are set once and apply to everything. What is left
+             * is the three that describe how one game is run, and User data, which is what one game
+             * has left behind.
              *
              * **User data is last, and it is the one card here that is not a setting.** Nothing
-             * behind it changes what a launch does — which is the same argument that puts About last
-             * on the app's own scene, applied to the same shape of card.
+             * behind it changes what a launch does — which is the argument that keeps About out of a
+             * card altogether, applied to a card that has a reason to stay: what one game has written
+             * is a fact about that game, and this scene is the only place it is asked about.
              */
             val perGame = listOf(EMULATION, GRAPHICS, CONTROLS, USER_DATA)
         }

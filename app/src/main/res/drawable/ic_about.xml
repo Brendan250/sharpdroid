@@ -1,18 +1,22 @@
 <!--
-  the About section: what this is, what it runs, what it was read against, and what it is under.
+  the mark for About: what this is, what it runs, what it was read against, and what it is under. it
+  is the settings scene's toolbar button, and it is the only thing About is reached by.
 
   **an i in a circle rather than a heart, and the screen is what settles it.** the page credits without
   thanking - it states what this app is built on in labelled lines and spends no sentence being
-  grateful at anybody - so a heart on the card promises a register the screen behind it does not keep.
-  what is on that screen is versions, terms and places to go, and this is the mark for that.
+  grateful at anybody - so a heart promises a register the screen behind it does not keep. what is on
+  that screen is versions, terms and places to go, and this is the mark for that.
 
-  it is distinct at a glance from the six it sits beside, which is the whole requirement for an icon in
-  a grid: nothing else in the settings scene is a circle.
+  **it is also the one mark a person is expected to recognise without a word beside it.** a section
+  card carries a line saying what is behind it and a toolbar button carries a content description and a
+  tooltip, so the glyph is doing work here that no icon in the section grid has to do - which is the
+  argument for the convention rather than for something of our own.
 
   Material's own shape, at Material Symbols' 960 viewport, **with the tint it was exported carrying
-  stripped**. the section grid tints these with the theme's primary colour, so a vector holding a
-  colour of its own is one that is wrong in three of the four palettes - `?attr/colorControlNormal` is
-  what the download had, and it is the same mistake the Game files folder arrived with.
+  stripped**. the view tints it - `?attr/colorOnSurface` in the toolbar, as the cog on the game list is
+  tinted - so a vector holding a colour of its own is one that is wrong in three of the four palettes.
+  `?attr/colorControlNormal` is what the download had, and it is the same mistake the Game files folder
+  arrived with.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"

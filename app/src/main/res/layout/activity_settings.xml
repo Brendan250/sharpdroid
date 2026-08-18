@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  the global settings scene: the section buttons and nothing else.
+  the global settings scene: the section buttons, and About in the corner.
 
   the toolbar carries a back arrow rather than relying on the system one, because this screen is
   entered from the game list's cog and leaving it is the common action.
+
+  **About is a toolbar button and not a seventh card, because it is not a setting.** nothing behind it
+  changes what a launch does, so a card in a grid of things that do is a card read past - and the grid
+  is one card too tall to fit the scene in a screenful while it is there. the price is that the card's
+  line saying what is behind it becomes a content description and a tooltip; that is the whole cost of
+  this and it is not recovered anywhere.
 
   **the horizontal padding is what holds the cards off the screen edge, and outsideOverlay is what
   keeps the scrollbar out of it.** a scrollbar respects its view's padding by default, so padding the
@@ -45,7 +51,42 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         app:navigationIcon="@drawable/ic_back"
-        app:title="@string/settings_title" />
+        app:title="@string/settings_title">
+
+        <!-- **the same button the game list's cog is, in the same spot**: 48dp of touch target around
+             a 24dp glyph, the toolbar's own item background, and an end margin measured to the glyph
+             rather than to the box, the icon's edge sitting 12dp inside it. one press separates the
+             two, so a corner that moved between them would read as two corners.
+
+             **an end gravity rather than the game list's row of views, and the title is why.** a
+             toolbar measures its custom children before its title and gives the title what is left,
+             so a `match_parent` child here would starve `app:title` to nothing - that file can afford
+             the row because it draws its own title inside it. the two therefore reach the same place
+             by different paths, which is why the bounds are read off the device rather than assumed
+             equal from one shared margin.
+
+             **a menu item cannot do this.** it sits against the toolbar's end whatever the padding or
+             the content inset says, landing in the same place with 6dp of end padding as with none,
+             and this button has a specific place to land.
+
+             **the tooltip is the half of the section card that survives.** a card carries a line
+             saying what is behind it and a glyph carries a name; long-pressing is where that name is,
+             and it is the same string the content description reads out. -->
+        <ImageButton
+            android:id="@+id/about"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="10dp"
+            android:background="?attr/actionBarItemBackground"
+            android:contentDescription="@string/about"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_about"
+            android:tint="?attr/colorOnSurface"
+            android:tooltipText="@string/about" />
+
+    </com.google.android.material.appbar.MaterialToolbar>
 
     <!-- **the margin is the frame's rather than the list's**, so the list keeps the frame's own
          bounds and no row can be cut by them. a frame that began at the toolbar's edge with the list

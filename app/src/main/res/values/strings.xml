@@ -71,12 +71,15 @@
     <string name="settings_game_files_summary">Where this app reads your games from</string>
     <string name="settings_user_data">User data</string>
     <string name="settings_user_data_summary">Everything this emulator stores and writes</string>
-    <!-- **last in the grid, and it is the one section that is not a setting.** nothing behind it
-         changes what a launch does. it is here because a settings scene is where somebody looks for a
-         version number and for what the app is under, and a seventh card is cheaper to find than a
-         menu item on a screen nobody opens twice. -->
-    <string name="settings_about">About</string>
-    <string name="settings_about_summary">Version info, credits, and licences</string>
+
+    <!-- **About is not in the grid, because it is not a setting**: nothing behind it changes what a
+         launch does. it is on this scene at all because a settings screen is where somebody looks for
+         a version number and for what the app is under, and it is in the corner because that is where
+         a thing which is not one of the six belongs.
+
+         **one word doing the work of a card's two lines.** it is the button's name, its content
+         description and its tooltip, so it is read out, shown on a long press, and never drawn. -->
+    <string name="about">About</string>
 
     <string name="settings_group_sharpemu">SharpEmu</string>
 

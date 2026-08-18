@@ -62,7 +62,7 @@ class AboutActivity : AppCompatActivity() {
         setContentView(binding.root)
         SystemBars.apply(this, binding.root)
 
-        binding.toolbar.setTitle(R.string.settings_about)
+        binding.toolbar.setTitle(R.string.about)
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         // the body is an include with a `-land` variant, so everything below binds through it. both
@@ -196,7 +196,7 @@ class AboutActivity : AppCompatActivity() {
     private fun copyVersion() {
         val clipboard = getSystemService(ClipboardManager::class.java) ?: return
         clipboard.setPrimaryClip(
-            ClipData.newPlainText(getString(R.string.settings_about), binding.body.version.text)
+            ClipData.newPlainText(getString(R.string.about), binding.body.version.text)
         )
         // **android says so itself from API 33**, with a preview of what was copied, and a toast on
         // top of it is the same news twice.
