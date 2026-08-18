@@ -1138,6 +1138,11 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
         List<String> args = new ArrayList<>();
         args.add("--timestamps");
+        // where the boot has got to, which only something with a screen in front of a booting guest
+        // has any use for. always, rather than behind a setting: a run that turned it off would be a
+        // run whose loading screen could not say anything, and it costs a substring search over the
+        // guest's log lines until the first frame appears and nothing at all afterwards.
+        args.add("--boot-progress");
         args.add("--vulkan");
         // the audio thunk, in the shape --vulkan has. nothing at all is needed from this side
         // besides the flag: AAudio is a pure NDK C API, so there is no JNI, no looper and no

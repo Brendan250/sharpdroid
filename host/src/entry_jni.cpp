@@ -184,6 +184,52 @@ JNIEXPORT jboolean JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeDrive
   return HostLayer::VulkanThunk::ChosenDriverLoads() ? JNI_TRUE : JNI_FALSE;
 }
 
+// the boot checkpoint table's names, in order, asked for once.
+//
+// **ids rather than indices**, so that the two sides are free to move independently: a caller maps
+// an id to whatever it draws for that phase, one it has never heard of changes nothing on screen,
+// and an entry that disappears from here takes its own text with it. an index would make adding a
+// checkpoint a change to two files that must be made in the same breath.
+JNIEXPORT jobjectArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeBootCheckpointIds(
+  JNIEnv* Env, jclass) {
+  const jint Count = HostLayer::BootProgress::Count();
+  jclass StringClass = Env->FindClass("java/lang/String");
+  jobjectArray Out = Env->NewObjectArray(Count, StringClass, nullptr);
+  for (jint Index = 0; Index < Count; ++Index) {
+    jstring Text = Env->NewStringUTF(HostLayer::BootProgress::Id(Index));
+    Env->SetObjectArrayElement(Out, Index, Text);
+    Env->DeleteLocalRef(Text);
+  }
+  Env->DeleteLocalRef(StringClass);
+  return Out;
+}
+
+// how many checkpoints the run has passed, 0 up to the table's length. **the one call meant to be
+// made repeatedly**: it is a single relaxed load behind the JNI boundary, which is what lets a
+// caller ask once per drawn frame rather than arranging to be told.
+JNIEXPORT jint JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeBootCheckpointsReached(
+  JNIEnv*, jclass) {
+  return HostLayer::BootProgress::Reached();
+}
+
+// when each checkpoint was passed, in milliseconds since the host layer started, and -1 for one
+// that was not. asked for once a boot is over, by a caller recording this run to predict the next.
+//
+// **-1 is a real answer and not a zero.** an entry that no line matched and an entry reached in the
+// same instant as its neighbour would otherwise be indistinguishable, and a caller averaging the
+// second into its record would be averaging in a table that has stopped working.
+JNIEXPORT jlongArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeBootCheckpointTimes(
+  JNIEnv* Env, jclass) {
+  const jint Count = HostLayer::BootProgress::Count();
+  std::vector<jlong> Times(static_cast<size_t>(Count));
+  for (jint Index = 0; Index < Count; ++Index) {
+    Times[static_cast<size_t>(Index)] = HostLayer::BootProgress::ReachedAt(Index);
+  }
+  jlongArray Out = Env->NewLongArray(Count);
+  Env->SetLongArrayRegion(Out, 0, Count, Times.data());
+  return Out;
+}
+
 // blocks for the whole run, so the app must call it off the UI thread. a guest that calls
 // exit_group never returns from here — it calls _exit, which is what the syscall means and the only
 // safe answer once the other guest threads are inside translated code. that is the process this

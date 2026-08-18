@@ -69,6 +69,44 @@ public final class HostLayer {
     public static native boolean nativeDriverLoads(String driver, String hooks);
 
     /**
+     * The names of the boot checkpoints, in the order a boot reaches them. Asked for once.
+     *
+     * <p><b>Ids rather than indices</b>, so the two sides move independently: an id maps to whatever
+     * this side draws for that phase, one it has never heard of changes nothing on screen, and one
+     * that disappears takes its own text with it.
+     *
+     * <p>The last entry is the first presented frame rather than anything the emulator prints, so a
+     * run is over when {@link #nativeBootCheckpointsReached()} reaches this array's length.
+     */
+    public static native String[] nativeBootCheckpointIds();
+
+    /**
+     * How many checkpoints this run has passed, from 0 to the table's length.
+     *
+     * <p><b>The one call here meant to be made repeatedly.</b> It is a single relaxed load behind the
+     * JNI boundary, which is what lets this be asked once per drawn frame instead of the host layer
+     * calling up — and it must not call up: the thread that would make that call is the one draining
+     * the guest's stdout, and anything that blocks it blocks the guest in {@code write}.
+     *
+     * <p>The count can jump by more than one between two asks, when several checkpoints are passed
+     * inside one frame or when a checkpoint the emulator no longer prints is passed over.
+     *
+     * <p>Only meaningful when the run was started with {@code --boot-progress}; without it this
+     * stays at 0.
+     */
+    public static native int nativeBootCheckpointsReached();
+
+    /**
+     * When each checkpoint was passed, in milliseconds since the host layer started, and -1 for one
+     * that was never passed. For recording a finished boot in order to predict the next one.
+     *
+     * <p><b>-1 is a real answer rather than a zero.</b> A checkpoint no line matched and one reached
+     * in the same instant as its neighbour would otherwise look alike, and recording the second is
+     * recording a table that has stopped matching.
+     */
+    public static native long[] nativeBootCheckpointTimes();
+
+    /**
      * Runs a guest to completion. Blocks for the whole run, so never call it on the UI thread.
      *
      * <p>A guest that calls {@code exit_group} does not return from here at all — it ends the
