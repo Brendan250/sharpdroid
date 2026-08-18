@@ -71,6 +71,27 @@
     </style>
 
     <!--
+      the left end of the loading screen's card, where the game's artwork runs to the card's own
+      edges rather than sitting inset from them.
+
+      **it rounds two corners and squares two**, because the artwork is one end of a shape rather
+      than a shape of its own: the corners it shares with the card have to be the card's, and the two
+      in the middle have to be none at all or there is a notch where the picture meets the text.
+
+      **28dp is the extra-large corner Material3 gives a dialog**, which is what the card itself is
+      cut with. the card names the attribute and this cannot, since a shape overlay takes sizes and
+      not a reference to another shape. so the two are kept in step by hand, and this comment is the
+      only thing that says so.
+    -->
+    <style name="ShapeAppearance.SharpEmu.LoadingArt" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">28dp</item>
+        <item name="cornerSizeBottomLeft">28dp</item>
+        <item name="cornerSizeTopRight">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <!--
       the button a per-game row draws when it overrides the app's own value.
 
       **the game list's empty-state button**, which is the app's one existing example of offering the

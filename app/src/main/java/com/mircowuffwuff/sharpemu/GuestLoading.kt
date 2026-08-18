@@ -145,7 +145,6 @@ class GuestLoading(
 
     init {
         bar.isIndeterminate = true
-        percent.visibility = View.GONE
         detail.setText(R.string.loading_starting)
     }
 
@@ -338,6 +337,9 @@ class GuestLoading(
      * mid-launch would have to hide it for the change.
      */
     private fun determinate() {
+        // **shown rather than laid out**, because the layout already keeps its place: the figure is
+        // `invisible` in the card and not `gone`, so an indeterminate launch reserves the same space
+        // a determinate one fills and the card is the same shape either way.
         percent.visibility = View.VISIBLE
         bar.isIndeterminate = false
     }
