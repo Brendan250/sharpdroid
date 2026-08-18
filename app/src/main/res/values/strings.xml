@@ -435,13 +435,9 @@
 
     <!-- the two asset trees, which are unpacked once per install and drawn as phases of the same
          wait rather than on a screen of their own.
-
-         **each says why the wait exists as well as what it is**, which the boot phases do not have
-         to: a boot happens every launch and needs no excuse, where these happen on exactly one and
-         are the difference between a first launch and every other. the line is what stops somebody
-         wondering whether every launch is going to be like this one. -->
-    <string name="loading_unpacking_build">Unpacking the copy of SharpEmu that came with the app…</string>
-    <string name="loading_unpacking_libs">Unpacking the support files games need…</string>
+          -->
+    <string name="loading_unpacking_build">Extracting SharpEmu…</string>
+    <string name="loading_unpacking_libs">Extracting guest libs…</string>
 
     <!-- the figure under the bar. a whole percent: the sweep is drawn ten times finer than this, and
          a figure that moved with it would be unreadable. -->
