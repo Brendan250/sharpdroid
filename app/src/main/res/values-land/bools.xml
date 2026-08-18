@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- see values/bools.xml. the wide composition bounds the artwork by its own column, so nothing
+         is applied to it. -->
+    <bool name="game_artwork_capped">false</bool>
+
+</resources>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- whether the per-game scene's artwork is sized against the panel rather than by its layout.
+
+         upright the artwork is as wide as the column and would therefore be as tall as the column is
+         wide, which on a 16:9 panel is over half the height and puts every card below the fold. so it
+         is capped, and the cap is a minimum of two numbers that XML cannot take - see
+         GameSettingsActivity.
+
+         wide, the artwork is a square in a third of the width and its own column already bounds it,
+         so nothing is applied and the layout is left exactly as it draws itself. this is a bool
+         rather than a test on the orientation in code because it is the same question the column
+         count and the layout variant are already answered by, and android resolves those. -->
+    <bool name="game_artwork_capped">true</bool>
+
+</resources>

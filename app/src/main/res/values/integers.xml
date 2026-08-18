@@ -20,6 +20,20 @@
   is set by how small a cover can be and still be recognised.
 -->
 <resources>
+
+    <!-- how much of the panel's height the per-game scene's artwork may take, upright, as a
+         percentage. see GameSettingsActivity, which takes the smaller of this and the column.
+
+         it is a ceiling rather than a size, and the figure is the smallest one at which the panels
+         this app is drawn for reach the full width of the column: at 21:9 and 19.5:9 the column is
+         the smaller number, so the artwork is as wide as the screen allows and this never binds. it
+         binds on 16:9 alone, where a square sized by width would be over half the height and leave
+         the cards below the fold.
+
+         raising it past this buys nothing on a tall panel, the column already being the limit there,
+         and costs a card of what stays in view on a short one. -->
+    <integer name="game_artwork_panel_percent">42</integer>
+
     <integer name="settings_section_columns">1</integer>
     <integer name="game_columns">2</integer>
 </resources>

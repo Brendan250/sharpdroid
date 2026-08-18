@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.updateLayoutParams
 import android.text.format.Formatter
 import androidx.recyclerview.widget.GridLayoutManager
 import coil.load
@@ -15,7 +16,12 @@ import java.io.File
 import java.util.concurrent.Executors
 
 /**
- * One game's settings: which game, on the left, and what can be set for it on the right.
+ * One game's settings: which game, and what can be set for it.
+ *
+ * **Three blocks in both compositions — the artwork, what the dump says about itself, and the cards.**
+ * Wide, they are a column beside a column; upright they are one column that scrolls as a whole, the
+ * artwork leading at the width of the panel. The blocks and their order are the same either way, so
+ * the two are one arrangement at two widths rather than two arrangements. See the layouts.
  *
  * **The sections behind these cards are the app's own**, not copies of them — [SettingsSectionActivity]
  * is handed a game and writes that game's store instead of the app's. So this scene is a way in rather
@@ -111,6 +117,7 @@ class GameSettingsActivity : AppCompatActivity() {
         fact(binding.facts.versionRow, binding.facts.version, intent.getStringExtra(EXTRA_VERSION))
         fact(binding.facts.pathRow, binding.facts.path, intent.getStringExtra(EXTRA_PATH))
         measureSize()
+        capArtworkAndFacts()
         binding.icon.load(icon()) {
             placeholder(R.drawable.ic_game_placeholder)
             error(R.drawable.ic_game_placeholder)
@@ -140,6 +147,46 @@ class GameSettingsActivity : AppCompatActivity() {
                     }
                 )
             }
+    }
+
+    /**
+     * Sizes the artwork against the panel, and the facts to match it, where the layout asks for it.
+     *
+     * **Upright the artwork leads at the width of the column, and a square sized by width is as tall
+     * as the panel is wide.** On a 16:9 panel that is over half the height, which puts the first card
+     * below the fold and makes a screen of settings one nobody can act on without scrolling — and it
+     * is worst on 16:9 rather than on the 21:9 panels this is drawn for, because those are the ones
+     * with the least height per unit of width.
+     *
+     * So the side is the smaller of what the column allows and a share of the panel's height, which
+     * `integers.xml` names. Where the cap binds the artwork is narrower than the column and the
+     * layout centres it; on the 21:9 panels this is drawn for it very nearly does not bind at all.
+     *
+     * **XML cannot take a minimum of two numbers**, which is the only reason this is here rather than
+     * in the layout beside the view it moves. Whether it applies at all is a resource — see
+     * `values/bools.xml` — so the wide composition, which bounds the artwork by its own column, is
+     * left exactly as it draws itself rather than being excluded by a test on the orientation.
+     *
+     * The display's own height is what a third is taken of. The window is a few dozen pixels shorter
+     * once the system bars are inset, and the difference does not change what this is for: the cap is
+     * a proportion chosen by eye, not a measurement something else depends on.
+     */
+    private fun capArtworkAndFacts() {
+        if (!resources.getBoolean(R.bool.game_artwork_capped)) return
+        val metrics = resources.displayMetrics
+        // **the column's own insets, read rather than repeated.** they are the layout's number and
+        // this is the one place that has to agree with it, so asking the parent is what keeps the
+        // two from drifting the day that padding moves.
+        val column = (binding.icon.parent as? View)
+            ?.let { metrics.widthPixels - it.paddingStart - it.paddingEnd }
+            ?: metrics.widthPixels
+        val share = resources.getInteger(R.integer.game_artwork_panel_percent)
+        val side = minOf(column, metrics.heightPixels * share / 100)
+        binding.icon.updateLayoutParams { width = side; height = side }
+        // **the facts take the artwork's width rather than the column's**, so the table stays inside
+        // the edges of the picture it describes and reads as its caption. the layout centres it; only
+        // the number has to come from here, and it is the number above.
+        binding.facts.root.updateLayoutParams { width = side }
     }
 
     /**

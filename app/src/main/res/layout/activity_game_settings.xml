@@ -2,20 +2,35 @@
 <!--
   one game's settings, upright.
 
-  **the identity is a row above the cards rather than a column beside them**, which is the landscape
-  composition turned through ninety degrees for the same reason the game grid changes its column
-  count: what is a third of the width on a wide screen is most of the height on a tall one, and a
-  cover drawn at that size would push every card below the fold. see layout-land, which is the
-  composition this one is derived from and which carries the rest of the reasoning.
+  **one column that scrolls as a whole**: the artwork, then what the dump says about itself, then the
+  cards. see layout-land, which is the composition this one is derived from — there the same three
+  blocks are a column beside a column, because the width is there to put them side by side and the
+  height is not.
 
-  the name is in the toolbar here too, so the two facts beside the artwork are the same two.
+  **the artwork leads at the width of the panel rather than sitting in a corner of a header.** the
+  block above the cards is as tall as the facts make it, and a thumbnail beside those facts left that
+  block mostly empty while the thing a person came to look at was the smallest item on the screen.
+  full width also gives the path its own line to wrap on rather than two thirds of one.
+
+  **it is capped at a third of the panel, and that is not a stylistic limit.** a square sized by width
+  costs the most height on the screen with the least of it — which is a 16:9 panel, not the 21:9 ones
+  this is drawn for. uncapped, the first card starts below the fold on 16:9 and this stops being a
+  screen anybody can act on without scrolling. the cap is applied in GameSettingsActivity, because it
+  is a minimum of two numbers and XML holds neither; a bool decides whether it applies, so that this
+  file's rule is read from the resources rather than from a test on the orientation.
+
+  the name is in the toolbar here too, so the facts under the artwork are the same facts.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="?attr/colorSurface">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
@@ -24,79 +39,110 @@
         app:navigationIcon="@drawable/ic_back" />
 
     <!-- the negative margin every card screen in this app takes against the toolbar — see
-         activity_settings.xml for what it borrows and why. here it is the identity row that sits
-         under the toolbar rather than the list, so it is the row that takes it, and the screen's
-         content starts on the line every other screen's does. -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="-6dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="20dp"
-        android:paddingBottom="16dp">
-
-        <!-- a square, stated as one, for the reason layout-land gives at length: the artwork is
-             square and its rounded corner needs the box to be too. fitCenter for the same reason
-             there — a crop would take a slice off any dump whose icon is not. -->
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/icon"
-            android:layout_width="88dp"
-            android:layout_height="88dp"
-            android:contentDescription="@null"
-            android:scaleType="fitCenter"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.SharpEmu.Card" />
-
-        <include
-            android:id="@+id/facts"
-            layout="@layout/part_game_facts"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1" />
-
-    </LinearLayout>
-
-    <FrameLayout
+         activity_settings.xml for what it borrows and why. here it is the scroller that sits under
+         the toolbar, so it is the scroller that takes it, and the artwork starts on the line every
+         other screen's content starts on. -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:layout_marginTop="-6dp"
+        android:scrollbars="none">
 
-        <!-- the bottom padding is the managers' rather than this scene's own, since this scene now
-             carries their button: it is the button's height and margin, so the last card is
-             reachable rather than sitting underneath it. -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/sections"
+        <!-- the bottom padding is the floating button's height and margin, so the end of the column
+             is reachable rather than sitting underneath it. it is on the column rather than on the
+             cards, the column being the thing that scrolls. -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingHorizontal="10dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="96dp"
-            android:scrollbarStyle="outsideOverlay"
-            android:scrollbars="vertical" />
-
-        <!-- above the button and below nothing else, so the button keeps its own edges and every
-             card passes under it — activity_manager.xml's arrangement, for its reason. -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="24dp"
-            android:layout_gravity="bottom"
-            android:background="@drawable/scrim_list_bottom" />
-
-        <!-- **the managers' floating button, in the slot the managers put it in.** what it does here
-             is start the game rather than import something, and that is the only difference: a
-             person who has learned where the button is on the build, driver and folder screens finds
-             this one without looking. -->
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/launch"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_margin="20dp"
-            android:text="@string/game_settings_launch"
-            app:icon="@drawable/ic_play" />
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="96dp">
 
-    </FrameLayout>
+            <!-- **a square, and centred so that the cap has somewhere to give.** at the width of the
+                 panel the two are the same thing; where the cap binds, the artwork is narrower than
+                 the column and centring is what keeps it under the middle of the screen rather than
+                 against one edge.
+
+                 fitCenter and the card's own corner radius, both for layout-land's reasons: a crop
+                 would fill the box by taking a slice off any dump whose icon is not square, and the
+                 corner belongs on the picture rather than on empty space beside it.
+
+                 the size here is a starting value that GameSettingsActivity replaces. it is stated
+                 rather than left at zero so that this file says what shape the view is without the
+                 code being read. -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/icon"
+                android:layout_width="match_parent"
+                android:layout_height="280dp"
+                android:layout_gravity="center_horizontal"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.SharpEmu.Card" />
+
+            <!-- **as wide as the artwork and centred under it**, rather than as wide as the column.
+                 these are facts about the thing above them, so they read as a caption when they sit
+                 within its edges and as a separate block when they run past them — and where the cap
+                 binds, the artwork is narrower than the column, so full width would put the table's
+                 first character to the left of the picture it describes. the width is applied in
+                 GameSettingsActivity beside the artwork's own, being the same number.
+
+                 the gap above is the one between a card and whatever is beside it, which is what
+                 separates every other pair of blocks on this screen. -->
+            <include
+                android:id="@+id/facts"
+                layout="@layout/part_game_facts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp" />
+
+            <!-- **the cards are a block inside the scroller rather than a list of their own**, so the
+                 whole column moves as one thing: two scrolling regions on one screen would each be
+                 half of the gesture. nested scrolling is off and the height wraps, which recycles
+                 nothing and costs nothing to recycle — the sections a game answers for are a fixed
+                 list, not a library.
+
+                 **the negative horizontal margin is the card's own margin cancelled.** every card in
+                 this app carries 6dp of its own, so a list laid out flush with this column would
+                 draw its cards 6dp inside the artwork above them. taking that 6dp back here is what
+                 puts the two edges on one line, and it is the same subtraction layout-land spells
+                 out for the same pair of numbers — neither of which belongs to this file.
+
+                 the top margin is 10dp rather than 16dp for that reason too: the card's own vertical
+                 margin supplies the other 6dp. -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/sections"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginHorizontal="-6dp"
+                android:nestedScrollingEnabled="false" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>
+
+    <!-- the fade the column ends in, at every manager's own height. it is over the whole panel here
+         because upright there is one column and it is the whole panel. -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="24dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/scrim_list_bottom" />
+
+    <!-- the managers' floating button, in the slot the managers put it in. it hangs off the panel
+         rather than off the scroller, so it keeps that slot however far the column has been moved. -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/launch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
+        android:text="@string/game_settings_launch"
+        app:icon="@drawable/ic_play" />
+
+</FrameLayout>
