@@ -3,10 +3,22 @@
   what a run shows while it is not ready yet, drawn over the surface the guest will render into.
 
   **it is a screen rather than a widget, and that is the whole redesign.** a bar floating on the raw
-  surface reads as something that has gone wrong on a black screen; a filled background with a card
-  on it reads as the app, still working. it also solves a real problem the floating version had: the
+  surface reads as something that has gone wrong on a black screen; a card on a filled background
+  reads as the app, still working. it also solves a real problem the floating version had: the
   surface behind it is black until the guest draws, so text coloured for a light scheme was dark text
   on black. nothing here sits on the surface - the background is drawn.
+
+  **and it is drawn black rather than in the scheme's own surface colour, which is the one place this
+  screen does not follow the theme.** what is behind this view is the surface a guest is about to
+  render into, which is black until it does, and what replaces this screen is a game's first frame,
+  which is very often black as well. a field in the scheme's colour therefore steps to black at the
+  exact moment the picture appears - the screen going away reads as a flash rather than as a card
+  being lifted off. black on both sides of that moment means only the card disappears.
+
+  the card is still the scheme's, which is what keeps this the app's screen rather than a blank one:
+  the palette is carried by the thing being read, and the field around it is the dark the guest is
+  about to fill. on this panel an unlit pixel costs nothing, which is the same reason the Dark theme
+  is black rather than merely dark.
 
   **the card is a dialog, and it takes the dialog's own tokens rather than numbers copied off one.**
   `MaterialAlertDialog` carries no style override in this app, so every popup here is Material3's -
@@ -45,7 +57,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface">
+    android:background="@android:color/black">
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="0dp"
