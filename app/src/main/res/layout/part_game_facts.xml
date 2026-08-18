@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  what a dump says about itself, under its artwork on the per-game settings scene: the title id the
+  emulator resolves for it, and the release it is.
+
+  **one file, included by both orientations**, which is the About screen's arrangement and is there
+  for the same reason: everything that differs between upright and wide is where this block sits, and
+  nothing that differs is inside it.
+
+  **a label column at a fixed width and a value beside it.** sizing the labels to their own text would
+  put the two values at two different distances from the edge, which is the one thing a table exists
+  to avoid. the width is this table's rather than the label style's — it belongs to the longest label
+  on this screen, and the About screen's is a different word.
+
+  **the rows align on their baselines rather than by a padding**, which a horizontal row does by
+  itself: a label and its value are each one line here, where the About screen's values are columns of
+  views and have to be met halfway by hand.
+
+  **a row goes away whole when the dump does not carry its fact**, rather than leaving a label with
+  nothing beside it — a table that names a thing it cannot show is worse than a shorter table.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/titleIdRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            style="@style/FactLabel"
+            android:layout_width="@dimen/game_fact_label"
+            android:text="@string/game_settings_label_title_id" />
+
+        <TextView
+            android:id="@+id/titleId"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/versionRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <TextView
+            style="@style/FactLabel"
+            android:layout_width="@dimen/game_fact_label"
+            android:text="@string/game_settings_label_version" />
+
+        <TextView
+            android:id="@+id/version"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+    </LinearLayout>
+
+</LinearLayout>

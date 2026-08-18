@@ -106,17 +106,32 @@
       padding given back so the text still starts where the column does. change one and the column
       steps sideways.
     -->
-    <style name="AboutLabel">
-        <!-- **a fixed width, and it is what makes three rows read as one table.** sizing it to its
-             own text would put the three values at three different distances from the edge. -->
-        <item name="android:layout_width">104dp</item>
+    <!--
+      the quiet half of a labelled table: small capitals in the accent, letter-spaced and held back a
+      little, so the eye reads down the labels and across to whichever line it wants.
+
+      **it carries no width, because the width belongs to the table rather than to the label.** a
+      column has to be one width for its rows to line up, and what that width should be is a question
+      about the longest label on *that* screen — so each table sets it and this says how a label of
+      any table looks. the text is written in ordinary case and made capital here, so a string is
+      read as a word and drawn as a label.
+    -->
+    <style name="FactLabel">
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:paddingTop">8dp</item>
         <item name="android:textAppearance">?attr/textAppearanceLabelSmall</item>
         <item name="android:textAllCaps">true</item>
         <item name="android:letterSpacing">0.08</item>
         <item name="android:textColor">?attr/colorPrimary</item>
         <item name="android:alpha">0.85</item>
+    </style>
+
+    <style name="AboutLabel" parent="FactLabel">
+        <!-- **a fixed width, and it is what makes three rows read as one table.** sizing it to its
+             own text would put the three values at three different distances from the edge. -->
+        <item name="android:layout_width">104dp</item>
+        <!-- its value is a column of views rather than one line, so a baseline cannot align the two
+             and the label is dropped onto the value's own by hand. -->
+        <item name="android:paddingTop">8dp</item>
     </style>
 
     <!-- **the mark at the end of a link is tinted from the same attribute the text is**, and both

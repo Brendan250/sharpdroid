@@ -100,11 +100,13 @@
          what it means. what it returns to is not the default but whatever the app's own setting says
          right now, which is why it does not borrow the wording above. -->
     <string name="setting_use_global">Use global value</string>
-    <!-- **labelled where the title id beside it is not**, because a bare `01.005.000` says nothing
-         about what it counts while `PPSA15552` is recognisably an identifier. it is the dump's own
-         content version — the release it is — rather than any of the four other version fields a
-         param.json carries. -->
-    <string name="game_settings_version">Version %1$s</string>
+    <!-- the two labels on the per-game scene's fact table. ordinary case here and drawn as small
+         capitals by the style, so a string stays a word.
+
+         the version is the dump's own content version — the release it is — rather than any of the
+         four other version fields a param.json carries. -->
+    <string name="game_settings_label_title_id">Title ID</string>
+    <string name="game_settings_label_version">Version</string>
     <string name="save">Save</string>
 
     <string name="setting_theme">Theme</string>

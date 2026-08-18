@@ -65,10 +65,9 @@ class GameSettingsActivity : AppCompatActivity() {
         // about one game in particular, and these are what a person matches against a log line, a
         // save data directory or a folder on their PC.
         //
-        // each line is taken away rather than left blank when the dump does not carry it, so a
-        // missing fact costs no empty row.
-        fact(binding.titleId, intent.getStringExtra(EXTRA_TITLE_ID))
-        fact(binding.version, intent.getStringExtra(EXTRA_VERSION))
+        // a row goes away whole rather than leaving its label with nothing beside it.
+        fact(binding.facts.titleIdRow, binding.facts.titleId, intent.getStringExtra(EXTRA_TITLE_ID))
+        fact(binding.facts.versionRow, binding.facts.version, intent.getStringExtra(EXTRA_VERSION))
         binding.icon.load(icon()) {
             placeholder(R.drawable.ic_game_placeholder)
             error(R.drawable.ic_game_placeholder)
@@ -86,10 +85,10 @@ class GameSettingsActivity : AppCompatActivity() {
             }
     }
 
-    /** One line about the dump, or no line at all where it does not carry one. */
-    private fun fact(view: android.widget.TextView, value: String?) {
-        view.text = value.orEmpty()
-        view.visibility = if (value.isNullOrEmpty()) View.GONE else View.VISIBLE
+    /** One row of the fact table, or no row at all where the dump does not carry that fact. */
+    private fun fact(row: View, value: android.widget.TextView, text: String?) {
+        value.text = text.orEmpty()
+        row.visibility = if (text.isNullOrEmpty()) View.GONE else View.VISIBLE
     }
 
     /**
@@ -130,9 +129,7 @@ class GameSettingsActivity : AppCompatActivity() {
                 .putExtra(EXTRA_CONFIG_KEY, game.configKey)
                 .putExtra(EXTRA_NAME, game.name)
                 .putExtra(EXTRA_TITLE_ID, game.titleId)
-                .putExtra(EXTRA_VERSION, game.version?.let {
-                    activity.getString(R.string.game_settings_version, it)
-                })
+                .putExtra(EXTRA_VERSION, game.version)
                 .apply {
                     when (val icon = game.icon) {
                         is File -> putExtra(EXTRA_ICON_PATH, icon.absolutePath)

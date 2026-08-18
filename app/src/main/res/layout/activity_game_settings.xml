@@ -47,31 +47,13 @@
             android:scaleType="fitCenter"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.SharpEmu.Card" />
 
-        <LinearLayout
+        <include
+            android:id="@+id/facts"
+            layout="@layout/part_game_facts"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/titleId"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant" />
-
-            <TextView
-                android:id="@+id/version"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:singleLine="true"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant" />
-
-        </LinearLayout>
+            android:layout_weight="1" />
 
     </LinearLayout>
 

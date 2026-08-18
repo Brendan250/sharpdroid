@@ -11,6 +11,12 @@
          is where the arithmetic is. -->
     <dimen name="manager_empty_top">24dp</dimen>
 
+    <!-- the label column on the per-game settings scene's fact table. it is here rather than in the
+         layout because both orientations include that table and neither owns it, and it is a number
+         about the longest label on that screen rather than about labels in general - see FactLabel,
+         which is why the style carries no width of its own. -->
+    <dimen name="game_fact_label">76dp</dimen>
+
     <!-- how far the right end of a slider dialog's scale is held off the text column, so that the
          track and the label under it line up with the OK button's own text rather than with the
          column the content otherwise uses. it applies to the slider and to the high label equally -
