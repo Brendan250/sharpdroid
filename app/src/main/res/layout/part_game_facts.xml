@@ -69,4 +69,31 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/pathRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <TextView
+            style="@style/FactLabel"
+            android:layout_width="@dimen/game_fact_label"
+            android:text="@string/game_settings_label_path" />
+
+        <!-- **the one value that wraps.** the others are a word each and this is a sentence-length
+             string in a column no wider than the artwork above it, so held to one line it loses its
+             middle and every game reads as `/storage/emu…/eboot.bin` — a field that names a location
+             and shows none of it. the row is last, and the space under it is empty, so the lines it
+             takes cost nothing that was being used. -->
+        <TextView
+            android:id="@+id/path"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+    </LinearLayout>
+
 </LinearLayout>

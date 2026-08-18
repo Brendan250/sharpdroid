@@ -15,8 +15,8 @@ import java.io.InputStream
  * it: one scan, one adapter, one row.
  *
  * It is deliberately narrow. A source answers **what the directory is called**, **what to hand coil
- * for the artwork** and **how to open `param.json`**, and nothing else — the guest never reads a file
- * through here. A granted game's files reach the guest through [GuestFiles], on the other side of the
+ * for the artwork**, **how to open `param.json`** and **where it sits on a volume**, and nothing else
+ * — the guest never reads a file through here. A granted game's files reach the guest through [GuestFiles], on the other side of the
  * JNI boundary, and `docs/guest-files.md` describes that path.
  *
  * @see GameLibrary for where both kinds are enumerated.
@@ -44,6 +44,19 @@ sealed class GameSource {
      */
     abstract fun openParam(): InputStream?
 
+    /**
+     * Where this game's `eboot.bin` is, for a screen to show.
+     *
+     * **It is where the file is, not how this app reaches it**, and for a granted game those are
+     * different answers: the guest reads that one through a content provider and never opens a path
+     * at all. What a person wants from a screen naming a location is the place they could go looking.
+     *
+     * **Always an answer, and a volume path wherever there is one to give.** Where there is not, it
+     * is the provider's own — which names the same file in the only terms that provider has, and is
+     * a good deal more use than an absent row.
+     */
+    abstract val ebootPath: String
+
     /** A game staged into the app's own external files by `scripts/stage.py`. */
     class Staged(val directory: File) : GameSource() {
 
@@ -55,6 +68,8 @@ sealed class GameSource {
             (File(directory, Game.PARAM).takeIf { it.isFile }
                 ?: File(directory, Game.PARAM_BESIDE_EBOOT).takeIf { it.isFile })
                 ?.inputStream()
+
+        override val ebootPath: String get() = File(directory, Game.EBOOT).absolutePath
     }
 
     /**
@@ -82,6 +97,31 @@ sealed class GameSource {
 
         override fun openParam(): InputStream? =
             open(Game.PARAM) ?: open(Game.PARAM_BESIDE_EBOOT)
+
+        /**
+         * **Derived from the document id, which already carries the path.** The platform's storage
+         * provider issues ids of `<volume>:<path from the volume root>`, and a child's is its
+         * parent's plus `/name` — so the id of a game inside a granted tree spells out where it is,
+         * wherever the user keeps it. Nothing is looked up and nothing needs a permission.
+         *
+         * **Only that provider's ids mean that, though.** Another one's mean whatever it decided, and
+         * enough of them contain a colon that reading one this way would produce a path that looks
+         * right and is not. A caller that goes on to open what it derived would find out; a screen
+         * that prints it would not.
+         *
+         * **So the fallback is the provider's own path**, which is what the document uri says with
+         * its encoding taken off — `/tree/<the granted directory>/document/<this file>`. It is not a
+         * place on a volume and does not pretend to be one, and it still names the file exactly.
+         */
+        override val ebootPath: String
+            get() {
+                val eboot = TreeDocument.childId(documentId, Game.EBOOT)
+                if (TreeDocument.isOnAVolume(tree)) {
+                    TreeDocument.path(eboot)?.let { return it.absolutePath }
+                }
+                val uri = TreeDocument.uri(tree, eboot)
+                return uri.path ?: uri.toString()
+            }
 
         private fun open(relative: String): InputStream? =
             try {

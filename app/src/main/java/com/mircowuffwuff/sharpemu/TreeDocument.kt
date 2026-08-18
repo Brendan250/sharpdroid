@@ -39,6 +39,21 @@ object TreeDocument {
     fun rootId(tree: Uri): String = DocumentsContract.getTreeDocumentId(tree)
 
     /**
+     * Whether a granted tree comes from the platform's own storage provider, which is the only one
+     * whose document ids [path] can read.
+     *
+     * **It is the guard on deriving a path for somebody to look at.** A cloud provider or a file
+     * manager's own provider issues ids of whatever shape it likes, and plenty of them contain a
+     * colon — so [path] would answer confidently and wrongly rather than not at all. A caller that
+     * goes on to *open* what it derived catches that by itself, since the file will not be there;
+     * a caller that only prints it has nothing to catch it with.
+     */
+    fun isOnAVolume(tree: Uri): Boolean = tree.authority == EXTERNAL_STORAGE
+
+    /** The platform's storage provider: internal storage and any SD card, and nothing else. */
+    const val EXTERNAL_STORAGE = "com.android.externalstorage.documents"
+
+    /**
      * The ordinary filesystem path a document id names, or null when the id is not shaped like one.
      *
      * **This is not how the app reads a granted document and it never becomes one.** A path derived

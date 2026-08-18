@@ -64,13 +64,25 @@
              it is only right while those two numbers are what they are, and neither belongs to this
              file: they are the list in activity_settings.xml and the card itself. XML cannot hold
              the subtraction, which is why it is written out here. -->
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <!-- **the column scrolls, because a square as wide as a third of the screen plus a path that
+             wraps is taller than a short panel.** the cards beside it have scrolled from the day
+             there were three of them, and this side had been getting away with it. `fillViewport` is
+             what keeps the block laid out against the full height when it does fit, rather than
+             collapsing to its own. -->
+        <androidx.core.widget.NestedScrollView
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:fillViewport="true"
+            android:scrollbars="none">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:paddingStart="16dp"
             android:paddingEnd="0dp"
-            android:paddingTop="10dp">
+            android:paddingTop="10dp"
+            android:paddingBottom="24dp">
 
             <!-- **as wide as the column allows, and exactly as tall.** `H,1:1` computes the height
                  from the width, so the box is a square whatever the panel is, and the artwork is
@@ -118,6 +130,8 @@
                 app:layout_constraintTop_toBottomOf="@id/icon" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.core.widget.NestedScrollView>
 
         <FrameLayout
             android:layout_width="0dp"

@@ -107,6 +107,10 @@
          four other version fields a param.json carries. -->
     <string name="game_settings_label_title_id">Title ID</string>
     <string name="game_settings_label_version">Version</string>
+    <!-- **Path rather than Location, because it is always one.** a game inside a folder the user
+         granted is reached through a content provider rather than opened by path, but it still sits
+         somewhere on a volume, and where it sits is what somebody reading this wants. -->
+    <string name="game_settings_label_path">Path</string>
     <string name="save">Save</string>
 
     <string name="setting_theme">Theme</string>

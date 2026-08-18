@@ -68,6 +68,7 @@ class GameSettingsActivity : AppCompatActivity() {
         // a row goes away whole rather than leaving its label with nothing beside it.
         fact(binding.facts.titleIdRow, binding.facts.titleId, intent.getStringExtra(EXTRA_TITLE_ID))
         fact(binding.facts.versionRow, binding.facts.version, intent.getStringExtra(EXTRA_VERSION))
+        fact(binding.facts.pathRow, binding.facts.path, intent.getStringExtra(EXTRA_PATH))
         binding.icon.load(icon()) {
             placeholder(R.drawable.ic_game_placeholder)
             error(R.drawable.ic_game_placeholder)
@@ -120,6 +121,7 @@ class GameSettingsActivity : AppCompatActivity() {
         const val EXTRA_NAME = "name"
         const val EXTRA_TITLE_ID = "titleId"
         const val EXTRA_VERSION = "version"
+        const val EXTRA_PATH = "path"
         const val EXTRA_ICON_PATH = "iconPath"
         const val EXTRA_ICON_URI = "iconUri"
 
@@ -130,6 +132,7 @@ class GameSettingsActivity : AppCompatActivity() {
                 .putExtra(EXTRA_NAME, game.name)
                 .putExtra(EXTRA_TITLE_ID, game.titleId)
                 .putExtra(EXTRA_VERSION, game.version)
+                .putExtra(EXTRA_PATH, game.ebootPath)
                 .apply {
                     when (val icon = game.icon) {
                         is File -> putExtra(EXTRA_ICON_PATH, icon.absolutePath)

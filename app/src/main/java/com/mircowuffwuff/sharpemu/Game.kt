@@ -52,6 +52,9 @@ data class Game(
     /** The dump's artwork for coil, or null. A real PNG, not the `.dds` beside it. */
     val icon: Any? get() = source.icon
 
+    /** Where this game's `eboot.bin` is. See [GameSource.ebootPath]. */
+    val ebootPath: String get() = source.ebootPath
+
     companion object {
 
         const val EBOOT = "eboot.bin"
