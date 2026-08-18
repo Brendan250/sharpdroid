@@ -1,6 +1,7 @@
 package com.mircowuffwuff.sharpemu;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.UriPermission;
 import android.net.Uri;
@@ -234,6 +235,25 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private String titleId;
 
     /**
+     * What this launch's game is filed under — its title id, or its directory name when it has none.
+     *
+     * <p><b>Not {@link #titleId}, and the difference is a dump that names no title of its own.</b> The
+     * emulator files every such dump under one id, so two of them share a save directory; this app
+     * does not, and keys them by their folders instead. Anything of the app's own that belongs to one
+     * game is keyed by this — the settings store, and the record of how long this game took to boot.
+     */
+    private String configKey;
+
+    /**
+     * Which build this launch resolved, for the boot record to be keyed by.
+     *
+     * <p>The commit where there is one, since that is what tells two builds of one version apart, and
+     * the folder otherwise. Set in {@link #resolvePayload}, which is the only place that sees a build
+     * rather than the path to its payload.
+     */
+    private String buildKey = "";
+
+    /**
      * This launch's settings: the game's own store, with the app's behind it.
      *
      * <p>Built in {@code onCreate} and kept, because the build is resolved much later — in
@@ -258,6 +278,25 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      */
     private GuestOverlay overlay;
 
+    /**
+     * What fills the window from the tap until the guest presents its first frame.
+     *
+     * <p><b>It exists from {@code onCreate}, not from the moment a guest starts.</b> The black begins
+     * when the activity does, and the thread that can report anything about a boot is not started
+     * until the surface exists — so a screen inflated any later would leave the first stretch of a
+     * launch unaccounted for, which is the part that looks most like a tap having done nothing.
+     */
+    private GuestLoading loading;
+
+    /**
+     * The game's display name and its cover, as the launch handed them down.
+     *
+     * <p><b>Absent is ordinary and is what {@code am start} sends.</b> The name falls back to the
+     * directory, which is what this activity has always been given; the cover is simply not drawn.
+     */
+    private String gameDisplayName;
+    private String gameIcon;
+
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -268,6 +307,12 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         //
         // the driver manager's choice is merged in below, with the rest of what the user chose.
         driverName = getIntent().getStringExtra("driver");
+        // what the loading screen puts in front of somebody waiting. neither reaches the argument
+        // vector and neither can: they are what this launch is *about*, said to the person who
+        // started it, and the host layer has no use for either. see GameLaunch, which is where both
+        // are put on the intent.
+        gameDisplayName = getIntent().getStringExtra("gamename");
+        gameIcon = getIntent().getStringExtra("gameicon");
         // and mesa's own knobs, comma-separated: --es driverenv TU_DEBUG=sysmem,TU_DEBUG=noubwc
         String env = getIntent().getStringExtra("driverenv");
         if (env != null && !env.isEmpty()) {
@@ -345,7 +390,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // it is keyed by the title id the emulator itself resolves, which is also what names this
         // game's save data and its pipeline cache — one game, one name, in all three places.
         titleId = resolveTitleId();
-        settings = Settings.forGame(this, Game.configKeyFor(titleId, gameFolderName()));
+        configKey = Game.configKeyFor(titleId, gameFolderName());
+        settings = Settings.forGame(this, configKey);
         // **the intent wins over the driver manager, and the manager over the constant.** an
         // untouched row leaves the store empty and the constant is null, so a launch that names
         // nothing loads the driver this device shipped with — which is the configuration every
@@ -549,26 +595,64 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         }
     }
 
-    /** The surface, with the back overlay over it. */
+    /** The surface, with the loading screen and then the back overlay over it. */
     private View withOverlays(SurfaceView view) {
         FrameLayout root = new FrameLayout(this);
         root.addView(view, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
+        // **both of these are built from a themed context rather than from this activity**, which is
+        // how the scheme chosen in the settings scene reaches something drawn over a guest: this
+        // window wears the framework fullscreen theme and has no colour roles to offer.
+        Context themed = Theme.overlayContext(this);
+
+        // under the back overlay, because the panel is how a person leaves a launch that is still
+        // loading — a screen that covered it would be the one moment in a run with no way out.
+        loading = new GuestLoading(themed, this::onFirstFrame);
+        loading.describe(
+                gameDisplayName != null && !gameDisplayName.isEmpty()
+                        ? gameDisplayName : gameFolderName(),
+                // a path is a File and anything else is a content uri, which is the same split
+                // GameSource makes and the only two things coil is ever handed here.
+                gameIcon == null || gameIcon.isEmpty() ? null
+                        : gameIcon.startsWith("/") ? new File(gameIcon) : Uri.parse(gameIcon));
+        root.addView(loading.view(), new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
         // it is invisible until a back press and consumes nothing until then — see GuestOverlay,
         // which is INVISIBLE rather than GONE so that the panel has a width to slide in from on the
         // first open.
-        //
-        // **it is built from a themed context rather than from this activity**, which is how the
-        // scheme chosen in the settings scene reaches something drawn over a guest: this window
-        // wears the framework fullscreen theme and has no colour roles to offer.
-        overlay = new GuestOverlay(Theme.overlayContext(this), () -> {
+        overlay = new GuestOverlay(themed, () -> {
             Log.i(TAG, "[app] exit game");
             endRun();
         });
         root.addView(overlay.view(), new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         return root;
+    }
+
+    /**
+     * The guest has presented its first frame: the loading screen is gone and the boot is on record.
+     *
+     * <p><b>Written here rather than when the run ends, because the run does not end anywhere this
+     * process can see.</b> A guest calling {@code exit_group} ends the process from inside itself —
+     * {@code nativeRun} never returns, {@code onDestroy} never runs — so a record deferred to teardown
+     * would never be written on the ending nearly every run takes. This is the same reason the
+     * emulator's own pipeline cache is written by a periodic save.
+     *
+     * <p><b>It is keyed the way this launch was configured</b>, since that is what makes the last
+     * boot a prediction of the next one rather than of a different run: the build and the JIT preset
+     * for the half of a boot that is the emulator starting itself, the game and the GPU driver for
+     * the half that is the game's own.
+     */
+    private void onFirstFrame(long[] times) {
+        BootRecord.of(this).record(
+                buildKey,
+                fexPreset != null ? fexPreset : BootRecord.DEFAULT_PRESET,
+                configKey,
+                driverName != null ? driverName : BootRecord.STOCK_DRIVER,
+                HostLayer.nativeBootCheckpointIds(),
+                times);
     }
 
     /**
@@ -830,6 +914,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             Log.i(TAG, "[app]   " + build.notes);
         }
         buildEnv = build.env;
+        // and what the boot record files this launch's timings under. the commit is what tells two
+        // builds of one version apart, so it is the key wherever there is one; the folder is what a
+        // build carrying no commit has, and it is unique per import.
+        buildKey = build.shortCommit().isEmpty() ? build.folder : build.shortCommit();
         return build.payloadFile();
     }
 
@@ -873,10 +961,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * where it becomes a build directory. An update that carries a different fork commit
      * re-extracts, and one that carries the same build does not.
      *
-     * <p><b>Nothing is drawn while it happens.</b> The extraction is a fraction of a second against
-     * the several seconds of black screen a launch already is, so a screen for this one alone would
-     * dress the shortest wait in a launch and leave the longest bare. What is waited on is the same
-     * question for both, and it is answered for both at once or not at all.
+     * <p><b>It is drawn as a phase of the launch rather than on a screen of its own.</b> The
+     * extraction is a fraction of a second against the several seconds a boot takes, so a screen for
+     * this one alone would dress the shortest wait in a launch and leave the longest bare. It is one
+     * wait, on one screen, naming whichever part of itself it is in — see {@link GuestLoading}.
      *
      * <p><b>A failure ends the launch instead of falling back.</b> Running the most recently staged
      * build because the bundled one could not be written would be a plausible run attributed to the
@@ -885,9 +973,11 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * different answer entirely, and is the one a development build gives.
      */
     private SharpEmuBuild bundledBuild(File internal, File staged) {
-        // the progress this discards is real and is reported per 64 KB. nothing consumes it while a
-        // launch draws nothing; see the note above.
-        BundledBuild.Outcome outcome = BundledBuild.ensure(this, internal, (done, total) -> { });
+        // reported per 64 KB read and thinned to one post per whole percent by the screen, which is
+        // what keeps 76 MB from being twelve hundred messages to the main thread.
+        BundledBuild.Outcome outcome = BundledBuild.ensure(this, internal,
+                (done, total) -> loading.unpacking(
+                        R.string.loading_unpacking_build, done, total));
         if (outcome instanceof BundledBuild.Outcome.Ready ready) {
             return ready.getBuild();
         }
@@ -921,10 +1011,11 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * reason in {@code logcat}, which is exactly how this arrived as "tapping a game does nothing".
      */
     private File resolveGuestLibs(File root, File internal) {
-        // the progress this discards is real and reported per 64 KB, and nothing consumes it while a
-        // launch draws nothing — the same note bundledBuild carries, and the same answer.
-        GuestLibraries.Outcome outcome =
-                GuestLibraries.ensure(this, root, internal, (done, total) -> { });
+        // the second of the two trees, named separately on the same line and filling the same bar —
+        // the same arrangement bundledBuild has, and the same reason.
+        GuestLibraries.Outcome outcome = GuestLibraries.ensure(this, root, internal,
+                (done, total) -> loading.unpacking(
+                        R.string.loading_unpacking_libs, done, total));
         GuestLibraries.report(outcome);
         if (outcome instanceof GuestLibraries.Outcome.Staged staged) {
             return staged.getDir();
@@ -1329,6 +1420,15 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 ? safGameName + " (through a grant)"
                 : gameName + (gameName.startsWith("/") ? " (a path)" : " (staged)")));
         Log.i(TAG, "[app] starting: " + String.join(" ", args));
+        // **the last thing before the host layer starts, because that is where its clock starts.**
+        // Everything a boot reports is measured from its own entry, and the app's wait began at the
+        // tap with the driver check and any unpacking in between — so the two halves of the screen's
+        // timeline only join if this moment is taken here.
+        loading.booting(BootRecord.of(this).expected(
+                buildKey,
+                fexPreset != null ? fexPreset : BootRecord.DEFAULT_PRESET,
+                configKey,
+                driverName != null ? driverName : BootRecord.STOCK_DRIVER));
         int status = HostLayer.nativeRun(args.toArray(new String[0]));
         Log.i(TAG, "[app] host layer returned " + status);
         // the lookups that came back empty, counted rather than each one reported. it prints only

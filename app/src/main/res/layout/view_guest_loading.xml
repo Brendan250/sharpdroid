@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  what a run shows while it is not ready yet, drawn over the surface the guest will render into.
+
+  **it is a screen rather than a widget, and that is the whole redesign.** a bar floating on the raw
+  surface reads as something that has gone wrong on a black screen; a filled background with a card
+  on it reads as the app, still working. it also solves a real problem the floating version had: the
+  surface behind it is black until the guest draws, so text coloured for a light scheme was dark text
+  on black. nothing here sits on the surface - the background is drawn.
+
+  **the card is a dialog, and it takes the dialog's own tokens rather than numbers copied off one.**
+  `MaterialAlertDialog` carries no style override in this app, so every popup here is Material3's -
+  filled with colorSurfaceContainerHigh, cornered by shapeAppearanceCornerExtraLarge, padded 24dp at
+  the sides, and with no outline at all. naming those two attributes is what keeps this the same
+  shape as the FEXCore preset dialog on a day the library moves them.
+
+  it is not a real dialog because there is no theme to host one: a dialog is a window, and this
+  activity's window is the surface a guest renders into. so it is the dialog's clothes on a card.
+
+  **it is laid out for a wait of several seconds, not for the quarter of a second the bundled build
+  takes.** that is deliberate: what is on screen has to be worth reading, because the thing that uses
+  it most is a game boot. so there is the game's own cover and name, a line saying what is happening
+  to it right now, a bar that moves, and a figure that says how far along it is.
+
+  **the heading is the game and the line under it is the phase**, which is the way round that keeps
+  the screen still. the phase changes ten times in seven seconds; a heading that changed with it
+  would be the most restless thing on a screen whose whole job is to be reassuring. what a person
+  wants confirmed first is that the thing they tapped is the thing that is loading.
+
+  **there is no separate screen for unpacking the copy of SharpEmu that ships in the app.** it is one
+  more phase on this one, named by the same line - it happens once per install, immediately before a
+  boot, and a screen of its own would mean two waits dressed differently inside one launch.
+
+  ConstraintLayout for exactly one property: `layout_constraintWidth_max`. the card wants to be a
+  readable column rather than the width of a landscape panel, and a fixed width would be wrong on a
+  device of another shape - no other container here can say "as wide as there is room for, up to
+  this".
+
+  there is no `-land` variant and there is not meant to be. the activity is pinned landscape - see
+  the manifest - so a second composition would be one nothing can reach.
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface">
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+        app:cardElevation="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_max="440dp"
+        app:shapeAppearance="?attr/shapeAppearanceCornerExtraLarge"
+        app:strokeWidth="0dp">
+
+        <!-- **the sides are the dialog's 24dp and the ends are not, and that is the title's doing.**
+             a dialog pays 24dp above a title whose type sits tight in its box; this heading is a
+             textAppearance with its own leading above the caps, so the same number draws visibly more
+             air. 16dp here is what lands the first line where a dialog's title lands. the bottom is
+             short of 24dp for the mirror of that reason - the last line is a figure, which has
+             descender space under it that nothing occupies. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="18dp">
+
+            <!-- the cover and the two lines beside it. **a row rather than the cover above them**,
+                 because the bar underneath wants the card's full width and a centred composition
+                 would leave it the only thing not centred. the artwork also has to be able to be
+                 absent - a dump carrying no sce_sys/ is a game that boots perfectly well - and a row
+                 closes up around a missing cover where a column would leave a hole. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- the same drawing the game list draws, at the same ratio and a smaller echo of
+                     the same radius - see item_game.xml, whose shape overlay this is. it is GONE
+                     rather than the placeholder when a launch named no artwork, because `am start`
+                     names none and a grey placeholder in a popup reads as a failed load rather than
+                     as a launch that was never told. -->
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/loading_cover"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_marginEnd="16dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.SharpEmu.Tile"
+                    tools:src="@drawable/ic_game_placeholder"
+                    tools:visibility="visible" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <!-- two lines and then ellipsized, not the marquee the game list's cards use. a
+                         card in a grid is one line tall and every card has to be the same height, so
+                         a long name there has nowhere to go but sideways; here there is room for a
+                         second line, and a name sliding under a phase line that is also changing
+                         would be two moving things in a block of four. -->
+                    <TextView
+                        android:id="@+id/loading_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="2"
+                        android:textAppearance="?attr/textAppearanceTitleLarge"
+                        android:textColor="?attr/colorOnSurface"
+                        tools:text="Dreaming Sarah" />
+
+                    <!-- what is happening to it right now. **it is one line and it is held to one**,
+                         because every phase name is short and a line that reflowed to two would move
+                         the bar under it a dozen times in a boot. -->
+                    <TextView
+                        android:id="@+id/loading_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        tools:text="Preparing the display…" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- **the track is the card's own outline colour**, which is what keeps an empty bar
+                 reading as a groove in the card rather than as a second surface on it. every scheme
+                 names that role, which the surfaceContainer* family above outlineVariant does not -
+                 an unnamed role is Material3's baseline lilac, and this app is three quarters
+                 monochrome.
+
+                 **the range is a thousand rather than a hundred**, and that is not precision for its
+                 own sake: the boot bar is redrawn on every animation frame from a continuous
+                 estimate, so a hundred steps over seven seconds is a visible tick every 70 ms on a
+                 bar nearly 400dp wide. the figure below is still a whole percent - the resolution is
+                 the sweep's, not the label's. -->
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/loading_bar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:max="1000"
+                app:indicatorColor="?attr/colorPrimary"
+                app:trackColor="?attr/colorOutlineVariant"
+                app:trackCornerRadius="4dp"
+                app:trackThickness="8dp" />
+
+            <!-- **under the bar and at its end, which is where the bar is going.** over it, the
+                 figure competes with the heading; at the start, the eye leaves it before the bar has
+                 said anything. it is gone entirely when there is no figure to give, so an
+                 indeterminate wait does not draw an empty line. -->
+            <TextView
+                android:id="@+id/loading_percent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="end"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="38%" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

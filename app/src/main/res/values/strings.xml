@@ -396,6 +396,43 @@
     <string name="guest_libs_failed">Could not unpack the support files that came with this app</string>
     <string name="guest_libs_missing">This app was built without the files games need. Put them on the device with scripts/stage.py --guest-libs</string>
 
+    <!-- what the loading screen says while a launch is not ready yet. **the heading is the game and
+         these are the line under it**, so the only thing changing during a boot is the sentence that
+         describes it - see view_guest_loading.xml.
+
+         **each one names what is happening, never how far along it is.** the bar says that, and a
+         phase that also counted would be two answers to one question, disagreeing whenever the
+         estimate under the bar was corrected.
+
+         they are keyed by the host layer's own checkpoint ids rather than by position, so a
+         checkpoint that stops matching takes its own line with it and changes nothing else. -->
+    <string name="loading_starting">Loading SharpEmu…</string>
+    <string name="loading_emulator_start">Starting SharpEmu…</string>
+    <string name="loading_runtime">Preparing the runtime…</string>
+    <string name="loading_clock">Calibrating the clock…</string>
+    <string name="loading_address_space">Reserving memory for the game…</string>
+    <string name="loading_hle_warm">Warming up the emulator…</string>
+    <string name="loading_read_game">Reading the game…</string>
+    <string name="loading_modules">Loading modules…</string>
+    <!-- two phases share this one: the emulator taking its first module to Execute, and the game's
+         first thread being scheduled. to somebody waiting, both are the game starting. -->
+    <string name="loading_execute">Starting the game…</string>
+    <string name="loading_video_out">Preparing the display…</string>
+
+    <!-- the two asset trees, which are unpacked once per install and drawn as phases of the same
+         wait rather than on a screen of their own.
+
+         **each says why the wait exists as well as what it is**, which the boot phases do not have
+         to: a boot happens every launch and needs no excuse, where these happen on exactly one and
+         are the difference between a first launch and every other. the line is what stops somebody
+         wondering whether every launch is going to be like this one. -->
+    <string name="loading_unpacking_build">Unpacking the copy of SharpEmu that came with the app…</string>
+    <string name="loading_unpacking_libs">Unpacking the support files games need…</string>
+
+    <!-- the figure under the bar. a whole percent: the sweep is drawn ten times finer than this, and
+         a figure that moved with it would be unreadable. -->
+    <string name="loading_percent">%1$d%%</string>
+
     <!-- the panel the back button opens over a running game. "Exit game" rather than "Quit" or
          "Close": it is the game that ends, and the word has to be unambiguous enough to be tapped
          without a confirmation behind it - which there deliberately is not, because reaching this

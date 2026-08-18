@@ -2,7 +2,9 @@ package com.mircowuffwuff.sharpemu
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.util.Log
+import java.io.File
 
 /**
  * The intent that starts a guest, built in one place because more than one screen starts one.
@@ -51,6 +53,23 @@ object GameLaunch {
      */
     fun intent(context: Context, source: GameSource, name: String, from: From): Intent {
         val intent = Intent(context, MainActivity::class.java)
+        // **what the loading screen shows, and it is sent from here because only here has it.** the
+        // extras above name a directory, which is what the host layer opens; a person waiting in front
+        // of a black screen wants the name and the cover they tapped. reading them on the other side
+        // would mean parsing the dump a second time, on the launch's own critical path, to arrive at
+        // what this screen already holds.
+        //
+        // **both are absent from an `am start`, and absent is a real answer**: the loading screen falls
+        // back to the directory name and draws no artwork. that keeps the intent path a control arm --
+        // a scripted launch is the same launch it always was.
+        intent.putExtra("gamename", name)
+        // a File for a staged game and a content:// uri for a granted one, as the string each is. a
+        // grant belongs to the package rather than to a process, so the uri is readable in `:guest`
+        // for the same reason a granted game boots there at all.
+        when (val icon = source.icon) {
+            is File -> intent.putExtra("gameicon", icon.absolutePath)
+            is Uri -> intent.putExtra("gameicon", icon.toString())
+        }
         val how = when (source) {
             is GameSource.Staged -> {
                 intent.putExtra("game", source.folder)
