@@ -165,6 +165,16 @@
                  estimate, so a hundred steps over seven seconds is a visible tick every 70 ms on a
                  bar nearly 400dp wide. the figure below is still a whole percent - the resolution is
                  the sweep's, not the label's. -->
+            <!-- **the stop indicator is off, and it is a feature rather than an accident.** Material
+                 draws a dot at the end of the track, in the indicator's own colour, to mark where a
+                 determinate bar is heading. on a bar that sweeps continuously for several seconds it
+                 reads instead as the leading edge of the line, detached and already arrived - and it
+                 marks a target that is already stated twice over, by the figure under the bar and by
+                 the track simply ending. so it costs a misreading and buys nothing here.
+
+                 it is also drawn in determinate mode alone, so leaving it on would make this screen
+                 structurally different with the estimate on and off for a reason that has nothing to
+                 do with the estimate. -->
             <com.google.android.material.progressindicator.LinearProgressIndicator
                 android:id="@+id/loading_bar"
                 android:layout_width="match_parent"
@@ -174,6 +184,7 @@
                 app:indicatorColor="?attr/colorPrimary"
                 app:trackColor="?attr/colorOutlineVariant"
                 app:trackCornerRadius="4dp"
+                app:trackStopIndicatorSize="0dp"
                 app:trackThickness="8dp" />
 
             <!-- **under the bar and at its end, which is where the bar is going.** over it, the
