@@ -147,7 +147,7 @@
          together and the row has no room to say which. "estimate" rather than "predict" is the word
          a person would use about a progress bar. -->
     <string name="setting_loading_estimate">Estimate loading progress</string>
-    <string name="setting_loading_estimate_summary">Show how far a game has got while it loads, based on how long it took last time. Off, the bar still moves but gives no figure. Loading times go on being measured either way, so turning this back on works straight away.</string>
+    <string name="setting_loading_estimate_summary">Display an approximate progress percentage while a game loads. Based on how long it took last time.</string>
 
     <!-- **the whole of it leads and the parts follow.** the first card is what most people came to
          move, so it says its own total and carries the buttons for it; the cards under it are for
