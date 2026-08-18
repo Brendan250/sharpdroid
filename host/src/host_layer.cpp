@@ -21,6 +21,7 @@
 // the argument vector is the interface in both cases, so the app passes the same flags a shell
 // would and every measurement stays comparable.
 
+#include "boot_progress.h"
 #include "elf_loader.h"
 #include "guest_files.h"
 #include "guest_log.h"
@@ -608,6 +609,9 @@ int HostLayer::RunMain(int argc, char** argv) {
   // t=0, before anything else does any work: every stamp in the log is measured from here, and the
   // startup this line precedes is exactly the part we most want to see the size of.
   HostLayer::GuestLog::Start();
+  // the same t=0, and separately kept: the stamps are a formatting choice on the guest's output and
+  // may be off, while a boot's position must be measurable either way. nothing here reads a stamp.
+  HostLayer::BootProgress::Start();
 
   // unbuffered: through `adb shell` stdout is a pipe and therefore fully buffered, so anything
   // printed before a crash is lost. that cost a debugging round already. it also stops two guest
@@ -660,6 +664,11 @@ int HostLayer::RunMain(int argc, char** argv) {
     } else if (std::strcmp(argv[ArgIndex], "--timestamps") == 0) {
       // off by default, so an unmeasured run produces exactly the log every milestone recorded.
       HostLayer::GuestLog::Enable();
+    } else if (std::strcmp(argv[ArgIndex], "--boot-progress") == 0) {
+      // a flag rather than something always on, for the same reason as the one above: a caller with
+      // nothing to draw pays nothing and prints nothing extra. only a caller that has a screen in
+      // front of a booting guest asks for it.
+      HostLayer::BootProgress::Enable();
     } else if (std::strcmp(argv[ArgIndex], "--smc") == 0 && ArgIndex + 1 < argc) {
       // a flag rather than a constant because the three modes are the natural way to bisect an
       // SMC problem: `full` is correct without any tracking at all and is the fallback if the
@@ -791,6 +800,7 @@ int HostLayer::RunMain(int argc, char** argv) {
   if (!SpikeMode && ArgIndex >= argc) {
     std::fprintf(stderr, "usage: sharpemu-host-layer [--smc none|mtrack|full] --spike\n"
                          "       sharpemu-host-layer [--trace] [--trace-signals] [--trace-files <prefix>] [--timestamps] "
+                         "[--boot-progress] "
                          "[--smc none|mtrack|full] "
                          "[--asyncsig syscall|safepoint|block] [--vulkan] [--vulkan-lib <so>] "
                          "[--vulkan-driver <so>] [--vulkan-hooks <dir>] [--vulkan-driver-env NAME=VALUE]... [--vulkan-turbo] "
@@ -814,6 +824,12 @@ int HostLayer::RunMain(int argc, char** argv) {
     // said once, because the stamps only appear on the guest's own output and their absence from
     // the host layer's lines should read as deliberate rather than broken.
     std::printf("[host-layer] --timestamps: guest stdout/stderr lines carry [+seconds.millis] since process start\n");
+  }
+  if (HostLayer::BootProgress::Enabled()) {
+    // said once and at the top, so that the `[boot]` line at the far end of the log is read as the
+    // end of something that was asked for rather than as an assertion appearing out of nowhere.
+    std::printf("[host-layer] --boot-progress: the guest's log is matched against %d boot checkpoints\n",
+                HostLayer::BootProgress::Count() - 1);
   }
   FEXCore::Config::Initialize();
 

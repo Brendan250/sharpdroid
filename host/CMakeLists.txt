@@ -142,6 +142,7 @@ target_link_libraries(FEXCore INTERFACE FEXCore_Base)
 add_library(host-layer-core STATIC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/host_layer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/audio_thunk.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/boot_progress.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/elf_loader.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/linux_syscalls.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_files.cpp"

@@ -244,6 +244,7 @@ the argument vector is the whole interface, and the app passes the same flags a 
 | `--trace-files <prefix>` | what the guest asks of one directory subtree — opens, stats, listings, and what it then does with the descriptors. a few hundred events in a whole run against `--trace`'s millions, and it answers a question of its own: it is what makes two ways of reaching the same game comparable rather than a matter of opinion |
 | `--saf-mount <prefix>` | where a game the user granted appears to the guest. **needs the app**, and the run is refused rather than half-mounted if there is no provider to ask. [`guest-files.md`](guest-files.md) |
 | `--timestamps` | prefixes every line the guest writes to stdout or stderr with elapsed time since process start. **elapsed rather than time of day**, because every number worth having is a delta from the first line and a delta stays meaningful next to a run from another day. the host layer's own lines are deliberately unstamped, which makes them instantly distinguishable while their position still says when they happened |
+| `--boot-progress` | matches the guest's log against an ordered table of boot checkpoints, so that a caller with a screen in front of a booting guest can say how far along it is. below |
 | `--smc none\|mtrack\|full` | above |
 | `--asyncsig syscall\|safepoint\|block` | above |
 | `--fex Name=Value` | one FEXCore option, repeatable. below |
@@ -261,6 +262,23 @@ values are passed through as written, so a bool wants `0` or `1`: the `none`/`mt
 **three options are the host layer's and a `--fex` naming one is overridden rather than refused.** 64-bit mode, the SMC mode and the interrupt fault page are set after every `--fex` is applied, because each is load-bearing for correctness rather than a preference — the first silently halves the guest register file, the second has to agree with what the VMA tracker is told, and the third is what makes an asynchronous signal deliverable at all. `--smc` is how the SMC mode is chosen.
 
 `--timestamps` detours fds 1 and 2 through a stamping writer. **the whole stamped buffer goes out in a single write**, because many guest threads share that descriptor and two writes per line would let their output interleave mid-sentence; the cost is that a short write cannot be reported back exactly, so the loop finishes the buffer and tells the guest its own length went out. a guest that saw its own write return more than it asked for would be entitled to be confused. stamps are placed by tracking line *starts* rather than writes, which is what survives a guest emitting its text and its newline separately — .NET's console writer does.
+
+### where a boot has got to
+
+a guest takes several seconds to reach its first frame and the panel is black for all of it. the emulator says a great deal about what it is doing meanwhile, on stdout, and `--boot-progress` turns that stream into a position: an ordered table of checkpoints, and how far along it this run has got. `host/src/boot_progress.h` is the whole of it.
+
+**the two ends of the table belong to this project and the middle does not.** the start is the host layer's own; the end is the vulkan thunk's first presented frame, which is the moment the panel has something on it. between them is a line the emulator prints, and the emulator may rename any of those at any time — so the design is built around that being survivable:
+
+- **entries are optional.** the scan runs forward from the current position to the end of the table, so a pattern that no longer appears is passed over the moment a later one matches. matching only the *next* entry would instead let one renamed line stall the table and lose every entry behind it.
+- **the position only moves forward.** several of these lines occur more than once in a boot — `=== Execute START ===` occurs once per module — so "the first line that matches anything" and "any line that matches this" are both wrong, and neither is reachable.
+- **the terminal entry is not a line.** the first presented frame advances it, and it advances to the *end*, so an entry that never matched is passed over at once and the position lands on complete exactly when the picture appears. that one rule is what makes every way this can go stale end in a finished bar rather than a stuck one.
+- **it says what no longer matches.** the first frame prints how many of the patterns were seen and names each one that was not, because a table that has quietly stopped matching and a boot that is simply fast look identical from outside.
+
+**patterns are the structural fragment of a line and never the whole sentence**, since most of these lines carry counts that differ per title. a pattern with a number in it is one that stops matching on the next game.
+
+**the tap is in the log pump rather than under the write syscall**, which is the other place every guest line passes. that one runs on the guest's own thread and would put the cost in the boot's critical path; the pump exists to drain a pipe and is already off it. a boot produces on the order of a thousand lines, so the whole of the matching is around a millisecond spread over several seconds, and the tap disarms at the first frame — the rest of a run, which is where frame rate is measured, pays one relaxed load per line.
+
+**a caller reads the position rather than being told it.** this is the direction every seam here runs, and the reason is the same one the pad bridge has: the pump thread must keep draining, and anything it called into could block it, at which point the pipe fills and the guest blocks in `write`.
 
 ## what a run reports at exit
 

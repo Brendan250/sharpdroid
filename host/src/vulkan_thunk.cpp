@@ -1,6 +1,7 @@
 // see vulkan_thunk.h for the design and for why a syscall is the trap.
 
 #include "vulkan_thunk.h"
+#include "boot_progress.h"
 #include "thunk_abi.h"
 
 #define VK_NO_PROTOTYPES
@@ -1162,6 +1163,13 @@ void DumpProfile(uint64_t Frame, uint64_t IntervalFrames) {
 
 uint64_t CountPresentedFrame() {
   const uint64_t Frame = PresentedFrames.fetch_add(1, std::memory_order_relaxed) + 1;
+  if (Frame == 1) {
+    // **the end of a boot is here rather than at any line the emulator prints**, and that is the
+    // point of putting it here: the last thing the emulator says before a picture appears is 50 to
+    // 240 ms early depending on the title, and it is a string that upstream is free to change.
+    // this is the moment the panel has something on it, and it is ours.
+    HostLayer::BootProgress::FirstFrame();
+  }
   if (Frame == 1 || Frame % 300 == 0) {
     std::printf("[vulkan] presented frame %llu\n", static_cast<unsigned long long>(Frame));
     if (ProfileEnabled && Frame % 300 == 0) {

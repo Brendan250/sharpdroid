@@ -5,6 +5,7 @@
 // comparable to the ones every earlier milestone recorded. the one thing that is *not* an
 // argument is the window, because it is a live object rather than a string.
 
+#include "boot_progress.h"
 #include "host_layer.h"
 #include "pad_bridge.h"
 #include "saf_bridge.h"
@@ -43,6 +44,12 @@ void* LogPump(void*) {
     }
     for (ssize_t i = 0; i < Got; ++i) {
       if (Buffer[i] == '\n') {
+        // **the boot tap goes here and not under the write syscall**, which is the other place every
+        // guest line passes. that one runs on the guest's own thread, so its cost would sit in the
+        // boot's critical path; this thread exists to drain a pipe and is already off it. it sees
+        // the host layer's own lines as well as the guest's, which costs a few comparisons and
+        // means a checkpoint could be either side's without this loop knowing the difference.
+        HostLayer::BootProgress::Observe(Line.data(), Line.size());
         __android_log_write(ANDROID_LOG_INFO, LogTag, Line.c_str());
         Line.clear();
       } else {
