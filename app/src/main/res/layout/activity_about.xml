@@ -21,6 +21,26 @@
 
   **the scroll view sets `fillViewport`**, which is what lets the composition centre in the space
   rather than hang from the top of it, and a screen too short for the composition still scrolls.
+
+  **the whole composition is lifted 8dp, and it is a translation for the reason the drawing's own lift
+  is one.** it reads a little high on purpose: the toolbar carries no background and no band of its
+  own, so a page centred by arithmetic sits low to an eye that takes the title's line as the top of the
+  page rather than the panel's edge.
+
+  **padding cannot do it here, and that is a measurement rather than a preference.** side by side the
+  page is very nearly the height of the space under the toolbar - some 15px of slack on a landscape
+  handheld - so leaving more room below than above recentres it by whatever slack is left and then
+  pushes it into scrolling instead of moving it further. 16dp of extra bottom padding bought 5px of the
+  8dp asked for. a translation moves what is drawn and nothing that is measured, so the lift is exactly
+  the number written on it, whatever the panel.
+
+  **the bottom padding is what pays for the translation on a screen short enough to scroll.** there the
+  page hangs from the top rather than centring, and the last 8dp of it would sit past the end of the
+  scroll; the 16dp below absorbs that with room to spare.
+
+  **the attribute is on the body's own root and not on the `include` below**, because an include
+  carries only `id`, `visibility` and `layout_*` across to the root it names and drops everything else
+  in silence - a translation written here compiles, draws, and moves nothing.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"

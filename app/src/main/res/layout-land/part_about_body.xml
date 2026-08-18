@@ -19,6 +19,12 @@
   the pair is centred as a block rather than the text taking the rest of the width, so the drawing
   stays near the middle instead of being pushed to the edge by however long the longest line happens to
   be.
+
+  **the whole composition is lifted 8dp**, for the reason and by the mechanism activity_about.xml
+  records. the attribute is on this root rather than on that file's `include` because an include
+  carries only `id`, `visibility` and `layout_*` across to the root it names, and drops everything
+  else without a word.
+
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -29,7 +35,8 @@
     android:clipToPadding="false"
     android:paddingHorizontal="28dp"
     android:paddingTop="4dp"
-    android:paddingBottom="12dp">
+    android:paddingBottom="12dp"
+    android:translationY="-8dp">
 
     <!-- **the drawing is the largest thing on the screen and is meant to be.** the page is a colophon
          and a colophon's decoration is its one image; at the size a settings screen would give it, it

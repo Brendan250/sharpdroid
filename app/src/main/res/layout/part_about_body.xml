@@ -16,6 +16,12 @@
   handheld has under its toolbar; laid side by side it is the drawing's own height. both carry the
   same ids, so the activity binds one set and never asks which is on, and every string is a resource
   so the words are written once for both.
+
+  **the whole composition is lifted 8dp**, for the reason and by the mechanism activity_about.xml
+  records. the attribute is on this root rather than on that file's `include` because an include
+  carries only `id`, `visibility` and `layout_*` across to the root it names, and drops everything
+  else without a word.
+
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -23,7 +29,8 @@
     android:orientation="vertical"
     android:clipChildren="false"
     android:clipToPadding="false"
-    android:paddingBottom="8dp">
+    android:paddingBottom="8dp"
+    android:translationY="-8dp">
 
     <!-- **the drawing and the light behind it, and the light is centred on the frame rather than on
          the drawing.** the portrait is transparent above the head and sits on the frame's bottom
