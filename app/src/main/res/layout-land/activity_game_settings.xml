@@ -79,20 +79,31 @@
              there were three of them, and this side had been getting away with it. `fillViewport` is
              what keeps the block laid out against the full height when it does fit, rather than
              collapsing to its own. -->
-        <androidx.core.widget.NestedScrollView
+        <!-- the frame is here so the column can end in a fade, which a scroll view cannot hold
+             itself: it takes one child, and that child is the thing being scrolled. so the fade is a
+             sibling laid over the bottom of the column, which is the arrangement the cards' list
+             beside it already uses. -->
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1"
+            android:layout_weight="1">
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:fillViewport="true"
             android:scrollbars="none">
 
+        <!-- the bottom padding is exactly as deep as the fade below this column, so a column
+             scrolled to its end has the fade sitting on padding and dimming nothing. the two are one
+             number and have to move together; XML cannot say that, so it is said here. -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingStart="16dp"
             android:paddingEnd="0dp"
             android:paddingTop="10dp"
-            android:paddingBottom="24dp">
+            android:paddingBottom="40dp">
 
             <!-- **as wide as the column allows, and exactly as tall.** `H,1:1` computes the height
                  from the width, so the box is a square whatever the panel is, and the artwork is
@@ -143,6 +154,28 @@
 
         </androidx.core.widget.NestedScrollView>
 
+        <!-- the same fade the cards' list ends in, and deliberately a taller one.
+
+             a fade is only as visible as the difference it makes, and here it makes almost none: the
+             gradient ends in the surface colour, and this column's background already is that colour
+             — so it changes nothing behind the text and takes only the glyphs. the cards beside it
+             sit on a lighter fill, so the same gradient washes a whole card's width from that fill
+             down to the surface and their text dissolves along with everything around it. matching
+             that by eye means giving this column the one thing it can be given, which is distance:
+             text with nothing behind it needs more of it to go softly.
+
+             it covers the column's own bottom padding, which is set to the same figure, so a column
+             scrolled to its end has nothing dimmed. that is what makes it safe to leave up rather
+             than fading it in only when there is more to see, and it is the trade the cards' list
+             makes with its own deeper padding. -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/scrim_list_bottom" />
+
+        </FrameLayout>
+
         <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -162,6 +195,9 @@
                 android:scrollbarStyle="outsideOverlay"
                 android:scrollbars="vertical" />
 
+            <!-- the fade the cards end in, at every manager's own height. it is a fade per column
+                 rather than one across the panel: the two columns are the same surface, so nothing
+                 seams where they meet, and each ends in the depth its own content needs. -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="24dp"
