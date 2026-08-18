@@ -99,6 +99,10 @@ class Settings private constructor(
         if (theme?.let { it != THEME_DEFAULT } == true) count++
         if (customColour?.let { it != CUSTOM_COLOUR_DEFAULT } == true) count++
         if (fullscreen == true) count++
+        // **compared against on rather than counted as set**, because this row's default is on: a
+        // person who opened it and put it back would otherwise be reported as having changed
+        // something the app does exactly as it shipped.
+        if (loadingEstimate == false) count++
         if (strictDynlib == true) count++
         if (fexPreset?.let { it != FexPreset.DEFAULT } == true) count++
         if (renderScale?.let { it != RENDER_SCALES[0] } == true) count++
@@ -305,6 +309,39 @@ class Settings private constructor(
         set(value) = prefs.edit().putBoolean(KEY_AUTOMATIC_CONTROLLER_MAPPING, value!!).apply()
 
     /**
+     * Whether the loading screen estimates how far along a boot is, or simply says one is happening.
+     *
+     * **Off is the indeterminate bar on every launch of every game**, with the cover, the name and the
+     * phase line unchanged and the screen still coming down at the first frame. What goes is the
+     * determinate sweep and the figure under it — the half of that screen that needs a record.
+     *
+     * **The record is still written while this is off, and that is not a compromise.** The host layer's
+     * checkpoint tap cannot be turned off by this: `Reached()` arriving at the end of the table is the
+     * only signal the app has that the guest has presented a frame, and it is what takes the loading
+     * screen down — a launch that dropped `--boot-progress` would leave that screen over a running
+     * game forever. So the timings are stamped either way, and declining to record them would throw an
+     * answer away rather than save any work. It also keeps switching this back on immediate, where
+     * discarding would cost one more indeterminate boot per title afterwards.
+     *
+     * **The row says so**, because a switch that reads as "stop doing this" while the app quietly keeps
+     * timing every boot is a small lie, and one clause in a summary is the whole of the fix.
+     *
+     * **The app's rather than a title's**, like the theme and the fullscreen mode above it: a person
+     * who does not want an estimate does not want one per game. So it is not offered per game and does
+     * not fall back — see [forGame].
+     *
+     * Gated where the screen is drawn and not in the argument vector, so a launch naming no extras is
+     * the one every measurement in this project was taken on.
+     */
+    var loadingEstimate: Boolean?
+        get() = if (prefs.contains(KEY_LOADING_ESTIMATE)) {
+            prefs.getBoolean(KEY_LOADING_ESTIMATE, true)
+        } else {
+            null
+        }
+        set(value) = prefs.edit().putBoolean(KEY_LOADING_ESTIMATE, value!!).apply()
+
+    /**
      * Whether a game may drive **this device's** vibration motor.
      *
      * **Named for the handheld and not for vibration in general**, because a controller with a motor
@@ -349,6 +386,7 @@ class Settings private constructor(
         const val KEY_THEME = "theme"
         const val KEY_CUSTOM_COLOUR = "custom_colour"
         const val KEY_FULLSCREEN = "fullscreen"
+        const val KEY_LOADING_ESTIMATE = "loading_estimate"
         const val KEY_BUILD = "build"
         const val KEY_STRICT = "strict_dynlib"
         const val KEY_FEX_PRESET = "fex_preset"

@@ -297,6 +297,19 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private String gameDisplayName;
     private String gameIcon;
 
+    /**
+     * Whether the loading screen draws its bar against a prediction, or simply says a boot is
+     * happening.
+     *
+     * <p><b>Off is the indeterminate bar on every launch</b>, with the cover, the name and the phase
+     * line unchanged and the screen still coming down at the first frame — the record is never read.
+     * It is still <i>written</i>: the host layer stamps every checkpoint whether or not anything
+     * predicts from them, because the position reaching the end of that table is the only signal this
+     * activity has that the guest has drawn. So recording costs one store commit against data that
+     * exists either way, and it keeps switching this back on immediate.
+     */
+    private boolean loadingEstimate;
+
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -461,6 +474,18 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // them for the whole run -- there is no later launch to inherit a stale value.
         PadState.setEnabled(!Boolean.FALSE.equals(settings.getAutomaticControllerMapping()));
         PadRumble.setEnabled(!Boolean.FALSE.equals(settings.getVibrateHandheld()));
+        // and the loading screen's estimate, read here for the same reason and defaulting the same
+        // way: an untouched row leaves it on. it is not a launch argument either -- the host layer is
+        // asked for boot progress on every launch regardless, since the position reaching the end of
+        // its table is what tells this activity the guest has drawn and is what takes the loading
+        // screen down. what this governs is only whether the bar is drawn against a prediction.
+        //
+        // **out of the app's own store rather than out of `settings`, which is the one row here that
+        // is asked that way.** `settings` is this game's store with the app's behind it, and an App
+        // section row does not fall back -- so asking it would find nothing in the game's file, get
+        // null, and read as untouched however the switch is actually set. every other row this
+        // activity reads is one a game may override; this one is the app's, like the theme.
+        loadingEstimate = !Boolean.FALSE.equals(Settings.of(this).getLoadingEstimate());
 
         // the vibrator, before the guest starts, because the host layer's rumble path resolves its
         // java side at library load and would otherwise have somewhere to call and nothing behind it.
@@ -1424,7 +1449,12 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // Everything a boot reports is measured from its own entry, and the app's wait began at the
         // tap with the driver check and any unpacking in between — so the two halves of the screen's
         // timeline only join if this moment is taken here.
-        loading.booting(BootRecord.of(this).expected(
+        //
+        // **a null here is the indeterminate bar, and it is also what the switch in Settings hands
+        // over** — the store is not opened at all when the estimate is off, rather than opened and
+        // its answer discarded, so off is the state a device with no record is already in and not a
+        // second way of reaching it.
+        loading.booting(!loadingEstimate ? null : BootRecord.of(this).expected(
                 buildKey,
                 fexPreset != null ? fexPreset : BootRecord.DEFAULT_PRESET,
                 configKey,

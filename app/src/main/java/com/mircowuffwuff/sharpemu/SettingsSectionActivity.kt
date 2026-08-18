@@ -175,6 +175,15 @@ class SettingsSectionActivity : AppCompatActivity() {
             summary = R.string.setting_fullscreen_summary,
             default = false,
         )
+        // **on by default, which is what makes this the only App row whose default is not the empty
+        // one.** an untouched row and an empty store both leave the estimate on, so the behaviour a
+        // fresh install has is the behaviour this row describes.
+        rows += SettingRow.Switch(
+            key = Settings.KEY_LOADING_ESTIMATE,
+            title = R.string.setting_loading_estimate,
+            summary = R.string.setting_loading_estimate_summary,
+            default = true,
+        )
         return rows
     }
 
