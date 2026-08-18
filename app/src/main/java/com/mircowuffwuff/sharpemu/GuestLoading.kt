@@ -48,12 +48,12 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
  * **And it never reaches full early.** It is held short of the end until the picture is actually up,
  * because a bar sitting at 100% on a screen that is still there is worse than one sitting at 97%.
  *
- * ### the mode, and the one switch there is
+ * ### the mode, which is decided once per launch
  *
- * **The bar starts indeterminate and only ever moves to determinate**, which is the direction Material
- * leaves unrestricted on a visible view. The exception is a fresh install, where the unpack is
- * genuinely determinate and the boot after it has nothing to predict from; that switch is made with
- * the bar hidden, at the same moment the phase text changes.
+ * **The bar starts indeterminate and either stays that way or moves to determinate exactly once**,
+ * which is the direction Material leaves unrestricted on a visible view. It never moves back, and the
+ * mode never changes mid-boot.
+ *
  */
 class GuestLoading(
     private val context: Context,
@@ -114,14 +114,15 @@ class GuestLoading(
     private var labelled = -1
 
     /**
-     * The last whole percent of an unpack, which is the one figure here counted off another thread.
+     * The unpack phase last announced, as its string, or 0 when this launch has unpacked nothing.
      *
-     * **Its own field rather than [drawn], which is the main thread's.** The two phases never overlap
-     * — an unpack finishes before the host layer starts — but sharing one counter across two threads
-     * to express that would be a claim about ordering rather than a use of it.
+     * **It is also the record that an unpack happened at all**, which is what makes the whole launch
+     * indeterminate — see [booting]. Written from the host layer's thread and read on the main one,
+     * which is the whole reason it is volatile: the two never overlap, but expressing that by sharing
+     * an ordinary field would be a claim about ordering rather than a use of it.
      */
     @Volatile
-    private var unpacked = -1
+    private var unpackedPhase = 0
 
     private var polling = false
 
@@ -173,31 +174,26 @@ class GuestLoading(
     }
 
     /**
-     * One of the app's own asset trees being written out, which happens once per install.
+     * One of the app's own asset trees is being written out.
      *
-     * **Called from whichever thread is doing the unpacking**, which is the host layer's, and posted
-     * per whole percent rather than per read: the bundled build is one 61 MB file and twenty-six small
-     * ones, so a post per 64 KB buffer would be over a thousand messages to a main thread that has
-     * nothing else to say.
+     * **Called from whichever thread is doing the unpacking**, which is the host layer's.
      *
      * **This is a phase and not a screen of its own.** It is named on the same line every boot
-     * checkpoint is named on, and it fills the same bar — a launch is one wait, whatever the app is
-     * doing during it.
+     * checkpoint is named on — a launch is one wait, whatever the app is doing during it.
+     *
+     * **It names the phase and does not draw a figure**, and the caller's own progress is discarded
+     * on purpose: calling this at all is what makes the whole launch indeterminate, which is the
+     * point. See the class comment for why an unpack cannot be a segment of this bar.
      */
-    fun unpacking(phase: Int, done: Long, total: Long) {
-        val whole = if (total > 0) (done * 100 / total).toInt() else 0
-        if (whole == unpacked) {
+    fun unpacking(phase: Int) {
+        if (phase == unpackedPhase) {
             return
         }
-        unpacked = whole
-        main.post {
-            detail.setText(phase)
-            determinate()
-            // animated, because this is posted per whole percent and a step of one is visible on a
-            // bar this wide. it costs nothing on a value that has not moved.
-            bar.setProgressCompat(whole * 10, true)
-            show(whole * 10)
-        }
+        unpackedPhase = phase
+        // once per phase rather than once per read: the two trees are one 61 MB file and thirty-odd
+        // small ones, so a post per 64 KB buffer would be thousands of messages saying the same
+        // sentence to a main thread that has nothing else to say.
+        main.post { detail.setText(phase) }
     }
 
     /**
@@ -216,18 +212,15 @@ class GuestLoading(
             ids = HostLayer.nativeBootCheckpointIds()
             this.expected = expected
             ends = expected?.get(ids.lastOrNull() ?: "") ?: 0
-            // the unpack's own progress is not part of the boot's, and reserving a segment for it
-            // would put a hole at the start of every launch that does not unpack anything -- which is
-            // every launch but the first of an install. so the bar restarts, unanimated, under a
-            // phase line that has already changed.
             drawn = 0
             labelled = -1
+            // an unpack contributes no position to this, so the boot's bar begins at zero. that is a
+            // start rather than a reset now: the phases before it named themselves and drew no
+            // figure, so there is nothing here for a bar to fall back from.
             if (ends > 0) {
                 determinate()
                 bar.setProgressCompat(0, false)
                 show(0)
-            } else {
-                indeterminate()
             }
             detail.setText(R.string.loading_starting)
             polling = true
@@ -326,25 +319,19 @@ class GuestLoading(
         percent.text = context.getString(R.string.loading_percent, whole)
     }
 
+    /**
+     * The one mode change there is, and **it happens at most once per launch, in one direction**.
+     *
+     * The bar is created indeterminate and either stays that way for the whole launch or comes here
+     * once, when [booting] finds a record and nothing was unpacked. **There is deliberately no way
+     * back**: determinate to indeterminate is the direction Material refuses outright on an indicator
+     * the user can see, and it is unreachable here rather than worked around — nothing before this
+     * asks for a determinate bar and nothing after it asks for an indeterminate one. A future phase
+     * that wanted to give the bar up mid-launch would have to hide it for the change.
+     */
     private fun determinate() {
         percent.visibility = View.VISIBLE
         bar.isIndeterminate = false
-    }
-
-    /**
-     * **Determinate to indeterminate is the restricted direction**, and Material refuses it outright
-     * on an indicator the user can see rather than deferring it — so the bar is taken off screen for
-     * the change and put back. It is reachable on one launch: a fresh install, whose unpack is
-     * measurable and whose boot has no record to measure against yet.
-     */
-    private fun indeterminate() {
-        if (bar.isIndeterminate) {
-            return
-        }
-        percent.visibility = View.GONE
-        bar.visibility = View.INVISIBLE
-        bar.isIndeterminate = true
-        bar.visibility = View.VISIBLE
     }
 
     /**

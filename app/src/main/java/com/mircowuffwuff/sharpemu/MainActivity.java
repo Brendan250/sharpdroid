@@ -998,11 +998,13 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * different answer entirely, and is the one a development build gives.
      */
     private SharpEmuBuild bundledBuild(File internal, File staged) {
-        // reported per 64 KB read and thinned to one post per whole percent by the screen, which is
-        // what keeps 76 MB from being twelve hundred messages to the main thread.
+        // **the progress this reports is deliberately not drawn, and the callback stays because it is
+        // what says an unpack is happening at all.** the screen names the phase and leaves its bar
+        // indeterminate for the whole launch — see GuestLoading, where the reason is that an unpack
+        // is a few hundred milliseconds of a launch of several seconds and cannot be a segment of a
+        // bar the boot owns.
         BundledBuild.Outcome outcome = BundledBuild.ensure(this, internal,
-                (done, total) -> loading.unpacking(
-                        R.string.loading_unpacking_build, done, total));
+                (done, total) -> loading.unpacking(R.string.loading_unpacking_build));
         if (outcome instanceof BundledBuild.Outcome.Ready ready) {
             return ready.getBuild();
         }
@@ -1036,11 +1038,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * reason in {@code logcat}, which is exactly how this arrived as "tapping a game does nothing".
      */
     private File resolveGuestLibs(File root, File internal) {
-        // the second of the two trees, named separately on the same line and filling the same bar —
-        // the same arrangement bundledBuild has, and the same reason.
+        // the second of the two trees, named separately on the same line — the same arrangement
+        // bundledBuild has, and the same reason.
         GuestLibraries.Outcome outcome = GuestLibraries.ensure(this, root, internal,
-                (done, total) -> loading.unpacking(
-                        R.string.loading_unpacking_libs, done, total));
+                (done, total) -> loading.unpacking(R.string.loading_unpacking_libs));
         GuestLibraries.report(outcome);
         if (outcome instanceof GuestLibraries.Outcome.Staged staged) {
             return staged.getDir();
