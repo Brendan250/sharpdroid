@@ -123,7 +123,15 @@
 
                 <!-- what is happening to it right now. **it is one line and it is held to one**,
                      because every phase name is short and a line that reflowed to two would move the
-                     bar under it a dozen times in a boot. -->
+                     bar under it a dozen times in a boot.
+
+                     **the gap under this line is where the card's two halves are set apart**, and the
+                     two numbers that do it are not independent. the block is centred in a fixed
+                     height, so widening the gap by 10dp moves the name and the phase up by 5 and the
+                     bar and its figure down by 5; the 2dp under the figure adds 2dp of block, which
+                     moves the whole thing up by 1 more. the pair land at 6dp up and 4dp down, which
+                     is the asymmetry the composition wants - the name is the thing read first and it
+                     sits a little above centre. change either number and recompute the other. -->
                 <TextView
                     android:id="@+id/loading_detail"
                     android:layout_width="match_parent"
@@ -160,7 +168,7 @@
                     android:id="@+id/loading_bar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="28dp"
                     android:max="1000"
                     app:indicatorColor="?attr/colorPrimary"
                     app:trackColor="?attr/colorOutlineVariant"
@@ -180,6 +188,7 @@
                     android:id="@+id/loading_percent"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="2dp"
                     android:layout_marginTop="6dp"
                     android:gravity="end"
                     android:textAppearance="?attr/textAppearanceLabelLarge"
