@@ -1039,7 +1039,11 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      */
     private File resolveGuestLibs(File root, File internal) {
         // the second of the two trees, named separately on the same line — the same arrangement
-        // bundledBuild has, and the same reason.
+        // bundledBuild has, and the same reason. **this one is the case that is not a fresh install**:
+        // the set carries a packaging-time content hash, so an update bringing new libraries
+        // re-extracts them beside a build that is already unpacked and a boot record that is already
+        // good -- a launch with everything it needs to draw an estimate, which is exactly the one
+        // that must not start drawing one halfway through.
         GuestLibraries.Outcome outcome = GuestLibraries.ensure(this, root, internal,
                 (done, total) -> loading.unpacking(R.string.loading_unpacking_libs));
         GuestLibraries.report(outcome);

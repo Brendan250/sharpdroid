@@ -54,6 +54,11 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
  * which is the direction Material leaves unrestricted on a visible view. It never moves back, and the
  * mode never changes mid-boot.
  *
+ * **A launch that unpacks one of the app's asset trees is indeterminate throughout**, record or no
+ * record. An unpack cannot be a segment of this bar: reserving one would put a hole at the start of
+ * every launch that unpacks nothing, which is every launch but the one after an install or an update
+ * — and the two trees together are about 310 ms of a launch of several seconds, so an honest prefix
+ * would be some 4% of the bar, indistinguishable from starting at zero.
  */
 class GuestLoading(
     private val context: Context,
@@ -214,10 +219,12 @@ class GuestLoading(
             ends = expected?.get(ids.lastOrNull() ?: "") ?: 0
             drawn = 0
             labelled = -1
-            // an unpack contributes no position to this, so the boot's bar begins at zero. that is a
-            // start rather than a reset now: the phases before it named themselves and drew no
-            // figure, so there is nothing here for a bar to fall back from.
-            if (ends > 0) {
+            // **a launch that unpacked anything is indeterminate for the whole of itself, even with a
+            // record to draw against.** an unpack contributes no position to this bar and cannot be a
+            // segment of it, so what is left otherwise is a bar that sweeps while a tree is written
+            // and then becomes determinate for the boot -- a change of mode in the middle of one
+            // wait, for a reason the person waiting has no way to see.
+            if (ends > 0 && unpackedPhase == 0) {
                 determinate()
                 bar.setProgressCompat(0, false)
                 show(0)
@@ -326,8 +333,9 @@ class GuestLoading(
      * once, when [booting] finds a record and nothing was unpacked. **There is deliberately no way
      * back**: determinate to indeterminate is the direction Material refuses outright on an indicator
      * the user can see, and it is unreachable here rather than worked around — nothing before this
-     * asks for a determinate bar and nothing after it asks for an indeterminate one. A future phase
-     * that wanted to give the bar up mid-launch would have to hide it for the change.
+     * asks for a determinate bar, nothing after it asks for an indeterminate one, and a launch that
+     * unpacked anything never arrives here at all. A future phase that wanted to give the bar up
+     * mid-launch would have to hide it for the change.
      */
     private fun determinate() {
         percent.visibility = View.VISIBLE
