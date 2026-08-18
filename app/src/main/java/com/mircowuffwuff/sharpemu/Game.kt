@@ -27,6 +27,23 @@ data class Game(
     val name: String,
     /** e.g. `PPSA02929`. Null when neither the dump nor the directory name offers one. */
     val titleId: String?,
+    /**
+     * The dump's own content version, e.g. `01.005.000`. Null when it does not carry one.
+     *
+     * **`contentVersion` and not one of the four other version fields beside it.** A dump names a
+     * master version, an origin content version, a target content version and the SDK it was built
+     * against; the first is the release the disc or the download *is*, and the rest are either
+     * build provenance or a patch's account of where it came from.
+     */
+    val version: String?,
+    /**
+     * What this game's own settings are filed under. See [Game.configKey].
+     *
+     * **Carried rather than asked for**, because the scan that built this row already parsed the file
+     * it comes from: a screen that wanted it later would open `param.json` a second time, and for a
+     * game inside a granted tree that is a provider round trip to learn what is already in hand.
+     */
+    val configKey: String,
 ) {
 
     /** The directory name, e.g. `Dreaming Sarah [PPSA02929]`. What [MainActivity] takes as `game`. */
@@ -76,6 +93,13 @@ data class Game(
                 name = param?.let(::titleName) ?: source.folder,
                 titleId = param?.optString("titleId")?.takeIf { it.isNotBlank() }
                     ?: titleIdFromFolder(source.folder),
+                version = param?.optString("contentVersion")?.takeIf { it.isNotBlank() },
+                // **the strict read of the same field, and deliberately not the line above it.**
+                // [titleId] is the list's answer and falls back to the `[PPSA…]` in a directory name,
+                // which is a staging convention of ours; this one has to be what the emulator will
+                // resolve, so it counts the field only when it is a JSON string, exactly as
+                // [emulatorTitleId] does.
+                configKey = configKeyOf(param?.opt("titleId") as? String, source.folder),
             )
         }
 
@@ -113,10 +137,40 @@ data class Game(
             return sanitizeTitleId(raw)
         }
 
+        /**
+         * **What this game's settings are filed under**, and the same string the emulator files its
+         * save data and its pipeline cache under — so one game is one name across all three rather
+         * than three spellings of one idea.
+         *
+         * **A dump that offers no title id is filed under its directory name instead.**
+         * [emulatorTitleId] answers [UNKNOWN_TITLE_ID] for those, which is the right answer to *what
+         * will the emulator call this* and the wrong one to key a configuration with: every such dump
+         * would share one store, so a setting made for one game would appear on another. The name is
+         * sanitized the same way, so a store's identity is always the same shape.
+         *
+         * **The consequence is that for those dumps this key and the emulator's own directory name
+         * differ**, and that is deliberate: the collision is the emulator's to have, and copying it
+         * here would spread it to something that does not need it.
+         *
+         * **It takes an id that has already been resolved rather than a stream**, so that a caller
+         * needing both this and the emulator's own name — which is every caller that launches a game
+         * — opens `param.json` once. For a game inside a granted tree that file is a provider round
+         * trip, and doing it twice per launch to answer one question would be paying twice.
+         */
+        @JvmStatic
+        fun configKeyFor(resolvedTitleId: String, folder: String): String =
+            if (resolvedTitleId == UNKNOWN_TITLE_ID) sanitizeTitleId(folder) else resolvedTitleId
+
+        private fun configKeyOf(rawTitleId: String?, folder: String): String =
+            configKeyFor(sanitizeTitleId(rawTitleId), folder)
+
+        /** What [emulatorTitleId] answers for a dump that names no title id. The emulator's own. */
+        const val UNKNOWN_TITLE_ID = "UNKNOWN"
+
         private fun sanitizeTitleId(raw: String?): String {
             val trimmed = raw?.trim()
             if (trimmed.isNullOrEmpty()) {
-                return "UNKNOWN"
+                return UNKNOWN_TITLE_ID
             }
             val out = StringBuilder(trimmed.length)
             for (character in trimmed) {

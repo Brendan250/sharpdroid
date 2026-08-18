@@ -94,6 +94,17 @@
          default value, and that distinction is what the whole precedence rule rests on. -->
     <string name="setting_use_default_message">This setting goes back to its default, as if you had never changed it.</string>
     <string name="setting_use_default">Use default</string>
+    <!-- **the per-game list's own way back, drawn on the row rather than hidden behind a hold.** it
+         does not ask first: the long press above it opens a dialog because the gesture is invisible
+         and could have been an accident, and a button that was deliberately pressed has already said
+         what it means. what it returns to is not the default but whatever the app's own setting says
+         right now, which is why it does not borrow the wording above. -->
+    <string name="setting_use_global">Use global value</string>
+    <!-- **labelled where the title id beside it is not**, because a bare `01.005.000` says nothing
+         about what it counts while `PPSA15552` is recognisably an identifier. it is the dump's own
+         content version — the release it is — rather than any of the four other version fields a
+         param.json carries. -->
+    <string name="game_settings_version">Version %1$s</string>
     <string name="save">Save</string>
 
     <string name="setting_theme">Theme</string>

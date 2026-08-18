@@ -58,7 +58,12 @@ class BuildsActivity : AppCompatActivity() {
         Theme.apply(this)
         drawnWith = Theme.signature(this)
         super.onCreate(state)
-        settings = Settings.of(this)
+        // which store this manager is choosing for, forwarded by the row that opened it — see
+        // DriversActivity, which takes it the same way and for the same reason.
+        settings = intent.getStringExtra(SettingsSectionActivity.EXTRA_GAME)
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { Settings.forGame(this, it) }
+            ?: Settings.of(this)
         binding = ActivityManagerBinding.inflate(layoutInflater)
         setContentView(binding.root)
         SystemBars.apply(this, binding.root)
@@ -146,7 +151,12 @@ class BuildsActivity : AppCompatActivity() {
      * choice survives a newer build of the same id arriving.
      */
     private fun select(entry: BuildLibrary.Entry) {
-        if (entry.selected) return
+        // **the row already marked is still worth a write when this manager answers for one game**,
+        // and only then. what is marked there is whatever the app's own row currently says, so
+        // tapping it means "this game runs this build" rather than "no change" — and without the
+        // write the game would keep following the app's row the day it moves. on the app's own
+        // screen the mark and the store are the same thing, so tapping it is genuinely nothing.
+        if (entry.selected && !settings.perGame) return
         settings.build = entry.build.folder
         Log.i(TAG, "[app] selected " + entry.build.identity() + " at " + entry.build.dir)
         refresh()

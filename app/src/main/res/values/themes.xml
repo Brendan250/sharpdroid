@@ -57,6 +57,43 @@
     </style>
 
     <!--
+      the corner every card in this app is cut with, for the one image that is drawn at a card's size
+      without being inside one: the artwork on a game's own settings scene.
+
+      **it is the card radius rather than the tile's**, and the two are different numbers on purpose.
+      a tile's cover sits inside a card and is inset from it, so a corner matching its container's
+      would read as thicker than the border around it; this one has no container, so it *is* the
+      card, and matching the grid it came from is what keeps the scene looking like the app.
+    -->
+    <style name="ShapeAppearance.SharpEmu.Card" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+
+    <!--
+      the button a per-game row draws when it overrides the app's own value.
+
+      **the game list's empty-state button**, which is the app's one existing example of offering the
+      single thing worth doing on a screen - filled, so it reads as a control rather than as another
+      accented line of a row that already has one.
+
+      what it changes from the default filled button is size: this appears inside a list row rather
+      than alone on an empty screen, so it takes the height and the text of a dense control and drops
+      the minimum width, which is otherwise wide enough to hold far more than three words.
+    -->
+    <style name="Widget.SharpEmu.Button.UseGlobal" parent="Widget.Material3.Button">
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:paddingLeft">18dp</item>
+        <item name="android:paddingRight">18dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
+    </style>
+
+    <!--
       the four kinds of text on the About screen.
 
       **they are styles rather than repeated attributes because that screen is a table**, and a table

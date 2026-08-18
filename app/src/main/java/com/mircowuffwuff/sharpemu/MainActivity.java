@@ -225,6 +225,23 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      */
     private boolean diskShaderCache;
 
+    /**
+     * The title id the emulator will resolve for this launch's game — see {@link #resolveTitleId()}.
+     *
+     * <p>Read once, in {@code onCreate}, and used twice: to find the game's own settings store, and
+     * to name the per-title pipeline cache the emulator is handed.
+     */
+    private String titleId;
+
+    /**
+     * This launch's settings: the game's own store, with the app's behind it.
+     *
+     * <p>Built in {@code onCreate} and kept, because the build is resolved much later — in
+     * {@code runGuest} — and resolving it against the app's store while every other row came from
+     * this one is exactly the split-brain the precedence rule exists to prevent.
+     */
+    private Settings settings;
+
     private boolean started;
     /** Set once the run is over, so {@code onDestroy} can tell an ending from an ordinary one. */
     private boolean ending;
@@ -319,7 +336,16 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // omitting the extra would no longer reach the default. a default that cannot be reached
         // by saying nothing is not a default, and every script in this repository launches by
         // saying nothing.
-        Settings settings = Settings.of(this);
+        //
+        // **the store is this game's, with the app's own behind it**, so the precedence a launch
+        // resolves is four deep: a build's env, then the app's settings, then this game's, then the
+        // extras. a game that overrides nothing reads exactly as the app's own store does, so a
+        // launch of a game nobody has configured is the argument vector it has always been.
+        //
+        // it is keyed by the title id the emulator itself resolves, which is also what names this
+        // game's save data and its pipeline cache — one game, one name, in all three places.
+        titleId = resolveTitleId();
+        settings = Settings.forGame(this, Game.configKeyFor(titleId, gameFolderName()));
         // **the intent wins over the driver manager, and the manager over the constant.** an
         // untouched row leaves the store empty and the constant is null, so a launch that names
         // nothing loads the driver this device shipped with — which is the configuration every
@@ -823,7 +849,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * choice is left alone: this is a launch working around a problem, not resolving it.
      */
     private SharpEmuBuild chosenBuild(File internal, File staged) {
-        String folder = Settings.of(this).getBuild();
+        String folder = settings.getBuild();
         // **the reserved folder goes down the bundled path rather than being resolved as a folder**,
         // because before the first launch it is not a folder at all — it is 76 MB of APK. resolving
         // it would find nothing and fall back to a staged build, which is a launch quietly running
@@ -937,21 +963,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * access that is gone.
      */
     private boolean mountSafGame() {
-        Uri tree = null;
         Uri named = safTreeUri != null && !safTreeUri.isEmpty() ? Uri.parse(safTreeUri) : null;
-        for (UriPermission held : getContentResolver().getPersistedUriPermissions()) {
-            if (!held.isReadPermission()) {
-                continue;
-            }
-            if (named == null) {
-                tree = held.getUri();
-                break;
-            }
-            if (named.equals(held.getUri())) {
-                tree = named;
-                break;
-            }
-        }
+        Uri tree = grantedTree();
         if (tree == null) {
             if (named != null) {
                 Log.e(TAG, "[app] --es saftree named " + named + " and this app does not hold a read"
@@ -965,6 +978,82 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         Log.i(TAG, "[app] the game is in the granted tree " + tree
                 + (named == null ? " (the first one held, since the launch named none)" : ""));
         return GuestFiles.mount(this, tree, safGameName);
+    }
+
+    /**
+     * Which granted tree this launch's game is in, or null if we hold none that fits.
+     *
+     * <p><b>It says nothing.</b> Two things ask — the identity resolved in {@code onCreate} and the
+     * mount in {@code runGuest} — and a message printed by both would report one missing grant twice.
+     * {@link #mountSafGame()} is the one that explains, because it is the one that refuses a launch.
+     */
+    private Uri grantedTree() {
+        Uri named = safTreeUri != null && !safTreeUri.isEmpty() ? Uri.parse(safTreeUri) : null;
+        for (UriPermission held : getContentResolver().getPersistedUriPermissions()) {
+            if (!held.isReadPermission()) {
+                continue;
+            }
+            if (named == null) {
+                return held.getUri();
+            }
+            if (named.equals(held.getUri())) {
+                return named;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The title id the emulator will resolve for this launch's game, read the way it reads one.
+     *
+     * <p><b>In {@code onCreate}, because the settings this run merges are keyed by it.</b> A game's
+     * own store is found by {@link Game#configKeyFor}, and the merge happens before anything is
+     * resolved or installed — so this is read early rather than beside the pipeline cache line it
+     * also names. It is read <b>once</b> and both uses take the field.
+     *
+     * <p><b>All three ways in answer through {@link GameSource}, including the granted one, and that
+     * needs no mount.</b> A child document's id is its parent's plus {@code /name} — see
+     * {@link TreeDocument} — so the tree and the directory's name are the whole of what it takes to
+     * open a file inside a grant. The host layer's mount is for the guest's own reads and stays where
+     * it is, in {@code runGuest}, behind the driver check that has to come first.
+     *
+     * <p><b>Every failure answers {@code UNKNOWN}</b> rather than refusing: a game that is not there,
+     * a grant that is gone or a dump with no {@code param.json} are all cases {@code runGuest} reports
+     * properly a moment later, and a launch that dies here would report them worse.
+     */
+    private String resolveTitleId() {
+        if (safGameName != null && !safGameName.isEmpty()) {
+            Uri tree = grantedTree();
+            if (tree == null) {
+                return Game.UNKNOWN_TITLE_ID;
+            }
+            String documentId = TreeDocument.INSTANCE.childId(
+                    TreeDocument.INSTANCE.rootId(tree), safGameName);
+            GameSource source = new GameSource.Granted(
+                    tree, documentId, safGameName, getApplicationContext().getContentResolver());
+            return Game.emulatorTitleId(source.openParam(), safGameName);
+        }
+        File root = getExternalFilesDir(null);
+        if (root == null && !gameName.startsWith("/")) {
+            return Game.UNKNOWN_TITLE_ID;
+        }
+        File directory = gameName.startsWith("/")
+                ? new File(gameName) : new File(AppStorage.games(root), gameName);
+        return Game.emulatorTitleId(new GameSource.Staged(directory).openParam(), gameName);
+    }
+
+    /**
+     * The directory name of this launch's game, whichever extra named it.
+     *
+     * <p>It is what a game with no title id of its own is filed under — see {@link Game#configKeyFor}
+     * — so the path form is reduced to its last component: the same game reached by name and by
+     * absolute path has to be the same game.
+     */
+    private String gameFolderName() {
+        if (safGameName != null && !safGameName.isEmpty()) {
+            return safGameName;
+        }
+        return gameName.startsWith("/") ? new File(gameName).getName() : gameName;
     }
 
     private void runGuest() {
@@ -1015,20 +1104,15 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         File gameDirectory = gameName.startsWith("/")
                 ? new File(gameName) : new File(AppStorage.games(root), gameName);
         File staged = new File(gameDirectory, "eboot.bin");
-        // the title id the emulator will resolve for this dump, read the same way it reads it — see
-        // Game.emulatorTitleId. it names the pipeline cache's directory below, which is the emulator's
-        // to name everywhere except here, so it is read rather than inferred from the folder.
-        String titleId;
+        // the title id was resolved in onCreate, because the settings this run merges are keyed by it
+        // — see resolveTitleId. it names the pipeline cache's directory below, which is the
+        // emulator's to name everywhere except here.
         if (safGameName != null && !safGameName.isEmpty()) {
             if (!mountSafGame()) {
                 return;
             }
             guestGame = GuestFiles.MOUNT + "/eboot.bin";
-            // through the mount, since a granted game has no path to open. it is there by now: the
-            // mount above is what established it, and it is the same provider the guest will read.
-            titleId = Game.emulatorTitleId(GuestFiles.openMountedParam(), safGameName);
         } else {
-            titleId = Game.emulatorTitleId(new GameSource.Staged(gameDirectory).openParam(), gameName);
             guestGame = staged.getAbsolutePath();
             if (!staged.exists()) {
                 // named by what would fix it, and the two forms fail for different reasons. a name

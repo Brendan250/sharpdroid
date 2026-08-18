@@ -111,14 +111,20 @@ class UserDataActivity : AppCompatActivity() {
     /**
      * Measures on the worker and draws on the main thread.
      *
-     * The settings count is read here rather than inside the measurement: it is a handful of
-     * `SharedPreferences` lookups against a store the framework already holds in memory, where the
-     * directories beside it are a recursive walk of the disk.
+     * **The settings count is taken on the worker too**, beside the walk rather than before it: the
+     * app's own store is a handful of lookups against something the framework already holds in
+     * memory, but a game's store is a file the framework has to find and parse the first time it is
+     * asked for, and there is one per game that has ever been configured.
      */
     private fun refresh() {
         val files = filesDir
-        val changed = Settings.of(this).changedFromDefault()
         worker.execute {
+            // **the app's own rows that differ, plus every row any game overrides.** the card is one
+            // figure over one Reset button, and that button clears both stores — so a number counting
+            // only the first would report "nothing changed" over a button that is about to change
+            // something. the two are added rather than shown apart because the card has one line.
+            val changed = Settings.of(this).changedFromDefault() +
+                Settings.gameStoreKeys(this).sumOf { Settings.forGame(this, it).overridden() }
             val items = UserDataItem.measure(files, changed)
             runOnUiThread { if (!isFinishing) adapter.submit(items) }
         }
@@ -357,6 +363,11 @@ class UserDataActivity : AppCompatActivity() {
         // everything import restarts the process: a preferences file removed underneath the framework
         // is a file the framework rewrites from memory the next time anything is set.
         settings.clearAll()
+        // **and every game's own store with it**, which is what keeps this button's word good: a
+        // per-game setting is a change to what a launch does, so a reset that left them in place
+        // would report every row back at its default and still run one game differently. they are a
+        // file each, so this is not the call above with a wider reach — it is a second call.
+        Settings.forgetEveryGame(this)
         // **and the grants are released rather than merely forgotten.** android caps how many
         // persisted uri permissions an app may hold, so a folder dropped from the list without
         // releasing its grant is one held against that cap forever, by nothing.

@@ -57,7 +57,14 @@ class DriversActivity : AppCompatActivity() {
         Theme.apply(this)
         drawnWith = Theme.signature(this)
         super.onCreate(state)
-        settings = Settings.of(this)
+        // **which store this manager is choosing for**, forwarded by the row that opened it. a
+        // per-game section sends its game, the cog's own sections send nothing, and everything below
+        // — the list, the radio, the import and the delete — is the same screen either way: what
+        // moves is only which file the selection is written to.
+        settings = intent.getStringExtra(SettingsSectionActivity.EXTRA_GAME)
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { Settings.forGame(this, it) }
+            ?: Settings.of(this)
         binding = ActivityManagerBinding.inflate(layoutInflater)
         setContentView(binding.root)
         SystemBars.apply(this, binding.root)
@@ -142,7 +149,9 @@ class DriversActivity : AppCompatActivity() {
      * read as never having decided.
      */
     private fun selectSystem() {
-        if (GpuDriver.isSystem(settings.driver)) return
+        // per-game, the row already marked is still worth a write — see BuildsActivity.select, which
+        // states the reason once for both managers.
+        if (GpuDriver.isSystem(settings.driver) && !settings.perGame) return
         settings.driver = GpuDriver.SYSTEM
         Log.i(TAG, "[app] selected the system GPU driver")
         refresh()
@@ -158,7 +167,7 @@ class DriversActivity : AppCompatActivity() {
      * **What is stored is the folder name**, so the choice names one package rather than a family.
      */
     private fun select(entry: DriverLibrary.Entry) {
-        if (entry.selected) return
+        if (entry.selected && !settings.perGame) return
         settings.driver = entry.driver.folder
         Log.i(TAG, "[app] selected " + entry.driver.identity() + " at " + entry.driver.dir)
         refresh()

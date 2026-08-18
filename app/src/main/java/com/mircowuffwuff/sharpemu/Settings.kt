@@ -2,6 +2,7 @@ package com.mircowuffwuff.sharpemu
 
 import android.content.Context
 import android.content.SharedPreferences
+import java.io.File
 
 /**
  * What the user chose, and — just as importantly — what they did not.
@@ -27,11 +28,37 @@ import android.content.SharedPreferences
  * **A `SharedPreferences` line, like [GameLibrary]'s folder list.** Nothing here is big enough to
  * want a file of its own, and the platform's own store is what survives an app update without a
  * migration of ours.
+ *
+ * **One game may answer differently, and that is [fallback].** [forGame] opens a store of that game's
+ * own with the global one behind it, so the precedence a launch merges becomes four deep:
+ *
+ * ```
+ * the build's own env  <  global settings  <  this game's settings  <  the launch intent's extras
+ * ```
+ *
+ * Every property a per-game scene offers asks its own store first and the one behind it second, so a
+ * game that overrides nothing is the global configuration exactly. What does **not** fall back is the
+ * App section — a theme or a fullscreen mode is the app's rather than a title's, and a property that
+ * fell back would imply a per-game one exists.
+ *
+ * @param fallback the store consulted when this one holds no answer, or null for the global store.
  */
-class Settings private constructor(private val prefs: SharedPreferences) {
+class Settings private constructor(
+    private val prefs: SharedPreferences,
+    private val fallback: Settings? = null,
+) {
 
-    /** True once the user has touched this row, whatever they set it to. */
+    /**
+     * True once the user has touched this row, whatever they set it to.
+     *
+     * **Strictly this store and never [fallback]**, which is what gives one method two useful
+     * meanings: on the global store it is "set", and on a per-game store it is "overridden" — the
+     * question *Use global value* is drawn from and the question *Use default* is offered from.
+     */
     fun isSet(key: String): Boolean = prefs.contains(key)
+
+    /** Whether this store answers for one game rather than for the app. */
+    val perGame: Boolean get() = fallback != null
 
     /** Back to "the app decides", which is not the same as writing the default in. */
     fun clear(key: String) = prefs.edit().remove(key).apply()
@@ -47,6 +74,9 @@ class Settings private constructor(private val prefs: SharedPreferences) {
      * **It does not touch the all-files permission, and there is nothing here that could.** That row
      * stores no key — [AllFiles] reads the platform live on every look — so it is an exception to
      * this by construction rather than by an exclusion somebody has to remember.
+     *
+     * **This store only.** A per-game store is its own file, so resetting the app's settings means
+     * this and then [forgetEveryGame] — see there for why they are two calls rather than one.
      */
     fun clearAll() = prefs.edit().clear().apply()
 
@@ -82,6 +112,18 @@ class Settings private constructor(private val prefs: SharedPreferences) {
         if (!GpuDriver.isSystem(driver)) count++
         return count
     }
+
+    /**
+     * How many rows this store overrides, whatever they are set to.
+     *
+     * **It counts what is set rather than what differs**, which is the opposite of
+     * [changedFromDefault] and right for the opposite reason: an override *is* the state here. A row
+     * a game overrides with the same value the app's own row holds still reaches a launch from this
+     * file, still survives the app's row moving, and is still what the *Use global value* button
+     * takes away — so reporting it as no change would describe a store that behaves differently as
+     * one that behaves the same.
+     */
+    fun overridden(): Int = prefs.all.size
 
     // ------------------------------------------------------------------------------------------
     // App
@@ -141,7 +183,7 @@ class Settings private constructor(private val prefs: SharedPreferences) {
      * the behaviour the deploy loop has always had.
      */
     var build: String?
-        get() = prefs.getString(KEY_BUILD, null)
+        get() = prefs.getString(KEY_BUILD, null) ?: fallback?.build
         set(value) = prefs.edit().putString(KEY_BUILD, value).apply()
 
     /**
@@ -153,7 +195,11 @@ class Settings private constructor(private val prefs: SharedPreferences) {
      * knows or cares what this means.
      */
     var strictDynlib: Boolean?
-        get() = if (prefs.contains(KEY_STRICT)) prefs.getBoolean(KEY_STRICT, false) else null
+        get() = if (prefs.contains(KEY_STRICT)) {
+            prefs.getBoolean(KEY_STRICT, false)
+        } else {
+            fallback?.strictDynlib
+        }
         set(value) = prefs.edit().putBoolean(KEY_STRICT, value!!).apply()
 
     /**
@@ -168,7 +214,7 @@ class Settings private constructor(private val prefs: SharedPreferences) {
      * ladder.
      */
     var fexPreset: String?
-        get() = prefs.getString(KEY_FEX_PRESET, null)
+        get() = prefs.getString(KEY_FEX_PRESET, null) ?: fallback?.fexPreset
         set(value) = prefs.edit().putString(KEY_FEX_PRESET, value).apply()
 
     // ------------------------------------------------------------------------------------------
@@ -183,7 +229,7 @@ class Settings private constructor(private val prefs: SharedPreferences) {
      * offered are the four the desktop UI offers.
      */
     var renderScale: String?
-        get() = prefs.getString(KEY_RENDER_SCALE, null)
+        get() = prefs.getString(KEY_RENDER_SCALE, null) ?: fallback?.renderScale
         set(value) = prefs.edit().putString(KEY_RENDER_SCALE, value).apply()
 
     /**
@@ -199,7 +245,7 @@ class Settings private constructor(private val prefs: SharedPreferences) {
      * thing and only one directory can be loaded.
      */
     var driver: String?
-        get() = prefs.getString(KEY_DRIVER, null)
+        get() = prefs.getString(KEY_DRIVER, null) ?: fallback?.driver
         set(value) = prefs.edit().putString(KEY_DRIVER, value).apply()
 
     /**
@@ -223,7 +269,7 @@ class Settings private constructor(private val prefs: SharedPreferences) {
         get() = if (prefs.contains(KEY_DISK_SHADER_CACHE)) {
             prefs.getBoolean(KEY_DISK_SHADER_CACHE, false)
         } else {
-            null
+            fallback?.diskShaderCache
         }
         set(value) = prefs.edit().putBoolean(KEY_DISK_SHADER_CACHE, value!!).apply()
 
@@ -254,7 +300,7 @@ class Settings private constructor(private val prefs: SharedPreferences) {
         get() = if (prefs.contains(KEY_AUTOMATIC_CONTROLLER_MAPPING)) {
             prefs.getBoolean(KEY_AUTOMATIC_CONTROLLER_MAPPING, true)
         } else {
-            null
+            fallback?.automaticControllerMapping
         }
         set(value) = prefs.edit().putBoolean(KEY_AUTOMATIC_CONTROLLER_MAPPING, value!!).apply()
 
@@ -273,7 +319,7 @@ class Settings private constructor(private val prefs: SharedPreferences) {
         get() = if (prefs.contains(KEY_VIBRATE_HANDHELD)) {
             prefs.getBoolean(KEY_VIBRATE_HANDHELD, true)
         } else {
-            null
+            fallback?.vibrateHandheld
         }
         set(value) = prefs.edit().putBoolean(KEY_VIBRATE_HANDHELD, value!!).apply()
 
@@ -377,8 +423,61 @@ class Settings private constructor(private val prefs: SharedPreferences) {
          */
         const val THEME_DEFAULT = THEME_SHARPEMU
 
+        /** The global store's file, and the prefix every per-game store's file carries. */
+        private const val STORE = "settings"
+        private const val GAME_STORE_PREFIX = "settings-game-"
+
         @JvmStatic
         fun of(context: Context): Settings =
-            Settings(context.getSharedPreferences("settings", Context.MODE_PRIVATE))
+            Settings(context.getSharedPreferences(STORE, Context.MODE_PRIVATE))
+
+        /**
+         * One game's store, with the global one behind it.
+         *
+         * [key] is the game's identity as [Game.configKey] answers it — the title id the emulator
+         * itself resolves, so that a game's settings, its save data directory and its pipeline cache
+         * are all filed under one string rather than under three spellings of one idea.
+         *
+         * **A file per game rather than prefixed keys in the global store**, which is what makes
+         * "forget this game" a deletion and what keeps the global store readable. It costs nothing to
+         * an export: the Everything archive packs the whole of `shared_prefs/`, so these travel with
+         * it and are restored by an import without either side naming them.
+         */
+        @JvmStatic
+        fun forGame(context: Context, key: String): Settings = Settings(
+            context.getSharedPreferences(GAME_STORE_PREFIX + key, Context.MODE_PRIVATE),
+            of(context),
+        )
+
+        /**
+         * Every per-game store, emptied.
+         *
+         * **Through each store's own API rather than by deleting files**, for the reason [clearAll]
+         * gives: `SharedPreferences` is cached per process, and a file removed underneath the
+         * framework is one the framework rewrites from memory the next time anything is set. A store
+         * this process has never opened is opened to be cleared, which is the same call either way.
+         *
+         * **The files are found by listing `shared_prefs/` rather than by remembering which games
+         * have one.** An index would be a second thing to keep in step with the stores themselves,
+         * and it would be wrong in exactly the case that matters — a store restored by an import,
+         * which arrives as a file and tells nothing.
+         */
+        @JvmStatic
+        fun forgetEveryGame(context: Context) {
+            gameStoreKeys(context).forEach {
+                context.getSharedPreferences(GAME_STORE_PREFIX + it, Context.MODE_PRIVATE)
+                    .edit().clear().apply()
+            }
+        }
+
+        /** The identity of every game that has a store, whether or not anything is in it. */
+        @JvmStatic
+        fun gameStoreKeys(context: Context): List<String> {
+            val sharedPrefs = File(context.filesDir.parentFile, "shared_prefs")
+            return sharedPrefs.listFiles().orEmpty()
+                .map { it.name }
+                .filter { it.startsWith(GAME_STORE_PREFIX) && it.endsWith(".xml") }
+                .map { it.removePrefix(GAME_STORE_PREFIX).removeSuffix(".xml") }
+        }
     }
 }

@@ -2,8 +2,10 @@ package com.mircowuffwuff.sharpemu
 
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 // the colour roles are Material's own attributes, and this module's R does not carry them: a
@@ -25,6 +27,12 @@ import com.mircowuffwuff.sharpemu.databinding.ItemSettingValueBinding
  * a mark distinguishing a set row from an untouched one has to hold a space on every row, which
  * indents the whole list to annotate one of them.
  *
+ * **On a per-game list that gesture is replaced rather than joined**, and [useGlobal] is what replaces
+ * it: a row overriding the global value draws a button saying so. The reasoning above inverts there —
+ * an overridden row is the interesting case rather than the rare one, so the space a mark costs is
+ * worth paying, and a hidden gesture doing the same thing in different words beside a visible button
+ * would be two ways to say one thing.
+ *
  * @param onChanged called after a row writes, so the screen can redraw a row whose subtitle depends
  *   on it and so a theme change can take effect while the user is looking at it.
  */
@@ -34,11 +42,45 @@ class SettingsAdapter(
     private val onChanged: (SettingRow) -> Unit,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
+    /**
+     * The whole list again, drawn without animation.
+     *
+     * For arriving at a section and for coming back to one: everything on screen is being drawn for
+     * the first time, so there is no movement to describe.
+     */
     fun submit(newRows: List<SettingRow>) {
         rows = newRows
-        // the whole list: a section is a screenful of rows, several of them recomputed together
-        // when one changes, and there is no animation here worth the bookkeeping of a diff.
         notifyDataSetChanged()
+    }
+
+    /**
+     * The whole list again, but saying which row the user just changed — so that row alone redraws
+     * and the ones below it **slide** to their new places instead of jumping there.
+     *
+     * **The list is replaced and the notification is narrow, and it needs to be both.** A row like
+     * [SettingRow.Screen] carries the text it draws, so a value that changed is a row that has to be
+     * rebuilt rather than rebound; but telling the adapter that *everything* changed is what throws
+     * the animation away, because `notifyDataSetChanged` means "assume nothing about what moved" and
+     * RecyclerView answers by laying out again with no animation at all. This hands it a list it can
+     * still reason about, and one index that is different.
+     *
+     * **The payload is what keeps the row itself from flickering.** A change notification with none
+     * makes RecyclerView build a second holder and cross-fade the two, which on a switch row is a
+     * visible blink of the toggle; any payload at all means the holder is reused and rebound in
+     * place, leaving only the movement below it to animate.
+     *
+     * A row that is not in the list, or a rebuild that changed the list's length, falls back to
+     * [submit] — the affordance appearing inside a row never changes the length, and the one row set
+     * that does grow and shrink belongs to a theme change, which restarts the screen anyway.
+     */
+    fun submit(newRows: List<SettingRow>, changed: SettingRow) {
+        val index = rows.indexOfFirst { it === changed }
+        if (index < 0 || newRows.size != rows.size) {
+            submit(newRows)
+            return
+        }
+        rows = newRows
+        notifyItemChanged(index, CHANGED)
     }
 
     override fun getItemCount() = rows.size
@@ -68,6 +110,49 @@ class SettingsAdapter(
             TYPE_SCREEN -> ScreenHolder(ItemSettingValueBinding.inflate(inflater, parent, false))
             else -> ExternalHolder(ItemSettingSwitchBinding.inflate(inflater, parent, false))
         }
+    }
+
+    /**
+     * True only while binding the one row a write just changed.
+     *
+     * **It is what separates a row changing under the user's finger from a holder being reused**, and
+     * without it a list that is scrolled would fade buttons in and out as recycled views arrived on
+     * rows that never changed. The payload [submit] sends is the signal: a bind that carries one is
+     * the targeted redraw, and a bind that carries none is a view being filled in for the first time
+     * or being reused.
+     */
+    private var changing = false
+
+    /**
+     * True while binding the pass that takes a faded-out button's space back — see [collapse].
+     */
+    private var collapsing = false
+
+    override fun onBindViewHolder(
+        holder: RecyclerView.ViewHolder,
+        position: Int,
+        payloads: MutableList<Any>,
+    ) {
+        changing = payloads.isNotEmpty()
+        collapsing = payloads.contains(COLLAPSE)
+        super.onBindViewHolder(holder, position, payloads)
+        changing = false
+        collapsing = false
+    }
+
+    /**
+     * Announces that a button which has finished fading is now gone, so the row shrinks and the ones
+     * below it slide up.
+     *
+     * **A second pass, because a height that changes outside one is a height nothing animates.** The
+     * framework animates what moved between two layouts of its own; taking the view away inside an
+     * animation's end action changes the layout after that comparison has already been made, so the
+     * rows below jump to their new places. Asking for another change on the same row puts the shrink
+     * inside a pass, which is the same thing that makes the button *appearing* slide.
+     */
+    private fun collapse(row: SettingRow) {
+        val index = rows.indexOfFirst { it === row }
+        if (index >= 0) notifyItemChanged(index, COLLAPSE)
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -107,6 +192,7 @@ class SettingsAdapter(
             binding.root.setOnClickListener { row.onClick() }
             // a screen that stores nothing has no default to go back to, so it has no long press.
             binding.root.setOnLongClickListener { row.key?.let { offerDefault(it, row) } ?: false }
+            useGlobal(binding.useGlobal, row.key, row)
         }
     }
 
@@ -134,6 +220,7 @@ class SettingsAdapter(
             }
             binding.root.setOnClickListener { binding.toggle.toggle() }
             binding.root.setOnLongClickListener { offerDefault(row.key, row) }
+            useGlobal(binding.useGlobal, row.key, row)
         }
 
         private fun stored(key: String, default: Boolean): Boolean = when (key) {
@@ -184,6 +271,7 @@ class SettingsAdapter(
                     .show()
             }
             binding.root.setOnLongClickListener { offerDefault(row.key, row) }
+            useGlobal(binding.useGlobal, row.key, row)
         }
 
         private fun stored(key: String): String? = when (key) {
@@ -291,6 +379,7 @@ class SettingsAdapter(
                     .show()
             }
             binding.root.setOnLongClickListener { offerDefault(row.key, row) }
+            useGlobal(binding.useGlobal, row.key, row)
         }
 
         private fun stored(key: String): String? = when (key) {
@@ -312,7 +401,7 @@ class SettingsAdapter(
      * each time the section is rebuilt, which is what returning from android's own settings screen
      * causes.
      */
-    private class ExternalHolder(val binding: ItemSettingSwitchBinding) :
+    private inner class ExternalHolder(val binding: ItemSettingSwitchBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(row: SettingRow.External) {
             binding.title.setText(row.title)
@@ -323,6 +412,9 @@ class SettingsAdapter(
             // nothing stored means nothing to go back to, so the long press is not offered.
             binding.root.setOnLongClickListener(null)
             binding.root.isLongClickable = false
+            // and nothing to override either. it shares the switch layout, so the button is there to
+            // be hidden whether or not this row could ever have one.
+            useGlobal(binding.useGlobal, null, row)
         }
     }
 
@@ -338,13 +430,84 @@ class SettingsAdapter(
     }
 
     /**
+     * The button under a row that overrides the global value, and nothing at all otherwise.
+     *
+     * **Set on both branches**, because a holder is recycled: a button left visible from the row this
+     * view last drew would offer to clear an override the row in front of it does not have.
+     *
+     * A row with no key cannot be overridden — an action, a header, a permission this app does not
+     * own — and neither can any row on the global list, where the store has nothing behind it.
+     */
+    private fun useGlobal(button: MaterialButton, key: String?, row: SettingRow) {
+        val overridden = settings.perGame && key != null && settings.isSet(key)
+        if (overridden) {
+            button.setOnClickListener {
+                settings.clear(key!!)
+                onChanged(row)
+            }
+        } else {
+            button.setOnClickListener(null)
+        }
+
+        // whatever this view was doing for the row it last drew is no longer about this row.
+        button.animate().cancel()
+        val showing = button.visibility == View.VISIBLE
+
+        // the second half of going away: the fade has run, and this pass is where the space it was
+        // holding is given back so that the rows below slide up into it.
+        if (collapsing) {
+            button.visibility = View.GONE
+            button.alpha = 1f
+            return
+        }
+        if (!changing || overridden == showing) {
+            // a first draw, a reused holder, or a row whose answer did not move: no transition to
+            // describe, so it is simply in the state it belongs in.
+            button.visibility = if (overridden) View.VISIBLE else View.GONE
+            button.alpha = 1f
+            return
+        }
+
+        // **the fade is the button's own rather than the row's, and that is the difference from
+        // cross-fading the whole row.** a change notification with no payload would fade one copy of
+        // the row out against another fading in, which does fade the button — and takes the switch
+        // beside it along, doubling a toggle that is already animating its own thumb.
+        if (overridden) {
+            // **it appears as the row grows.** the height is the layout's the moment this returns,
+            // so the rows below start sliding now and the fade runs over the same stretch.
+            button.alpha = 0f
+            button.visibility = View.VISIBLE
+            button.animate().alpha(1f).setDuration(FADE_MS).start()
+        } else {
+            // **going the other way the two cannot overlap**, because the row is only as short as
+            // the button is absent — so it fades here and is taken away in a pass of its own, which
+            // is what lets the rows below slide up rather than jump. that is also the reason this is
+            // quick rather than graceful: the fade is a delay in front of the movement.
+            button.animate().alpha(0f).setDuration(FADE_MS).withEndAction {
+                // **a cancelled fade ends too, and must not collapse anything.** the end action runs
+                // either way, and a cancel is this view being bound to another row or overridden
+                // again — both of which leave it part way up, where a finished fade leaves it at
+                // nothing.
+                if (button.alpha == 0f) collapse(row)
+            }.start()
+        }
+    }
+
+    /**
      * The way back out of a choice.
      *
      * **Offered only for a row that is actually set**, so a long press on an untouched row does
      * nothing rather than showing a dialog whose button would be a no-op — which would tell the user
-     * the row was set when it is not, and this gesture is the only place that distinction is visible.
+     * the row was set when it is not, and on the global list this gesture is the only place that
+     * distinction is visible.
+     *
+     * **And not offered at all on a per-game list**, where [useGlobal] is drawn on the row itself and
+     * does the same thing. The wording could not be shared either: on the global list the way back is
+     * to the app's own default, and on a per-game one it is to whatever the global list currently
+     * says, which is a different sentence about a different value.
      */
     private fun offerDefault(key: String, row: SettingRow): Boolean {
+        if (settings.perGame) return false
         if (!settings.isSet(key)) return false
         // any bound holder's context is the activity; the list is what we have a handle on.
         val context = recycler?.context ?: return false
@@ -389,6 +552,29 @@ class SettingsAdapter(
             shape = GradientDrawable.OVAL
             setColor(colour)
         }
+
+        /**
+         * Handed to `notifyItemChanged` so the holder is reused rather than cross-faded against a
+         * second one. Its value is never read — that it exists at all is the whole message.
+         */
+        val CHANGED = Any()
+
+        /**
+         * Handed to `notifyItemChanged` for the pass that removes a button which has finished fading.
+         * It is distinguishable from [CHANGED] because that pass must not start another fade.
+         */
+        val COLLAPSE = Any()
+
+        /**
+         * How long the button takes to fade in or out.
+         *
+         * **Shorter than the movement it accompanies**, which is the framework's own 250 ms for an
+         * item change: the fade is what says the button arrived, and the slide is what says the list
+         * made room for it, so a fade that outlasted the slide would still be finishing after
+         * everything had settled. Going away it is also the delay before the row collapses, which is
+         * the other reason to keep it short.
+         */
+        const val FADE_MS = 120L
 
         const val TYPE_HEADER = 0
         const val TYPE_SWITCH = 1

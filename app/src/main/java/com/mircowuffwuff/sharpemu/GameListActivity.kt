@@ -30,8 +30,9 @@ import java.util.concurrent.Executors
  * directory inside a tree, which the host layer answers for file by file. [GameLibrary] finds both
  * and [launch] is where the two part ways.
  *
- * What it deliberately does not do yet: no per-game menu on a long press. That is its own piece of
- * work and it attaches to something already here.
+ * **A tap runs a game and holding it configures one** — [launch] and [configure]. The two gestures
+ * take the same row and part ways immediately: one builds an argument vector, and the other opens a
+ * store.
  */
 class GameListActivity : AppCompatActivity() {
 
@@ -100,7 +101,7 @@ class GameListActivity : AppCompatActivity() {
         // status bar -- and the Fullscreen mode row picks the other behaviour. see SystemBars.
         SystemBars.apply(this, binding.root)
 
-        adapter = GameAdapter(emptyList(), this::launch)
+        adapter = GameAdapter(emptyList(), this::launch, this::configure)
         // **a grid of covers rather than a column of rows.** the count comes from integers.xml, so
         // the orientation qualifier answers it and a rotation re-reads it without anything watching
         // — the activity is recreated, which is what makes a resource the right place for it.
@@ -242,6 +243,18 @@ class GameListActivity : AppCompatActivity() {
      * `am start` two different mergers of the same three sources, and the second one would be wrong
      * the moment the first grew a row.
      */
+    /**
+     * Opens one game's settings.
+     *
+     * **Everything that scene draws is already in hand**, because this row was built by opening the
+     * dump — so the artwork, the name and the identity are handed over rather than read again. The
+     * identity in particular is worth not re-reading: for a game inside a granted tree it is a
+     * content provider round trip, and this is a gesture that happens while a finger is held down.
+     */
+    private fun configure(game: Game) {
+        startActivity(GameSettingsActivity.intent(this, game))
+    }
+
     private fun launch(game: Game) {
         val intent = Intent(this, MainActivity::class.java)
         val source = game.source

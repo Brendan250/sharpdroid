@@ -19,6 +19,12 @@ import java.io.File
  * else does — the toolbar, the list, the store and the "Use default" long press are the same screen
  * four times over.
  *
+ * **And one activity for the global scene and for a game's own**, which is the stronger half of the
+ * same argument: named a game, this screen writes that game's store instead of the app's and draws
+ * the *Use global value* button on any row overriding it, and nothing else about it moves. So a row
+ * added to Emulation, Graphics or Controls appears in both the day it is written, rather than the day
+ * somebody remembers a second copy exists.
+ *
  * **A subsection is a label above a run of rows, not another button press.** Eden's *Advanced
  * settings → Graphics* is the shape.
  */
@@ -30,11 +36,20 @@ class SettingsSectionActivity : AppCompatActivity() {
     private lateinit var section: SettingsActivity.Section
     private lateinit var drawnWith: String
 
+    /**
+     * The game this screen answers for, as [Game.configKey] names it, or null for the app's own.
+     *
+     * It is carried rather than looked up: the scene that opened this screen already read the dump,
+     * and reading it again here would be a second answer to a question with one right answer.
+     */
+    private var game: String? = null
+
     override fun onCreate(state: Bundle?) {
         Theme.apply(this)
         drawnWith = Theme.signature(this)
         super.onCreate(state)
-        settings = Settings.of(this)
+        game = intent.getStringExtra(EXTRA_GAME)?.takeIf { it.isNotEmpty() }
+        settings = game?.let { Settings.forGame(this, it) } ?: Settings.of(this)
         section = runCatching {
             SettingsActivity.Section.valueOf(intent.getStringExtra(EXTRA_SECTION).orEmpty())
         }.getOrElse {
@@ -77,7 +92,11 @@ class SettingsSectionActivity : AppCompatActivity() {
         if (row.key == Settings.KEY_FULLSCREEN) {
             SystemBars.apply(this, binding.root)
         }
-        adapter.submit(rows())
+        // **the row that changed is named, so the rows under it slide rather than jump.** on a
+        // per-game list a write can add or take away the Use global value button, which changes how
+        // tall that row is; telling the adapter only that something changed is what makes the rest
+        // of the list snap into its new place.
+        adapter.submit(rows(), row)
     }
 
     override fun onResume() {
@@ -93,12 +112,22 @@ class SettingsSectionActivity : AppCompatActivity() {
     // ----------------------------------------------------------------------------------------------
     // the rows
 
+    /**
+     * The rows, for this section and for whichever store this screen was opened against.
+     *
+     * **Two sections have nothing to say about one game and answer with nothing when named one.** App
+     * is the look and behaviour of the app itself, and Game files is which folders it may read — both
+     * belong to the install rather than to a title, so a per-game copy would be a screen offering to
+     * set something that could only ever be set once. Nothing in the app opens either that way; a
+     * hand-written intent still can, and an empty list is the same answer the section guard in
+     * [onCreate] gives a name that is not a section at all.
+     */
     private fun rows(): List<SettingRow> = when (section) {
-        SettingsActivity.Section.APP -> appRows()
+        SettingsActivity.Section.APP -> if (game == null) appRows() else emptyList()
         SettingsActivity.Section.EMULATION -> emulationRows()
         SettingsActivity.Section.GRAPHICS -> graphicsRows()
         SettingsActivity.Section.CONTROLS -> controlsRows()
-        SettingsActivity.Section.GAME_FILES -> gameFilesRows()
+        SettingsActivity.Section.GAME_FILES -> if (game == null) gameFilesRows() else emptyList()
         // User data and About are screens of their own, so neither card ever opens this activity. a
         // hand-written intent still can, and an empty list is what it gets - the same answer the
         // section guard in onCreate gives a name that is not a section at all.
@@ -149,6 +178,17 @@ class SettingsSectionActivity : AppCompatActivity() {
         return rows
     }
 
+    /**
+     * A manager screen, told which store it is choosing for.
+     *
+     * **The extras are forwarded rather than rebuilt**, so a build or a driver picked from a per-game
+     * section is written to that game's store. Without this the manager would write the app's row
+     * while the row that opened it showed a game's — a screen saying one thing while a launch does
+     * another, which is the failure the whole precedence design exists to avoid.
+     */
+    private fun manager(screen: Class<out AppCompatActivity>): Intent =
+        Intent(this, screen).putExtra(EXTRA_GAME, game)
+
     /** A colour out of the theme this screen was inflated with. */
     private fun themeColour(attr: Int): Int {
         val typed = android.util.TypedValue()
@@ -179,7 +219,7 @@ class SettingsSectionActivity : AppCompatActivity() {
             summary = R.string.setting_build_summary,
             value = chosenBuildLabel(),
         ) {
-            startActivity(Intent(this, BuildsActivity::class.java))
+            startActivity(manager(BuildsActivity::class.java))
         },
         // no FEXCore version row beside this one. exactly one FEXCore is linked into the host layer
         // and there is nothing for a choice to select between, so a dropdown with one entry would
@@ -259,7 +299,7 @@ class SettingsSectionActivity : AppCompatActivity() {
             summary = R.string.setting_driver_summary,
             value = chosenDriverLabel(),
         ) {
-            startActivity(Intent(this, DriversActivity::class.java))
+            startActivity(manager(DriversActivity::class.java))
         },
         // under the driver rather than above it, because a driver change invalidates a cache: the
         // blob carries the implementation's compatibility header and is rejected and rebuilt when
@@ -455,5 +495,11 @@ class SettingsSectionActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_SECTION = "section"
+
+        /**
+         * The game whose store this screen writes, as [Game.configKey] names it. Absent for the app's
+         * own settings, which is what every screen reached from the cog sends.
+         */
+        const val EXTRA_GAME = "game"
     }
 }

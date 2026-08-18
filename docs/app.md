@@ -73,7 +73,7 @@ the APK carries the dex files, the host layer's `.so`, `libc++_shared.so` and th
 
 ## the game list
 
-`GameListActivity` is a `RecyclerView` of every game the app can see, and a tap starts `MainActivity` with the one that was chosen. a game is in one of two places and the row does not say which, because nothing about playing it differs:
+`GameListActivity` is a `RecyclerView` of every game the app can see. a tap starts `MainActivity` with the one that was chosen, and **holding one opens that game's own settings**. a game is in one of two places and the row does not say which, because nothing about playing it differs:
 
 | | |
 | --- | --- |
@@ -178,11 +178,45 @@ the field is built once per size into a small bitmap and scaled — every pixel 
 
 **a single-choice dialog has no Cancel button**, which is Eden's shape and is also what stops the theme list scrolling: a tap on an entry both chooses and dismisses, so the button was a second way to do what the back gesture and a tap outside already do, and its row of padding was the difference between five entries fitting and not. the dialogs that *commit* something — the colour picker and the two confirmations — keep theirs.
 
-**a long press on a row the user has set offers to put it back to the default**, which is the affordance a per-game scene mirrors as "use the global setting". **nothing on screen says which rows are set**, and that is a trade rather than an omission: a mark saying so has to reserve its width on every row, which indents the whole list. the distinction is real — only a set row contributes anything to a launch — so the gesture has no sign of itself, and that is the accepted cost.
+**a long press on a row the user has set offers to put it back to the default.** **nothing on screen says which rows are set**, and that is a trade rather than an omission: a mark saying so has to reserve its width on every row, which indents the whole list. the distinction is real — only a set row contributes anything to a launch — so the gesture has no sign of itself, and that is the accepted cost. **the per-game scene below inverts that trade** and draws a button instead, because there an overridden row is the interesting case rather than the rare one.
 
 **one row is a switch this app cannot flip.** all-files access is granted in android's own settings and nowhere else, so the row shows the state and a tap opens that screen; it is read back on the way in, never remembered. a switch rather than a description beginning "Off." because a switch is what the thing is.
 
 **and two rows are a count and a place to go.** SharpEmu build, Custom driver and Game folders each open a screen rather than holding a value, and each says underneath itself what is behind it — the chosen build, the chosen package, and how many folders are granted. the folder row's count is read on the main thread, which is the one `SharedPreferences` line cross-checked against the grants android holds; the screen behind it does the same read on a worker, where it is followed by drawing a list rather than a number.
+
+## one game's settings
+
+holding a cover on the game list opens `GameSettingsActivity`: the dump's artwork on one side and Emulation, Graphics and Controls as cards on the other. **the game's name is the screen's title and sits in the toolbar**, which is where every other screen's title is; under the artwork it competed with the lines below it for which one was the heading. what is under the artwork is two facts about the dump — its title id, and the content version out of `param.json`, which is the release the dump *is* rather than any of the four other version fields beside it. they are left aligned, because a column of values centred on itself has no edge to read down, and each is taken away rather than left blank when the dump does not carry it. **the artwork is drawn as a square, and cut with the same corner radius as every card in the app.** the square is the point rather than a side effect: the clip is the *view's*, so an image letterboxed inside a box of another shape keeps its own square corners within the rounded one and nothing appears to have been rounded at all. upright the box is a fixed square; on a wide panel it is a ratio, since the column it sits in is neither square nor a fixed size. **filling a mis-shaped box by cropping is the other way to put the corner on the picture, and it is the wrong one** — it would quietly take a slice off any dump whose icon is not square, paying with somebody's artwork for a corner that a correctly shaped box gets for nothing. **the sections behind those cards are the ones above, not copies of them** — `SettingsSectionActivity` takes the game as an extra, opens that game's store instead of the app's, and is otherwise the same screen. so a row added to any of the three is offered per game the day it is written, which is the property the whole arrangement exists to have. the card is `SectionAdapter` in both scenes for the same reason.
+
+**App, Game files and About have no per-game flavour.** a theme, a folder grant and a version number belong to the install rather than to a title, and each of those sections answers with nothing when it is named a game — so a hand-written intent reaches an empty list rather than a screen offering to set something that can only be set once.
+
+**the composition is the game on the left third and its settings on the right two thirds where the panel is wider than it is tall**, and the same two blocks stacked where it is not: a cover drawn at a third of a wide screen is most of the height of a tall one, and every card would start below the fold. the split is weights rather than a measurement, so it holds at any width.
+
+**the artwork starts on the same line as the first card, and both start where every other card screen's first card does.** the first of those is the column's own top padding, spelled as the card's inset — a list's 4dp of padding and a card's 6dp margin — because a block centred in its column lands wherever its height leaves it, and agreeing with a fixed inset is not something it can be relied on to keep doing. the second is the negative top margin every card screen here takes against the toolbar, which this one took last and was 6dp low without.
+
+**the artwork is inset from what is beside it by exactly what a card is inset by**, so the artwork's left against the screen, its right against the first card, and the last card's right against the screen are one distance — the list's own scroll padding plus the margin every card carries. **the two paddings that produce it are deliberately different numbers**: on the left nothing else contributes and the whole distance is spelled out, while on the right the list already supplies all of it and the column adds nothing. what is matched is the space a person sees rather than the attribute that makes it, and the artwork takes whatever width is left — its height follows from being square, so it is never given a size of its own.
+
+**the identity is carried in the intent rather than read again.** the list opened the dump to draw the row, so the name, the artwork and the key travel with the tap — which for a game inside a granted tree is a content provider round trip saved on a gesture made with a finger held down.
+
+### the store, and what a game overrides
+
+**a game's settings are a `SharedPreferences` file of their own, named for the game, with the app's own store behind it.** every property the per-game sections offer answers from that file if it holds one and from the app's store otherwise, so a game that overrides nothing behaves exactly as the app is configured — and `contains(key)` on the game's file means *overridden*, which is the question the screen draws from.
+
+**the key is the title id the emulator itself resolves**, sanitized the way it sanitizes one, which is also the name of that game's save data directory and of its pipeline cache: one game, one name, in all three places. **a dump that offers no title id is filed under its directory name instead**, because the emulator's answer for those is a single reserved word and every such dump would otherwise share one store.
+
+**a build or a driver chosen from a per-game section is written to that game's store**, the manager being told which store it is choosing for. on a per-game screen, selecting the row that is *already* marked still writes: what is marked there is whatever the app's own row currently says, so tapping it means "this game runs this" rather than "no change", and without the write the game would follow the app's row the day it moved.
+
+**a row overriding the app's value draws a *Use global value* button under it**, and tapping it drops the override rather than asking first — the long press it replaces opens a dialog because that gesture is invisible and could have been an accident. an untouched row draws nothing, so the list annotates only what actually differs.
+
+**it is a filled button rather than a text one**, which is the shape the game list's empty state uses for the one thing worth doing there: a row is already three lines of text with one of them accented, so a fourth accented line reads as more of the row instead of as a control. **on a switch row it hangs below the whole row rather than inside the text column**, and that is not a cosmetic choice — a switch is centred against its cell, so a button appearing beside it slides the switch down, and on a list of switches that reads as the row moving rather than as the row gaining something.
+
+**the rows below it slide rather than jump when it appears or goes**, which is a property of how the list is told about the change and not of any animation written here. a settings screen rebuilds all of its rows whenever one is written, because a row like the build row carries the text it draws — but announcing that as *everything changed* is what throws the animation away, since that means "assume nothing about what moved" and the framework answers by laying out again with no animation at all. so the rebuilt list is handed over together with the one row the user touched, and only that index is announced. **the announcement carries a payload**, which is what keeps the row itself from blinking: without one the framework builds a second holder and cross-fades the two, and on a switch row that would double a toggle already animating its own thumb. Eden's settings list is the same arrangement, reached from the other direction — it diffs its list and announces one position.
+
+**the button fades rather than blinking into place, and the fade is the button's own** — which is precisely what the payload above rules out getting for free, since a cross-fade of the whole row is the other way to have one. it is short, deliberately shorter than the movement it accompanies: the fade says the button arrived and the slide says the list made room for it, so a fade still finishing after everything settled would be saying it late. **coming and going are not symmetrical, and the row's height is why.** arriving, the height is the layout's the moment the view is shown, so the rows below start sliding while the fade runs over the same stretch. leaving, the row is only as short as the button is absent — so the fade runs first and **the removal is announced as a change of its own**, which is what keeps the rows below sliding rather than jumping: the framework animates what moved between two layouts of its own, and taking a view away inside an animation's end action changes the layout after that comparison has already been made. one write therefore produces two announcements about the same row, told apart by what they carry, and the fade is the delay between them — which is the other reason to keep it quick.
+
+**the fade is only ever drawn for the row the user just touched.** the payload is what says so — a bind carrying one is that targeted redraw, and a bind carrying none is a view being filled in for the first time or reused for another row, which must arrive already in its final state. without that distinction a scrolled list would fade buttons in and out as recycled views landed on rows nobody had changed.
+
+**a file per game costs an export nothing.** the Everything archive packs the whole of `shared_prefs/`, so these travel with it and are restored by an import with neither side naming them. what does have to know about them is *Reset all settings*, which clears the app's store and then every game's: a per-game override changes what a launch does, so a reset that left them in place would report every row back at its default and still run one game differently. the same figure on that card counts both.
 
 ## the surface
 
@@ -253,13 +287,15 @@ all of them are read in `onCreate`, because the intent is not readable from a wo
 
 ## the settings, and what a launch does with them
 
-the settings scene stores what the user chose. a launch merges three sources, **last winning**:
+the settings scene stores what the user chose. a launch merges four sources, **last winning**:
 
 ```
-the build's own env  <  the stored settings  <  the launch intent's extras
+the build's own env  <  the app's settings  <  this game's settings  <  the launch intent's extras
 ```
 
-which is the same order [`build-format.md`](build-format.md) states for the environment, extended to everything else.
+which is the same order [`build-format.md`](build-format.md) states for the environment, extended to everything else. **the third layer is empty for a game nobody has configured**, so a launch of one resolves exactly as the two-layer merge always did.
+
+**the game's identity is resolved before the merge and read once.** the title id names the store, and the same read names the per-title pipeline cache further down — for a granted game that is one content provider open rather than two. all three ways a game can be named answer through `GameSource`, including the granted one, which needs no mount of its own: a child document's id is its parent's plus `/name`. what stays where it is is the driver check, which is still the first thing a launch does. **the read is not measurable in the tap-to-guest interval**: three launches of a granted game with it and three without span 202-209 ms and 206-217 ms, and the arms overlap.
 
 **"unset" is a stored state distinct from "set to the default", and that distinction is the whole design.** a row that has never been touched contributes nothing to the argument vector — not its default, nothing — so a launch naming no extras produces a vector the settings scene had no hand in, byte for byte. if an untouched row reported its default as a *choice*, the app would start passing that value on every launch and omitting the extra would no longer reach the default; a default that cannot be reached by saying nothing is not a default, and the scripts launch by saying nothing.
 

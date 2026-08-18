@@ -2,13 +2,9 @@ package com.mircowuffwuff.sharpemu
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.mircowuffwuff.sharpemu.databinding.ActivitySettingsBinding
-import com.mircowuffwuff.sharpemu.databinding.ItemSettingsSectionBinding
 
 /**
  * The global settings scene: large section buttons, each with a line saying what is behind it.
@@ -139,29 +135,21 @@ class SettingsActivity : AppCompatActivity() {
              */
             val shown =
                 listOf(APP, EMULATION, GRAPHICS, CONTROLS, GAME_FILES, USER_DATA, ABOUT)
-        }
-    }
 
-    private class SectionAdapter(
-        private val sections: List<Section>,
-        private val onClick: (Section) -> Unit,
-    ) : RecyclerView.Adapter<SectionAdapter.Holder>() {
-
-        class Holder(val binding: ItemSettingsSectionBinding) :
-            RecyclerView.ViewHolder(binding.root)
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = Holder(
-            ItemSettingsSectionBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        )
-
-        override fun getItemCount() = sections.size
-
-        override fun onBindViewHolder(holder: Holder, position: Int) {
-            val section = sections[position]
-            holder.binding.icon.setImageResource(section.icon)
-            holder.binding.title.setText(section.title)
-            holder.binding.summary.setText(section.summary)
-            holder.binding.root.setOnClickListener { onClick(section) }
+            /**
+             * The sections a single game answers for, in the order [GameSettingsActivity] draws them.
+             *
+             * **App and Game files are absent because they belong to the install rather than to a
+             * title** — a theme and a folder grant are set once and apply to everything — and About
+             * because nothing behind it is a setting at all. What is left is the three that describe
+             * how one game is run.
+             *
+             * **User data is not here yet and arrives with a screen of its own.** A game's save data
+             * and its shader cache are a different screen from the app-wide one in both meaning and
+             * function, so the card waits for it: a button opening an empty screen is worse than one
+             * that is not there, because the empty screen looks like a fault in the button.
+             */
+            val perGame = listOf(EMULATION, GRAPHICS, CONTROLS)
         }
     }
 }

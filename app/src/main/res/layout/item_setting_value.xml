@@ -5,6 +5,13 @@
   the chosen entry is drawn on its own line at the bottom rather than as the subtitle: the
   explanation is what the row says when it has nothing else to say, and the value is the thing
   somebody came back to check.
+
+  **the button under it is drawn only on a per-game list, and only on a row that overrides the global
+  value.** on the global list the way back to a default is a long press with nothing on screen saying
+  so, because a mark distinguishing a set row from an untouched one has to hold its width on every row
+  to annotate one of them. a per-game list inverts that: an overridden row is the interesting case
+  rather than the rare one, so it is worth the space, and it is only ever a few rows wide. see
+  SettingsAdapter, which is what decides whether it appears.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -44,6 +51,21 @@
             android:layout_marginTop="4dp"
             android:textAppearance="?attr/textAppearanceLabelLarge"
             android:textColor="?attr/colorPrimary" />
+
+        <!-- **a filled button, which is the shape the game list's own empty state uses to offer the
+             one thing worth doing there.** a text button was the first version and it reads as
+             another line of the row rather than as a control: the row above it is already three
+             lines of text, one of them accented, so a fourth accented line is the wrong difference
+             to draw. filled, it is unmistakably a thing to press, and its own edge is what lines up
+             with the text column rather than a label pulled out from under its padding. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/useGlobal"
+            style="@style/Widget.SharpEmu.Button.UseGlobal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/setting_use_global"
+            android:visibility="gone" />
 
     </LinearLayout>
 

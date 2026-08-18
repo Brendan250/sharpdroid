@@ -10,13 +10,13 @@ import com.mircowuffwuff.sharpemu.databinding.ItemGameBinding
 /**
  * The game grid's tiles.
  *
- * One tile is one directory and one tap. Holding a tile opens per-game settings and pulling the grid
- * refreshes it — the second exists, the first does not, and both attach here rather than anywhere
- * else.
+ * One tile is one directory: a tap runs it, holding it opens that game's own settings, and pulling
+ * the grid refreshes it.
  */
 class GameAdapter(
     private var games: List<Game>,
     private val onLaunch: (Game) -> Unit,
+    private val onConfigure: (Game) -> Unit,
 ) : RecyclerView.Adapter<GameAdapter.Holder>() {
 
     class Holder(val binding: ItemGameBinding) : RecyclerView.ViewHolder(binding.root)
@@ -41,6 +41,15 @@ class GameAdapter(
         // the title id is parsed and carried and is deliberately not drawn: a name is what a person
         // picks a game by, and every log line and script names the id itself. see item_game.xml.
         holder.binding.root.setOnClickListener { onLaunch(game) }
+        // **holding a cover opens that game's settings, and nothing on the tile says so.** it is the
+        // gesture the platform's own launchers put a shortcut menu behind, so it is where a person
+        // looks first — and a tile is artwork with a name on it, so any mark saying "hold me" would
+        // be drawn over the one thing the grid exists to show. the whole tile is the target, which
+        // is what makes it discoverable by accident as well as by habit.
+        holder.binding.root.setOnLongClickListener {
+            onConfigure(game)
+            true
+        }
 
         // **coil rather than a decode here, and it is the recycling that decides it.** icon0.png is
         // a quarter of a megabyte, so decoding it on the main thread would stutter a scroll, and

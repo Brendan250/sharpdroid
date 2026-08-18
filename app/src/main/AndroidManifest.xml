@@ -77,6 +77,21 @@
             android:exported="false" />
 
         <!--
+          one game's settings, opened by holding its cover on the list.
+
+          the sections behind it are the two above: the same scene and the same section screen, told
+          which game they are answering for, so an option added to the app's own Emulation, Graphics
+          or Controls is offered per game the day it is written rather than the day somebody copies
+          it across.
+
+          not exported, for the reason the section screen is not: what is set here decides what a
+          launch runs.
+        -->
+        <activity
+            android:name=".GameSettingsActivity"
+            android:exported="false" />
+
+        <!--
           the SharpEmu build manager, behind the build row in Emulation, and the GPU driver manager
           behind the driver row in Graphics. neither is exported, for the same reason the two above
           are not: each is reached from a settings row, and an intent that opened one directly would
