@@ -242,7 +242,7 @@
     <!-- the card on a game's scene. the app's own summary claims the whole install, which is the one
          thing this screen is not: "everything this emulator stores and writes" under one game's
          artwork reads as a way to a screen that would replace the lot. -->
-    <string name="settings_user_data_game_summary">What this game has written here</string>
+    <string name="settings_user_data_game_summary">Written by this game</string>
     <!-- a dump naming no title id: the emulator files it under a name it shares with every other
          such dump, so there is nothing on this screen that belongs to this game alone. it says what
          is true rather than what to do about it, there being nothing the person can do - the dump
