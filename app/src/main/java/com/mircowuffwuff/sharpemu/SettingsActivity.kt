@@ -41,7 +41,7 @@ class SettingsActivity : AppCompatActivity() {
         // re-read without anything here watching for one.
         binding.sections.layoutManager =
             GridLayoutManager(this, resources.getInteger(R.integer.settings_section_columns))
-        binding.sections.adapter = SectionAdapter(Section.shown) { section ->
+        binding.sections.adapter = SectionAdapter(Section.shown, perGame = false) { section ->
             // **a section is usually a list of rows and does not have to be.** User data is a manager
             // screen, the shape the build, driver and folder managers already use, so its card opens
             // that directly rather than a list holding one row that opens it.
@@ -81,6 +81,24 @@ class SettingsActivity : AppCompatActivity() {
         val icon: Int,
         /** The screen this card opens, or null for the ordinary list of rows. */
         val screen: Class<out AppCompatActivity>? = null,
+        /**
+         * The screen this card opens on a game's scene, where that is a different screen.
+         *
+         * **Null means the same one, which is the ordinary case and the whole design**: a section of
+         * rows is served by [SettingsSectionActivity] told which store to write, so a row added to
+         * Graphics is offered per game the day it is written. This field is for the section that
+         * cannot be — User data, where what the two screens *mean* differs rather than only what they
+         * act on. See [GameUserDataActivity].
+         */
+        val perGameScreen: Class<out AppCompatActivity>? = null,
+        /**
+         * The line under this card's title on a game's scene, where it differs.
+         *
+         * **Null means the same line, which is most of them**: "rendering and presentation" describes
+         * Graphics whoever is being configured. It is User data that cannot share one, its app-wide
+         * summary claiming an install that a game's screen is deliberately not about.
+         */
+        val perGameSummary: Int? = null,
     ) {
         APP(R.string.settings_app, R.string.settings_app_summary, R.drawable.ic_section_app),
         EMULATION(
@@ -108,6 +126,8 @@ class SettingsActivity : AppCompatActivity() {
             R.string.settings_user_data_summary,
             R.drawable.ic_section_user_data,
             UserDataActivity::class.java,
+            GameUserDataActivity::class.java,
+            R.string.settings_user_data_game_summary,
         ),
 
         /**
@@ -142,14 +162,13 @@ class SettingsActivity : AppCompatActivity() {
              * **App and Game files are absent because they belong to the install rather than to a
              * title** — a theme and a folder grant are set once and apply to everything — and About
              * because nothing behind it is a setting at all. What is left is the three that describe
-             * how one game is run.
+             * how one game is run, and User data, which is what one game has left behind.
              *
-             * **User data is not here yet and arrives with a screen of its own.** A game's save data
-             * and its shader cache are a different screen from the app-wide one in both meaning and
-             * function, so the card waits for it: a button opening an empty screen is worse than one
-             * that is not there, because the empty screen looks like a fault in the button.
+             * **User data is last, and it is the one card here that is not a setting.** Nothing
+             * behind it changes what a launch does — which is the same argument that puts About last
+             * on the app's own scene, applied to the same shape of card.
              */
-            val perGame = listOf(EMULATION, GRAPHICS, CONTROLS)
+            val perGame = listOf(EMULATION, GRAPHICS, CONTROLS, USER_DATA)
         }
     }
 }

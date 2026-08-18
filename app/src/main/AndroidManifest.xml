@@ -120,6 +120,15 @@
             android:exported="false" />
 
         <!--
+          one game's half of that, opened by the fourth card on a game's own scene. not exported for
+          the same reason, and for one more: what it acts on is named by an extra, so an intent from
+          outside would be choosing which title's save data to hand out.
+        -->
+        <activity
+            android:name=".GameUserDataActivity"
+            android:exported="false" />
+
+        <!--
           the About screen, opened by its own card on the settings scene, and the two screens behind
           it: the list of licence documents this APK redistributes its guest libraries under, and the
           reader that shows one.

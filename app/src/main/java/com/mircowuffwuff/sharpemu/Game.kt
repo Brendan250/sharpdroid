@@ -44,7 +44,30 @@ data class Game(
      * game inside a granted tree that is a provider round trip to learn what is already in hand.
      */
     val configKey: String,
+    /**
+     * What the *emulator* calls this game — the name of its save data and pipeline cache directories.
+     * See [Game.emulatorTitleId], which is the rule this is resolved by.
+     *
+     * **It is [configKey]'s answer for every dump that names a title id, and a different one for a
+     * dump that does not.** Such a dump is filed under [UNKNOWN_TITLE_ID] by the emulator and under
+     * its directory name by us, deliberately — so a screen reaching for save data on disk wants this
+     * one and a screen reaching for settings wants the other. [sharesSaveDirectory] is how a screen
+     * asks which case it is in.
+     *
+     * Carried for [configKey]'s reason: the scan that resolved one resolved both.
+     */
+    val emulatorTitleId: String,
 ) {
+
+    /**
+     * Whether this game's save data sits in a directory it does not have to itself.
+     *
+     * **A dump naming no title id resolves to [UNKNOWN_TITLE_ID], and so does every other one**, so
+     * what is under that directory belongs to no single game. A screen that offered to export or
+     * delete "this game's" saves there would be naming one game and acting on several.
+     */
+    val sharesSaveDirectory: Boolean get() = emulatorTitleId == UNKNOWN_TITLE_ID
+
 
     /** The directory name, e.g. `Dreaming Sarah [PPSA02929]`. What [MainActivity] takes as `game`. */
     val folder: String get() = source.folder
@@ -91,18 +114,21 @@ data class Game(
          */
         fun read(source: GameSource): Game {
             val param = readParam(source)
+            // **the strict read of the same field, and deliberately not the `titleId` line below.**
+            // that one is the list's answer and falls back to the `[PPSA…]` in a directory name,
+            // which is a staging convention of ours; this one has to be what the emulator will
+            // resolve, so it counts the field only when it is a JSON string, exactly as
+            // [emulatorTitleId] does — and it is resolved once here because both of the identities
+            // this row carries are built out of it.
+            val resolved = sanitizeTitleId(param?.opt("titleId") as? String)
             return Game(
                 source = source,
                 name = param?.let(::titleName) ?: source.folder,
                 titleId = param?.optString("titleId")?.takeIf { it.isNotBlank() }
                     ?: titleIdFromFolder(source.folder),
                 version = param?.optString("contentVersion")?.takeIf { it.isNotBlank() },
-                // **the strict read of the same field, and deliberately not the line above it.**
-                // [titleId] is the list's answer and falls back to the `[PPSA…]` in a directory name,
-                // which is a staging convention of ours; this one has to be what the emulator will
-                // resolve, so it counts the field only when it is a JSON string, exactly as
-                // [emulatorTitleId] does.
-                configKey = configKeyOf(param?.opt("titleId") as? String, source.folder),
+                configKey = configKeyFor(resolved, source.folder),
+                emulatorTitleId = resolved,
             )
         }
 
@@ -163,9 +189,6 @@ data class Game(
         @JvmStatic
         fun configKeyFor(resolvedTitleId: String, folder: String): String =
             if (resolvedTitleId == UNKNOWN_TITLE_ID) sanitizeTitleId(folder) else resolvedTitleId
-
-        private fun configKeyOf(rawTitleId: String?, folder: String): String =
-            configKeyFor(sanitizeTitleId(rawTitleId), folder)
 
         /** What [emulatorTitleId] answers for a dump that names no title id. The emulator's own. */
         const val UNKNOWN_TITLE_ID = "UNKNOWN"

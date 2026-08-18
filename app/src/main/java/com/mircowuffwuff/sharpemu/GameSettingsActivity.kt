@@ -39,6 +39,9 @@ class GameSettingsActivity : AppCompatActivity() {
     private lateinit var configKey: String
     private lateinit var gameName: String
 
+    /** What the emulator calls this game. See [Game.emulatorTitleId]. */
+    private lateinit var emulatorTitleId: String
+
     /** One thread, for the one measurement this screen makes. */
     private val worker = Executors.newSingleThreadExecutor()
 
@@ -50,6 +53,12 @@ class GameSettingsActivity : AppCompatActivity() {
 
         configKey = intent.getStringExtra(EXTRA_CONFIG_KEY).orEmpty()
         gameName = intent.getStringExtra(EXTRA_NAME).orEmpty()
+        // **it falls back to the emulator's own answer for a dump naming nothing**, which is what an
+        // intent missing the extra describes: the User data screen behind this one refuses an empty
+        // string and says so for the shared name, and those are two different screens rather than
+        // one screen and a crash.
+        emulatorTitleId = intent.getStringExtra(EXTRA_EMULATOR_TITLE_ID)
+            ?.takeIf { it.isNotEmpty() } ?: Game.UNKNOWN_TITLE_ID
         if (configKey.isEmpty()) {
             // nothing but a hand-written intent reaches this, and finishing beats a scene that would
             // write every row into a store named after nothing.
@@ -85,11 +94,19 @@ class GameSettingsActivity : AppCompatActivity() {
         binding.sections.layoutManager =
             GridLayoutManager(this, resources.getInteger(R.integer.settings_section_columns))
         binding.sections.adapter =
-            SectionAdapter(SettingsActivity.Section.perGame) { section ->
+            SectionAdapter(SettingsActivity.Section.perGame, perGame = true) { section ->
+                // **a section is usually the app's own screen told which store to write, and User
+                // data is the one that is not** — see [SettingsActivity.Section.perGameScreen]. It
+                // is handed the emulator's title id rather than the config key, because what it acts
+                // on are directories the emulator named.
                 startActivity(
-                    Intent(this, SettingsSectionActivity::class.java)
-                        .putExtra(SettingsSectionActivity.EXTRA_SECTION, section.name)
-                        .putExtra(SettingsSectionActivity.EXTRA_GAME, configKey)
+                    if (section.perGameScreen == null) {
+                        Intent(this, SettingsSectionActivity::class.java)
+                            .putExtra(SettingsSectionActivity.EXTRA_SECTION, section.name)
+                            .putExtra(SettingsSectionActivity.EXTRA_GAME, configKey)
+                    } else {
+                        GameUserDataActivity.intent(this, emulatorTitleId, gameName)
+                    }
                 )
             }
     }
@@ -166,7 +183,20 @@ class GameSettingsActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_CONFIG_KEY = "configKey"
         const val EXTRA_NAME = "name"
+
+        /**
+         * The title id as the *list* answers it, which is what the fact table under the artwork
+         * prints — a dump's own field, or the `[PPSA…]` in its directory name.
+         *
+         * **[EXTRA_EMULATOR_TITLE_ID] is the other one and they are both here on purpose.** This is
+         * the string a person matches against a log line or a folder on their PC; that one is the
+         * string the emulator names a directory with. They agree for every dump that carries the
+         * field, and a screen acting on a directory must not be handed the one that guesses.
+         */
         const val EXTRA_TITLE_ID = "titleId"
+
+        /** See [Game.emulatorTitleId], and [EXTRA_TITLE_ID] on why this is a second extra. */
+        const val EXTRA_EMULATOR_TITLE_ID = "emulatorTitleId"
         const val EXTRA_VERSION = "version"
         const val EXTRA_PATH = "path"
 
@@ -187,6 +217,7 @@ class GameSettingsActivity : AppCompatActivity() {
                 .putExtra(EXTRA_CONFIG_KEY, game.configKey)
                 .putExtra(EXTRA_NAME, game.name)
                 .putExtra(EXTRA_TITLE_ID, game.titleId)
+                .putExtra(EXTRA_EMULATOR_TITLE_ID, game.emulatorTitleId)
                 .putExtra(EXTRA_VERSION, game.version)
                 .putExtra(EXTRA_PATH, game.ebootPath)
                 .apply {

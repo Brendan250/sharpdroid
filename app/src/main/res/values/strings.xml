@@ -232,6 +232,31 @@
     <string name="user_data_reset_message">Every setting returns to its default value and any game folders you granted are dropped.</string>
     <string name="user_data_reset_done">Settings reset</string>
 
+    <!-- one game's User data screen. the two cards it shares with the screen above keep their names
+         and state what they are here, since "across titles" is the app's answer and not a game's. -->
+    <string name="game_user_data_saves_description">This game\'s progress.</string>
+    <!-- the card on a game's scene. the app's own summary claims the whole install, which is the one
+         thing this screen is not: "everything this emulator stores and writes" under one game's
+         artwork reads as a way to a screen that would replace the lot. -->
+    <string name="settings_user_data_game_summary">What this game has written here</string>
+    <!-- a dump naming no title id: the emulator files it under a name it shares with every other
+         such dump, so there is nothing on this screen that belongs to this game alone. it says what
+         is true rather than what to do about it, there being nothing the person can do - the dump
+         either carries the field or it does not. -->
+    <string name="game_user_data_shared">This game\'s dump does not name a title id, so the emulator does not keep its save data or its shaders apart from any other game that does not name one.</string>
+    <!-- the export found no directory, which is a game nobody has saved yet. it is said after the
+         filename dialog rather than instead of it, because nothing knows until the button is
+         pressed. -->
+    <string name="game_user_data_export_nothing">There is no save data for this game yet</string>
+    <string name="game_user_data_import_message">Any save data this archive holds for %1$s replaces what is on this device. Every other game in it is ignored.\n%2$s</string>
+    <!-- read only after the whole archive has been extracted, so it names the game rather than the
+         file: the person is looking at one game's screen and picked something else's export. -->
+    <string name="game_user_data_import_absent">That archive holds no save data for %1$s. Nothing was changed.</string>
+    <string name="game_user_data_delete_saves_title">Delete this game\'s save data?</string>
+    <string name="game_user_data_delete_saves_message">%1$s\'s progress is removed from this device. If you have not exported it, it is gone. Every other game is left alone.</string>
+    <string name="game_user_data_delete_shaders_title">Delete this game\'s shader cache?</string>
+    <string name="game_user_data_delete_shaders_message">%1$s rebuilds its shaders as you play, so its next session stutters more than usual. Every other game keeps its own.</string>
+
     <!-- the name of a card's button - its tooltip, and half of the line above. not drawn. -->
     <string name="action_export">Export</string>
     <string name="action_import">Import</string>

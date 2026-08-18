@@ -181,6 +181,22 @@ object UserDataArchive {
         return pack(context, out, saves, saves.listFiles()?.toList().orEmpty(), Kind.SAVE_DATA)
     }
 
+    /**
+     * One title's save data, in the same shape and under the same [Kind.SAVE_DATA] manifest.
+     *
+     * **A per-game archive is a save-data archive that happens to hold one title, and that is worth
+     * more than a kind of its own.** It means an archive written here can be fed to the whole-of-it
+     * Save data import, which merges by title and would take it correctly; and an archive written
+     * there can be fed to *this* game's import, which reads its own title out of it and leaves the
+     * rest. A second kind would have bought a refusal in both directions and nothing else.
+     */
+    fun exportGameSaveData(context: Context, out: Uri, titleId: String): Long? {
+        val saves = AppStorage.saveData(context.filesDir)
+        val title = File(saves, titleId)
+        if (!title.isDirectory) return null
+        return pack(context, out, saves, listOf(title), Kind.SAVE_DATA)
+    }
+
     // ---------------------------------------------------------------------------------------------
     // import
 
@@ -341,6 +357,66 @@ object UserDataArchive {
         Log.i(TAG, "[app] merged ${staged.bytes} bytes into $saves")
         return staged.bytes
     }
+
+    /**
+     * What a one-title import did.
+     *
+     * **[Absent] is a third answer rather than a flavour of failure**, because it is the one outcome
+     * with something useful to say: the archive was read perfectly well and simply does not hold this
+     * game. Somebody who picked another game's export wants to be told that, not told the file is
+     * broken — and the two are indistinguishable to a caller handed a null.
+     */
+    sealed class GameImport {
+        /** [bytes] is this title's own, never the whole archive's. */
+        data class Done(val bytes: Long) : GameImport()
+
+        object Absent : GameImport()
+
+        object Failed : GameImport()
+    }
+
+    /**
+     * Replaces one title's save data with what the archive holds under that title, and nothing else.
+     *
+     * **The archive's other titles are not merely left on the device — they are not read out of it**,
+     * which is what stops this being the whole-of-it import wearing one game's name. An archive
+     * holding five games restores one here.
+     *
+     * **Wholesale for that title**, [importSaveData]'s rule and for its reason: half of one save set
+     * and half of another is not a state any save format promises to survive.
+     */
+    fun importGameSaveData(context: Context, zip: Uri, titleId: String): GameImport {
+        val staged = stage(context, zip) ?: return GameImport.Failed
+        try {
+            val source = File(staged.dir, titleId)
+            // the name is the one thing about a staged entry this app chose, so it cannot escape -
+            // but it is checked anyway, because that is true of the caller rather than of this
+            // function, and a title id read off a dump is not a string this app wrote.
+            if (!source.canonicalPath.startsWith(staged.dir.canonicalPath + File.separator)) {
+                Log.e(TAG, "[app] $titleId points outside the staging directory")
+                return GameImport.Failed
+            }
+            if (!source.isDirectory) return GameImport.Absent
+            // measured before the move, because afterwards there is nothing at this path to measure.
+            val bytes = sizeOf(source)
+            val saves = AppStorage.saveData(context.filesDir)
+            if (!saves.isDirectory && !saves.mkdirs()) {
+                Log.e(TAG, "[app] could not create $saves")
+                return GameImport.Failed
+            }
+            val target = File(saves, titleId)
+            target.deleteRecursively()
+            if (!move(source, target)) return GameImport.Failed
+            Log.i(TAG, "[app] restored $bytes bytes of $titleId into $saves")
+            return GameImport.Done(bytes)
+        } finally {
+            staged.dir.deleteRecursively()
+        }
+    }
+
+    /** Bytes under [file], following the tree and counting nothing else. */
+    private fun sizeOf(file: File): Long =
+        if (file.isDirectory) file.listFiles()?.sumOf { sizeOf(it) } ?: 0L else file.length()
 
     /** Empties [dir], keeping anything [IGNORED] names. */
     private fun clear(dir: File, base: File) {

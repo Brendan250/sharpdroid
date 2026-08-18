@@ -129,7 +129,18 @@ object AppStorage {
      */
     @JvmStatic
     fun pipelineCache(filesDir: File, titleId: String): File =
-        File(File(pipelineCacheRoot(filesDir), titleId), "vulkan-pipeline-cache.bin")
+        File(pipelineCacheOf(filesDir, titleId), "vulkan-pipeline-cache.bin")
+
+    /**
+     * One title's own level of that layout.
+     *
+     * **The directory rather than the blob in it**, which is what a screen measuring or clearing one
+     * game's shaders wants: the blob is what the emulator is pointed at, and everything the driver
+     * decides to write beside it is still that game's cache.
+     */
+    @JvmStatic
+    fun pipelineCacheOf(filesDir: File, titleId: String): File =
+        File(pipelineCacheRoot(filesDir), titleId)
 
     /**
      * The level every title's cache sits under.

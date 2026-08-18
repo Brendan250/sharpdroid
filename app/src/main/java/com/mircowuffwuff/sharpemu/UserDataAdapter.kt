@@ -63,7 +63,7 @@ class UserDataAdapter(
         val context = binding.root.context
 
         binding.name.setText(item.kind.title)
-        binding.description.setText(item.kind.description)
+        binding.description.setText(item.description)
         binding.figures.text = figures(holder, item)
         // **the accent marks the answer to the card, and an absence is not one.** it is the same
         // distinction a settings row draws between a chosen value and "None" -- see SettingsAdapter's

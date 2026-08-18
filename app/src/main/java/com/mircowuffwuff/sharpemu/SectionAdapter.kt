@@ -15,6 +15,14 @@ import com.mircowuffwuff.sharpemu.databinding.ItemSettingsSectionBinding
  */
 class SectionAdapter(
     private val sections: List<SettingsActivity.Section>,
+    /**
+     * Which scene is drawing, which decides a card's second line and nothing else.
+     *
+     * **A flag rather than a summary handed in per card**, because what varies is one line of one
+     * card: a caller assembling text would be a caller that has to be told the day a second section
+     * needs a per-game wording.
+     */
+    private val perGame: Boolean,
     private val onClick: (SettingsActivity.Section) -> Unit,
 ) : RecyclerView.Adapter<SectionAdapter.Holder>() {
 
@@ -30,7 +38,9 @@ class SectionAdapter(
         val section = sections[position]
         holder.binding.icon.setImageResource(section.icon)
         holder.binding.title.setText(section.title)
-        holder.binding.summary.setText(section.summary)
+        holder.binding.summary.setText(
+            section.perGameSummary?.takeIf { perGame } ?: section.summary
+        )
         holder.binding.root.setOnClickListener { onClick(section) }
     }
 }

@@ -24,6 +24,15 @@ data class UserDataItem(
      * or null where the kind has nothing countable and the size stands alone.
      */
     val count: Int?,
+    /**
+     * The card's second line.
+     *
+     * **A card's description belongs to the screen and its title does not**, which is why only this
+     * one is overridable. Save data is Save data on both screens; what it *is* differs — "your
+     * progress across titles" on the app's own screen and this game's progress on a game's — and a
+     * line naming titles in the plural under one game's artwork would be describing the wrong thing.
+     */
+    val description: Int = kind.description,
 ) {
 
     enum class Kind(val title: Int, val description: Int) {
@@ -62,6 +71,35 @@ data class UserDataItem(
                 UserDataItem(Kind.SAVE_DATA, size(saves), children(saves)),
                 UserDataItem(Kind.SHADER_CACHE, size(shaders), children(shaders)),
                 UserDataItem(Kind.SETTINGS, 0, settingsChanged),
+            )
+        }
+
+        /**
+         * The two parts of one title, for the per-game screen.
+         *
+         * **No count on either card.** On the app's screen the figure counts titles, which is the
+         * thing that varies there; here it is one by construction, and a card reading "4.1 MB · 1
+         * title" would be spending a clause to say what the screen is already about.
+         *
+         * **Save data is measured even when [titleId] is shared**, and the caller is what decides
+         * whether to draw the card at all — see [Game.sharesSaveDirectory]. Measuring is honest
+         * either way; offering to act on it is not.
+         */
+        @JvmStatic
+        fun measureGame(filesDir: File, titleId: String): List<UserDataItem> {
+            val saves = File(AppStorage.saveData(filesDir), titleId)
+            val shaders = AppStorage.pipelineCacheOf(filesDir, titleId)
+            return listOf(
+                UserDataItem(
+                    Kind.SAVE_DATA,
+                    size(saves),
+                    null,
+                    R.string.game_user_data_saves_description,
+                ),
+                // **the shader card keeps the app's own line.** "compiled as you play and rebuilt
+                // if deleted" is true of one game in the same words it is true of all of them, and
+                // a version naming the game spent its whole width saying so and was ellipsized.
+                UserDataItem(Kind.SHADER_CACHE, size(shaders), null),
             )
         }
 
