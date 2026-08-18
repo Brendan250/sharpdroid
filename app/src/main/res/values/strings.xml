@@ -136,16 +136,15 @@
 
     <!-- the loading screen's estimate, and the one App row that ships on rather than off.
 
-         **the summary says the timing carries on, and that clause is the point of it.** a switch
-         reading as "stop doing this" while the app quietly keeps measuring every boot would be a
-         small lie, and the measurement cannot stop: the host layer's checkpoint position is what
-         tells the app the game has drawn its first frame, so it is what takes the loading screen
-         down, and a launch that stopped asking for it would leave that screen over a running game.
-         so the times exist either way and the honest thing is to say what happens to them.
+         **off does not stop a boot being timed, and no wording here should imply that it does.** the
+         measurement cannot stop: the host layer's checkpoint position is what tells the app the game
+         has drawn its first frame, so it is what takes the loading screen down, and a launch that
+         stopped asking for it would leave that screen over a running game. so the times exist either
+         way, and what this row governs is only whether the bar is drawn against them.
 
-         "each game" rather than "your games", since what is timed is a game and a configuration
-         together and the row has no room to say which. "estimate" rather than "predict" is the word
-         a person would use about a progress bar. -->
+         it says what the row *does* rather than what it stops doing, which is what keeps it from
+         claiming the one thing that is not true of it. "estimate" and "approximate" rather than
+         "predict", which are the words a person would use about a progress bar. -->
     <string name="setting_loading_estimate">Estimate loading progress</string>
     <string name="setting_loading_estimate_summary">Display an approximate progress percentage while a game loads. Based on how long it took last time.</string>
 
