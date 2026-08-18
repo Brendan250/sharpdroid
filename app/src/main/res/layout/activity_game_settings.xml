@@ -62,6 +62,9 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
+        <!-- the bottom padding is the managers' rather than this scene's own, since this scene now
+             carries their button: it is the button's height and margin, so the last card is
+             reachable rather than sitting underneath it. -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/sections"
             android:layout_width="match_parent"
@@ -69,15 +72,30 @@
             android:clipToPadding="false"
             android:paddingHorizontal="10dp"
             android:paddingTop="4dp"
-            android:paddingBottom="24dp"
+            android:paddingBottom="96dp"
             android:scrollbarStyle="outsideOverlay"
             android:scrollbars="vertical" />
 
+        <!-- above the button and below nothing else, so the button keeps its own edges and every
+             card passes under it — activity_manager.xml's arrangement, for its reason. -->
         <View
             android:layout_width="match_parent"
             android:layout_height="24dp"
             android:layout_gravity="bottom"
             android:background="@drawable/scrim_list_bottom" />
+
+        <!-- **the managers' floating button, in the slot the managers put it in.** what it does here
+             is start the game rather than import something, and that is the only difference: a
+             person who has learned where the button is on the build, driver and folder screens finds
+             this one without looking. -->
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/launch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="20dp"
+            android:text="@string/game_settings_launch"
+            app:icon="@drawable/ic_play" />
 
     </FrameLayout>
 

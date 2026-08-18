@@ -3,7 +3,6 @@ package com.mircowuffwuff.sharpemu
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -222,28 +221,6 @@ class GameListActivity : AppCompatActivity() {
     }
 
     /**
-     * Starts the guest.
-     *
-     * **Which extra carries the game is the whole difference between the two sources.** A staged game
-     * is `game`, a name under the app's own `games/`; a granted one is `safgame` beside `saftree`,
-     * naming a directory and the tree it is in. The host layer then mounts the provider and hands the
-     * guest an invented path — `docs/guest-files.md` — instead of opening a real one.
-     *
-     * **A granted game has a third way in, and it is this one that is the branch.** With all-files
-     * access held, the same directory is an ordinary path, so it goes as `game` and the file layer is
-     * never registered — which is not a third mode of anything but the staged one, reached from a
-     * folder the user picked instead of from the tooling. [AllFiles] decides, per launch, and answers
-     * null for every reason including the ordinary one.
-     *
-     * **Every other extra is left absent on purpose, and a settings scene existing does not change
-     * that.** Absent is a real answer everywhere MainActivity reads one — no `sharpemu` means the
-     * most recently staged build, no `driver` means the platform's own. What the user chose is
-     * merged by MainActivity, which is the one place that can see both a stored value and an extra
-     * that overrides it; a tap that put the stored values in the intent would make this screen and
-     * `am start` two different mergers of the same three sources, and the second one would be wrong
-     * the moment the first grew a row.
-     */
-    /**
      * Opens one game's settings.
      *
      * **Everything that scene draws is already in hand**, because this row was built by opening the
@@ -255,39 +232,17 @@ class GameListActivity : AppCompatActivity() {
         startActivity(GameSettingsActivity.intent(this, game))
     }
 
+    /**
+     * Starts the guest.
+     *
+     * **The intent is [GameLaunch]'s rather than this screen's**, a game's own scene starting a run
+     * too — see there for which extra carries which kind of game, and for why every other extra is
+     * left absent.
+     */
     private fun launch(game: Game) {
-        val intent = Intent(this, MainActivity::class.java)
-        val source = game.source
-        val how = when (source) {
-            is GameSource.Staged -> {
-                intent.putExtra("game", game.folder)
-                "staged"
-            }
-            is GameSource.Granted -> {
-                val direct = AllFiles.pathTo(source.documentId)
-                if (direct != null) {
-                    intent.putExtra("game", direct.absolutePath)
-                    "by path, with all-files access"
-                } else {
-                    intent.putExtra("safgame", game.folder)
-                    // **the tree travels with it, and that is what replaces the placeholder.** until
-                    // there was a picker, MainActivity took whichever persisted grant came first —
-                    // fine with one and a coin toss with two.
-                    intent.putExtra("saftree", source.tree.toString())
-                    "through " + GameLibrary.label(source.tree)
-                }
-            }
-        }
-        // the folder, because that is what the intent carries and what the host layer will name in
-        // its own lines. the display name is beside it so a log and a screen can be read together.
-        Log.i(TAG, "[app] launching " + game.folder + " (" + game.name + ", " + how + ")")
         // for a result, and the result is only ever a refusal to explain — see [run]. it changes
         // nothing about the launch itself: the extras are the same ones `am start` carries, which is
-        // what keeps the intent path the control arm it is described as above.
-        run.launch(intent)
-    }
-
-    private companion object {
-        const val TAG = "sharpemu"
+        // what keeps the intent path a control arm.
+        run.launch(GameLaunch.intent(this, game.source, game.name, GameLaunch.From.LIST))
     }
 }

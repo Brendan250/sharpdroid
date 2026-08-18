@@ -232,6 +232,10 @@
     <string name="user_data_reset_message">Every setting returns to its default value and any game folders you granted are dropped.</string>
     <string name="user_data_reset_done">Settings reset</string>
 
+    <!-- the floating button on a game's own scene. "game" rather than the title, the scene being
+         about one game already and the button being as wide as its longest word. -->
+    <string name="game_settings_launch">Launch game</string>
+
     <!-- one game's User data screen. the two cards it shares with the screen above keep their names
          and state what they are here, since "across titles" is the app's answer and not a game's. -->
     <string name="game_user_data_saves_description">This game\'s progress.</string>

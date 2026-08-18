@@ -18,12 +18,22 @@
   the list's padding, the scrollbar style and the fade are activity_settings.xml's, and the reasoning
   for each is written there.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- **the frame exists so the floating button can hang off the screen rather than off the row.**
+     everything below it is one column of content, and the row that holds it carries a negative top
+     margin — so a button placed inside that row sits that margin higher than the same button on
+     every manager screen, which measures as a real difference and reads as a wobble when you move
+     between them. a sibling of the whole column is positioned against the panel, which is what a
+     floating button is positioned against everywhere else in this app. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="?attr/colorSurface">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
@@ -138,6 +148,9 @@
             android:layout_height="match_parent"
             android:layout_weight="2">
 
+            <!-- the bottom padding is the managers' rather than this scene's own, since this scene
+                 now carries their button: it is the button's height and margin, so the last card is
+                 reachable rather than sitting underneath it. -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/sections"
                 android:layout_width="match_parent"
@@ -145,7 +158,7 @@
                 android:clipToPadding="false"
                 android:paddingHorizontal="10dp"
                 android:paddingTop="4dp"
-                android:paddingBottom="24dp"
+                android:paddingBottom="96dp"
                 android:scrollbarStyle="outsideOverlay"
                 android:scrollbars="vertical" />
 
@@ -160,3 +173,21 @@
     </LinearLayout>
 
 </LinearLayout>
+
+    <!-- **the managers' floating button, in the slot the managers put it in** — see the portrait
+         layout, which says why it is theirs rather than this scene's own.
+
+         **it is a sibling of the content rather than a child of the cards' column**, which is the
+         frame above's whole reason: only from here is it 20dp off the panel's own bottom edge, which
+         is where every other floating button in this app sits. the cards' column reaches the same
+         bottom edge but starts 6dp higher, and a button inside it inherits that. -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/launch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
+        android:text="@string/game_settings_launch"
+        app:icon="@drawable/ic_play" />
+
+</FrameLayout>

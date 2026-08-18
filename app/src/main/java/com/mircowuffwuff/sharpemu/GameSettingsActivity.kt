@@ -4,6 +4,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import android.text.format.Formatter
 import androidx.recyclerview.widget.GridLayoutManager
@@ -28,6 +30,11 @@ import java.util.concurrent.Executors
  *
  * **It is reached by holding a cover and by nothing else.** Not exported, like every screen behind the
  * cog: what is set here decides what a launch runs.
+ *
+ * **And it can start the game, on the button the managers put in that corner.** Somebody who came here
+ * to change how a game runs is one gesture from finding out, rather than backing out to the grid to
+ * tap the cover they were just holding. It is the list's own launch — [GameLaunch] builds the intent
+ * for both — so the run is identical whichever screen started it.
  */
 class GameSettingsActivity : AppCompatActivity() {
 
@@ -44,6 +51,24 @@ class GameSettingsActivity : AppCompatActivity() {
 
     /** One thread, for the one measurement this screen makes. */
     private val worker = Executors.newSingleThreadExecutor()
+
+    /**
+     * A run started from here, and why it did not start when it did not.
+     *
+     * **The message is said by this screen because a toast belongs to the process that posted one**,
+     * which is the game list's reason exactly: a guest gets a process of its own and is ended with
+     * it, so a run that gives up would post a toast and be killed before it could be read. This
+     * screen is in the process that survives.
+     *
+     * Registered at construction, as the contract requires — this activity can be recreated while a
+     * guest is in front of it, and a launcher registered later has nothing to deliver a result to.
+     */
+    private val run = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val why = result.data?.getStringExtra(MainActivity.ABORT_MESSAGE)
+        if (!why.isNullOrEmpty()) {
+            Toast.makeText(this, why, Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreate(state: Bundle?) {
         // before setContentView, or the theme is resolved after the views are already inflated.
@@ -90,6 +115,12 @@ class GameSettingsActivity : AppCompatActivity() {
             placeholder(R.drawable.ic_game_placeholder)
             error(R.drawable.ic_game_placeholder)
         }
+
+        // **the same run a tap on the cover starts, from the same intent builder.** what this scene
+        // sets is read by MainActivity out of the game's own store, so the launch says nothing about
+        // it -- see [GameLaunch] on why putting the stored values in the intent would be wrong.
+        binding.launch.setOnClickListener { launch() }
+        if (source() == null) binding.launch.visibility = View.GONE
 
         binding.sections.layoutManager =
             GridLayoutManager(this, resources.getInteger(R.integer.settings_section_columns))
@@ -143,6 +174,44 @@ class GameSettingsActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    /**
+     * Starts this game, exactly as a tap on its cover does.
+     *
+     * **The same builder the list uses**, so the two ways in produce one intent rather than two that
+     * agree today — [GameLaunch].
+     */
+    private fun launch() {
+        val source = source() ?: return
+        run.launch(GameLaunch.intent(this, source, gameName, GameLaunch.From.GAME))
+    }
+
+    /**
+     * This game's source, rebuilt from what the intent already carries.
+     *
+     * **Rebuilt rather than carried, because a [GameSource] is not something an intent can hold** —
+     * the granted kind owns a content resolver. What travels is the pair of facts each kind is made
+     * of, which is what the artwork and the size measurement already needed, plus the directory's
+     * own name.
+     *
+     * **The name travels rather than being derived**, though a staged source could derive it from
+     * its path: the granted kind cannot, its folder having come from the cursor that listed it and
+     * never from a guess.
+     *
+     * Null for an intent naming neither kind, which is a hand-written one — the button is taken away
+     * rather than left to start a run with nothing in it.
+     */
+    private fun source(): GameSource? {
+        val directory = intent.getStringExtra(EXTRA_DIRECTORY)
+        if (!directory.isNullOrEmpty()) return GameSource.Staged(File(directory))
+        val tree = intent.getStringExtra(EXTRA_TREE)
+        val document = intent.getStringExtra(EXTRA_DOCUMENT_ID)
+        val folder = intent.getStringExtra(EXTRA_FOLDER)
+        if (tree.isNullOrEmpty() || document.isNullOrEmpty() || folder.isNullOrEmpty()) return null
+        // the application's resolver rather than this activity's, so a source outliving the screen
+        // is not a leaked activity -- GameSource says so where the class is declared.
+        return GameSource.Granted(Uri.parse(tree), document, folder, applicationContext.contentResolver)
     }
 
     override fun onDestroy() {
@@ -208,6 +277,15 @@ class GameSettingsActivity : AppCompatActivity() {
         const val EXTRA_DIRECTORY = "directory"
         const val EXTRA_TREE = "tree"
         const val EXTRA_DOCUMENT_ID = "documentId"
+
+        /**
+         * The directory's own name, which is what a launch intent carries.
+         *
+         * **A staged game could derive it and a granted one could not**, its folder having come from
+         * the cursor that listed the tree rather than from anything this screen can take apart. So it
+         * travels for both, one rule being better than a rule with an exception in it.
+         */
+        const val EXTRA_FOLDER = "folder"
         const val EXTRA_ICON_PATH = "iconPath"
         const val EXTRA_ICON_URI = "iconUri"
 
@@ -220,6 +298,7 @@ class GameSettingsActivity : AppCompatActivity() {
                 .putExtra(EXTRA_EMULATOR_TITLE_ID, game.emulatorTitleId)
                 .putExtra(EXTRA_VERSION, game.version)
                 .putExtra(EXTRA_PATH, game.ebootPath)
+                .putExtra(EXTRA_FOLDER, game.folder)
                 .apply {
                     when (val source = game.source) {
                         is GameSource.Staged ->
