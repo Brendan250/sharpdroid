@@ -87,6 +87,11 @@ def entry():
                         help="extra FEXCore options, comma separated, appended after the preset. "
                              "an instrument for measuring a knob the preset ladder does not carry; "
                              "the host layer refuses a name FEXCore does not have.")
+    parser.add_argument("--host-features", choices=("probe", "minimal"), default=None,
+                        help="how FEXCore is told what this CPU can do. probe reads the ID "
+                             "registers and is what a launch does when nothing is said; minimal is "
+                             "the conservative set, and is here so the probe has an arm to be "
+                             "measured against without a second APK.")
     parser.add_argument("--profile", action="store_true",
                         help="the vulkan profile. every 300 frames it prints where a frame went -- "
                              "how much of it was spent inside vulkan and how much outside, which is "
@@ -119,7 +124,8 @@ def entry():
         guest_only = [name for name, given in (
             ("--turbo", arguments.turbo), ("--guest-env", arguments.guest_env),
             ("--smc", arguments.smc), ("--fex-preset", arguments.fex_preset),
-            ("--fex", arguments.fex), ("--profile", arguments.profile)) if given]
+            ("--fex", arguments.fex), ("--profile", arguments.profile),
+            ("--host-features", arguments.host_features)) if given]
         if guest_only:
             raise Refusal(
                 "no --game, so no guest runs and {} would have no effect. pass --game existing to "
@@ -250,6 +256,8 @@ def launch(attached, package, activity, runs_guest, game, build_path, driver, ar
         say("  fex     {}".format(arguments.fex_preset))
     if arguments.fex:
         say("  knobs   {}".format(arguments.fex))
+    if arguments.host_features:
+        say("  cpu     {}".format(arguments.host_features))
 
     # **every extra is conditional on having been named**, which is what makes omitting an argument
     # reach the app's own default rather than a default this script picked. an extra carrying the
@@ -266,6 +274,10 @@ def launch(attached, package, activity, runs_guest, game, build_path, driver, ar
         extras["smc"] = arguments.smc
         extras["fexpreset"] = arguments.fex_preset
         extras["fex"] = arguments.fex
+        # the app's own switch is on by default, so only `minimal` is worth naming -- and naming
+        # `probe` explicitly still has to travel, or it could not override a store that is off.
+        if arguments.host_features:
+            extras["hostprobe"] = arguments.host_features == "probe"
         if arguments.turbo:
             extras["turbo"] = True
         if arguments.profile:
