@@ -105,6 +105,8 @@ class Settings private constructor(
         if (loadingEstimate == false) count++
         if (strictDynlib == true) count++
         if (fexPreset?.let { it != FexPreset.DEFAULT } == true) count++
+        // compared against on rather than counted as set, for the reason the loading estimate is.
+        if (hostFeatureProbe == false) count++
         if (renderScale?.let { it != RENDER_SCALES[0] } == true) count++
         if (diskShaderCache == true) count++
         // **absence is the default and the bundled build is a choice, even though a launch resolves
@@ -342,6 +344,30 @@ class Settings private constructor(
         set(value) = prefs.edit().putBoolean(KEY_LOADING_ESTIMATE, value!!).apply()
 
     /**
+     * Whether FEXCore is told what this processor can do, out of the processor's own ID registers.
+     *
+     * **On is the honest answer and off is the fallback**, which is the opposite way round from most
+     * switches here. Understating a host's instruction set never changes what translated code
+     * computes, only how many instructions it takes to compute it -- so there is no correctness
+     * argument for the conservative set, and this row exists because a probe is a thing that can be
+     * wrong about a device nobody here has.
+     *
+     * **Not a preset rung, and it must not become one.** The preset ladder trades faithfulness for
+     * speed, and describing the host truthfully is not a trade -- a rung that turned this off would
+     * be a rung that was slower for no fidelity.
+     *
+     * It is a launch argument: off travels as `--host-features minimal`, and on says nothing, so a
+     * launch naming no extras is the argument vector every measurement here was taken on.
+     */
+    var hostFeatureProbe: Boolean?
+        get() = if (prefs.contains(KEY_HOST_FEATURE_PROBE)) {
+            prefs.getBoolean(KEY_HOST_FEATURE_PROBE, true)
+        } else {
+            fallback?.hostFeatureProbe
+        }
+        set(value) = prefs.edit().putBoolean(KEY_HOST_FEATURE_PROBE, value!!).apply()
+
+    /**
      * Whether a game may drive **this device's** vibration motor.
      *
      * **Named for the handheld and not for vibration in general**, because a controller with a motor
@@ -390,6 +416,7 @@ class Settings private constructor(
         const val KEY_BUILD = "build"
         const val KEY_STRICT = "strict_dynlib"
         const val KEY_FEX_PRESET = "fex_preset"
+        const val KEY_HOST_FEATURE_PROBE = "host_feature_probe"
         const val KEY_RENDER_SCALE = "render_scale"
         const val KEY_DRIVER = "driver"
         const val KEY_DISK_SHADER_CACHE = "disk_shader_cache"

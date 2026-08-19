@@ -230,6 +230,7 @@ class SettingsAdapter(
             Settings.KEY_AUTOMATIC_CONTROLLER_MAPPING -> settings.automaticControllerMapping ?: default
             Settings.KEY_VIBRATE_HANDHELD -> settings.vibrateHandheld ?: default
             Settings.KEY_DISK_SHADER_CACHE -> settings.diskShaderCache ?: default
+            Settings.KEY_HOST_FEATURE_PROBE -> settings.hostFeatureProbe ?: default
             else -> default
         }
 
@@ -240,6 +241,7 @@ class SettingsAdapter(
             Settings.KEY_AUTOMATIC_CONTROLLER_MAPPING -> settings.automaticControllerMapping = value
             Settings.KEY_VIBRATE_HANDHELD -> settings.vibrateHandheld = value
             Settings.KEY_DISK_SHADER_CACHE -> settings.diskShaderCache = value
+            Settings.KEY_HOST_FEATURE_PROBE -> settings.hostFeatureProbe = value
             else -> Unit
         }
     }

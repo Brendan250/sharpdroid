@@ -187,6 +187,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * project does not build, so it would reach nothing here while looking like it had.
      */
     private String fexPreset;
+    private boolean hostFeatureProbe;
 
     /**
      * Extra FEXCore options for one run, appended after whatever the preset contributes.
@@ -442,6 +443,14 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // so a knob that is not on the ladder can be measured without an APK of its own. there is no
         // settings row and there is not meant to be: the ladder is what a user chooses from, and a
         // launch that names nothing here contributes nothing.
+        // --ez hostprobe true, hasExtra for the reason --ez strict is: absent and false are
+        // different answers. on is the default and says nothing on the command line, so a launch
+        // naming no extras is the argument vector every measurement here was taken on.
+        if (getIntent().hasExtra("hostprobe")) {
+            hostFeatureProbe = getIntent().getBooleanExtra("hostprobe", true);
+        } else {
+            hostFeatureProbe = !Boolean.FALSE.equals(settings.getHostFeatureProbe());
+        }
         String fex = getIntent().getStringExtra("fex");
         if (fex != null && !fex.isEmpty()) {
             fexOptions = fex.split(",");
@@ -1313,6 +1322,13 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         //
         // null contributes nothing, so a launch that names no preset and a settings row nobody
         // touched both produce the argument vector every measurement was taken on.
+        // the conservative feature set, named only when it is asked for. the host layer probes by
+        // default, so on contributes nothing and off is one flag -- which keeps a launch that says
+        // nothing identical to what it always was.
+        if (!hostFeatureProbe) {
+            args.add("--host-features");
+            args.add("minimal");
+        }
         args.addAll(FexPreset.arguments(fexPreset));
         // after the preset, so a launch measuring one knob overrides the rung it is measured against
         // rather than fighting it: the host layer applies these in order and the last assignment to a

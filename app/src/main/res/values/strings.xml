@@ -148,6 +148,8 @@
          it says what the row *does* rather than what it stops doing, which is what keeps it from
          claiming the one thing that is not true of it. "estimate" and "approximate" rather than
          "predict", which are the words a person would use about a progress bar. -->
+    <string name="setting_host_feature_probe">Probe host features</string>
+    <string name="setting_host_feature_probe_summary">Tell the JIT which instructions this processor supports, read from the processor itself. Off, a smaller set is assumed and translated code takes longer routes.</string>
     <string name="setting_loading_estimate">Estimate loading progress</string>
     <string name="setting_loading_estimate_summary">Display an approximate progress percentage while a game loads. Based on how long it took last time.</string>
 

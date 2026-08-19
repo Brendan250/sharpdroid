@@ -248,6 +248,16 @@ class SettingsSectionActivity : AppCompatActivity() {
             low = R.string.setting_fex_preset_low,
             high = R.string.setting_fex_preset_high,
         ),
+        // **below the ladder rather than a rung on it.** every rung above the middle spends
+        // faithfulness for speed, and describing the host truthfully spends nothing -- so a rung that
+        // turned this off would be one that ran slower and translated no more faithfully. it is a
+        // switch for the case the ladder cannot express: a device this probe reads wrongly.
+        SettingRow.Switch(
+            key = Settings.KEY_HOST_FEATURE_PROBE,
+            title = R.string.setting_host_feature_probe,
+            summary = R.string.setting_host_feature_probe_summary,
+            default = true,
+        ),
     )
 
     /**
