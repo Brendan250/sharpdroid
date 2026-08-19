@@ -25,6 +25,7 @@
 #include "elf_loader.h"
 #include "guest_files.h"
 #include "guest_log.h"
+#include "host_features.h"
 #include "host_layer.h"
 #include "guest_signals.h"
 #include "guest_threads.h"
@@ -96,77 +97,6 @@ FEXCore::SignalDelegator* GlobalSignals = nullptr;
 
 HostLayer::GuestSignals GuestSigs;
 HostLayer::LinuxSyscallHandler LinuxSyscalls;
-
-// one MIDR_EL1 per core, out of sysfs.
-//
-// this is not optional and understating it is not safe, which makes it the exception to the rule
-// below. FEXCore's CPUID emulation sizes its per-core table from CPUMIDRs.size() and then indexes
-// it with the *current* core number — CPUIDEmu::Function_8000_0002h is `PerCPUData[GetCPUID()]`
-// with no bounds check — so leaving the vector empty is a wild read the moment a guest asks for
-// CPUID leaf 0x8000_0002, the processor brand string. that is exactly where CoreCLR's startup
-// crashed.
-//
-// read from /sys rather than by pinning to each core and executing `mrs`: the kernel already
-// publishes the value per cpu, and MIDR_EL1 in userspace is an emulated trap anyway. it matters
-// that these are per-core and not one value copied around — the Snapdragon 8 Elite really is
-// hybrid, reporting 0x514F0014 on its prime cores and 0x513F0014 on the rest, and FEXCore decides
-// whether to advertise a hybrid topology to the guest by comparing them.
-void FillMIDRs(FEXCore::HostFeatures& Features) {
-  const long Cores = ::sysconf(_SC_NPROCESSORS_CONF);
-  if (Cores <= 0) {
-    return;
-  }
-  Features.CPUMIDRs.resize(static_cast<size_t>(Cores));
-
-  for (long i = 0; i < Cores; ++i) {
-    char Path[128];
-    std::snprintf(Path, sizeof(Path), "/sys/devices/system/cpu/cpu%ld/regs/identification/midr_el1", i);
-    std::FILE* File = std::fopen(Path, "re");
-    if (!File) {
-      continue;
-    }
-    unsigned long long MIDR = 0;
-    if (std::fscanf(File, "%llx", &MIDR) == 1) {
-      // truncated to 32 bits, as FEXCore does: the top half of MIDR_EL1 is all reserved.
-      Features.CPUMIDRs[static_cast<size_t>(i)] = static_cast<uint32_t>(MIDR);
-    }
-    std::fclose(File);
-  }
-}
-
-// otherwise deliberately conservative. FEX's own FetchHostFeatures() lives in Source/Common/,
-// outside FEXCore, and probes rather more than this; wiring it up is its own task.
-//
-// "understating the host's instruction set costs performance and never correctness" was the rule
-// here, and AVX proved it wrong. SupportsAVX is not a host capability at all: it is what decides
-// whether FEXCore's decoder has a VEX table *to decode with*. the Decoder constructor picks
-// VEXTableOps + SVE256 if the host has it, VEXTableOps_AVX128 — 256-bit decomposed into pairs of
-// 128-bit NEON, which any arm64 can run — if it does not, and leaves both **null** otherwise. so
-// with it unset every VEX-encoded instruction is undecodable and raises #UD.
-//
-// that is fine for a guest that checks CPUID first, and fatal for one that does not. PS5 code is
-// compiled for a fixed Zen 2 target and simply uses AVX: `vmovups ymm0, [rip+0xc663d]` at
-// 0x80400B75B in libc.prx, ~250 imports into Dreaming Sarah's startup, is where it landed.
-//
-// FEX itself sets this unconditionally on arm64 (FetchHostFeatures, in Source/Common/) for exactly
-// this reason, so this is not us claiming something the device cannot do.
-FEXCore::HostFeatures MinimalHostFeatures() {
-  FEXCore::HostFeatures Features {};
-  const unsigned long HwCaps = ::getauxval(AT_HWCAP);
-  Features.SupportsAES = (HwCaps & HWCAP_AES) != 0;
-  Features.SupportsCRC = (HwCaps & HWCAP_CRC32) != 0;
-  Features.SupportsAtomics = (HwCaps & HWCAP_ATOMICS) != 0;
-  Features.SupportsRCPC = (HwCaps & HWCAP_LRCPC) != 0;
-  Features.SupportsAVX = true;
-  // gated on AVX in FEX's own probe too: VAES is a VEX encoding, so it is unreachable without one.
-  Features.SupportsAES256 = Features.SupportsAVX && Features.SupportsAES;
-  FillMIDRs(Features);
-  // told here rather than worked out there, because this is the one place that decides it. both
-  // thunks read guest float arguments straight out of the spilled register file, and FEX only uses
-  // the 32-byte-stride avx layout when both of these are set.
-  HostLayer::ThunkABI::SetAvxRegisterFile(Features.SupportsAVX && Features.SupportsSVE256);
-  return Features;
-}
 
 // what the run cost, printed once however the process ends. exit_group can come from any guest
 // thread and only the initial one unwinds back to RunELF, so this is handed to the thread layer
@@ -628,6 +558,7 @@ int HostLayer::RunMain(int argc, char** argv) {
   const char* TmpDir = nullptr;
   std::vector<const char*> ExtraEnv;
   std::vector<const char*> FexOptions;
+  auto FeatureMode = HostLayer::HostFeatures::Mode::Probe;
   int ArgIndex = 1;
   for (; ArgIndex < argc; ++ArgIndex) {
     if (std::strcmp(argv[ArgIndex], "--spike") == 0) {
@@ -783,6 +714,19 @@ int HostLayer::RunMain(int argc, char** argv) {
     } else if (std::strcmp(argv[ArgIndex], "--env") == 0 && ArgIndex + 1 < argc) {
       // NAME=VALUE, appended to the guest environment. repeatable.
       ExtraEnv.push_back(argv[++ArgIndex]);
+    } else if (std::strcmp(argv[ArgIndex], "--host-features") == 0 && ArgIndex + 1 < argc) {
+      // how FEXCore is told what this CPU can do. `probe` reads the ID registers, which is what a
+      // run wants; `minimal` is the four extensions AT_HWCAP names plus the AVX decode table, and is
+      // here so that the probe has something to be measured against inside one build.
+      //
+      // this is not FEXCore's own `HostFeatures` option, which is a bitmask of individual overrides
+      // consumed only in FEX's frontend. what does reach a library host is `CPUFeatureRegisters`, and
+      // `--fex CPUFeatureRegisters=isar0=0x...` is how a feature set other than this CPU's is put to
+      // the probe.
+      if (!HostLayer::HostFeatures::ParseMode(argv[++ArgIndex], FeatureMode)) {
+        std::fprintf(stderr, "[host-layer] --host-features wants probe or minimal, got '%s'\n", argv[ArgIndex]);
+        return 2;
+      }
     } else if (std::strcmp(argv[ArgIndex], "--fex") == 0 && ArgIndex + 1 < argc) {
       // Name=Value against FEXCore's own option table, repeatable. this is how a JIT knob is
       // chosen per run: FEX's usual routes to one are its config file and its FEX_ environment
@@ -809,7 +753,7 @@ int HostLayer::RunMain(int argc, char** argv) {
                          "[--audio] [--audio-lib <so>] [--trace-audio] [--audio-watchdog] "
                          "[--pad] [--trace-pad] [--pad-selftest] [--libs <dir>] "
                          "[--saf-mount <prefix>] "
-                         "[--fex Name=Value]... "
+                         "[--fex Name=Value]... [--host-features probe|minimal] "
                          "[--tmp <dir>] [--env NAME=VALUE]... <x86-64-elf> [guest args...]\n");
     return 2;
   }
@@ -897,9 +841,17 @@ int HostLayer::RunMain(int argc, char** argv) {
     FEXCore::Config::Set(FEXCore::Config::CONFIG_GDBSERVER, "1");
   }
 
-  const auto Features = MinimalHostFeatures();
-  std::printf("[host-layer] host features: AES=%d CRC=%d Atomics=%d RCPC=%d, %zu core(s)\n", Features.SupportsAES,
-              Features.SupportsCRC, Features.SupportsAtomics, Features.SupportsRCPC, Features.CPUMIDRs.size());
+  // after the --fex loop above, because the probe reads FEXCore's own CPUFeatureRegisters out of
+  // the config it just populated.
+  const auto Features = HostLayer::HostFeatures::Build(FeatureMode);
+  HostLayer::HostFeatures::Report(Features, FeatureMode);
+
+  // told here rather than worked out there, because this is the one place that decides it. both
+  // thunks read guest float arguments straight out of the spilled register file, and FEX only uses
+  // the 32-byte-stride avx layout when both of these are set — so a host whose SVE is 256 bits
+  // wide moves the thunk boundary's ABI, which is the one thing in this probe that can break a
+  // thunk rather than merely slow the JIT down.
+  HostLayer::ThunkABI::SetAvxRegisterFile(Features.SupportsAVX && Features.SupportsSVE256);
 
   auto CTX = FEXCore::Context::Context::CreateNewContext(Features);
   if (!CTX) {
