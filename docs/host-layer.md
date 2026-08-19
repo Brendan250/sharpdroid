@@ -248,8 +248,25 @@ the argument vector is the whole interface, and the app passes the same flags a 
 | `--smc none\|mtrack\|full` | above |
 | `--asyncsig syscall\|safepoint\|block` | above |
 | `--fex Name=Value` | one FEXCore option, repeatable. below |
+| `--host-features probe\|minimal` | how FEXCore is told what this CPU can do. below |
 | `--vulkan` `--audio` and their families | the two thunks, `host/src/vulkan_thunk.h` and `host/src/audio_thunk.h` |
 | `--pad` `--trace-pad` `--pad-selftest` | the gamepad bridge, `host/src/pad_bridge.h`. [`pad.md`](pad.md) |
+
+### describing the host CPU
+
+FEXCore is created with a `HostFeatures`, which its own header calls "backend features that change how codegen is generated from IR". a field left false is a longer instruction sequence than this host needs; a field set true on a CPU without the extension is `SIGILL` wherever the emitter first uses it. **the asymmetry is why the set is read from the CPU rather than assumed** -- `--host-features probe`, which is what a launch does when nothing is said, reads the `ID_AA64*` registers, `CTR_EL0` and `DCZID_EL0` and decodes them field by field.
+
+`mrs` of an ID register is trapped and emulated by the kernel at EL0, which is what makes this readable from an ordinary process. the view it answers with is *sanitised* -- fields the kernel does not want userspace acting on read as zero -- and that is the right thing to describe FEXCore with, since it is also what the guest's own threads observe.
+
+**three fields are not CPU properties and say where they come from instead.** `SupportsAVX` is not a capability at all but the switch deciding whether the decoder has a VEX table to decode with, so it is unconditional; `SupportsPreserveAllABI` is a property of the compiler that built FEXCore rather than of the processor; and the cacheline maintenance ops travel with the cacheline *sizes*, since the emitter divides by the size to work out how many lines to walk and a zero there is reached exactly when the ops are on and the size was never read.
+
+**a CPU that advertises an extension it does not deliver is why this is a port of FEX's probe rather than a reading of the registers alone.** the errata are FEX's: Qualcomm's Oryon implements the RAND extension with `RNDRRS` never returning a number, where x86 permits `RDSEED` to fail but guarantees eventual success -- so a guest that retries until it succeeds never leaves the loop, and the extension is switched off rather than the instruction special-cased, because CPUID is what a guest asks. some Cortex parts execute the unscaled `LDAPUR` forms with stricter ordering than their pseudocode describes, which costs more than the addressing mode saves. both are decided per core out of `/sys`, so a hybrid part is judged on all of its cores rather than on whichever one the probe happened to run on.
+
+**`minimal` is the arm the probe is measured against**, and the answer for a device the probe reads wrongly: four extensions off `AT_HWCAP`, the AVX decode table, and the MIDRs. it is not a preset rung and must not become one -- understating the host is wrong at every rung, since it buys no fidelity for the speed it gives up.
+
+a feature set other than this CPU's is described with FEXCore's own `CPUFeatureRegisters`, which the probe reads: `--fex CPUFeatureRegisters=isar0=0x1021111110212120,mmfr1=0x0` overrides the named registers and leaves the rest as the hardware gave them. **FEXCore's `HostFeatures` option is a different thing and reaches nothing here**, being a bitmask of individual overrides consumed only in FEX's frontend.
+
+the run prints both the raw registers and every resulting field, so a report about wrong codegen carries enough to recompute the second from the first away from the device.
 
 ### choosing FEXCore options
 
