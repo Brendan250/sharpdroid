@@ -37,13 +37,33 @@ class DriverAdapter(
     }
 
     fun submit(newItems: List<Item>) {
+        val sameCount = newItems.size == items.size
         items = newItems
-        // the whole list. selecting one driver unselects another, so several cards change together
-        // and there is no animation here worth the bookkeeping of a diff.
-        notifyDataSetChanged()
+        // **every card is redrawn either way; the payload is what decides whether the views survive
+        // it.** selecting one driver unselects another, so several cards change together and
+        // there is nothing here a diff would spare -- but an unqualified `notifyDataSetChanged`
+        // detaches every attached view and builds it again, and detaching a view jumps its drawables
+        // to their end state. that ends the ripple running under the finger that asked for this, so
+        // pressing a card that is not already selected answers with nothing at all. named with a
+        // payload, each holder is reused and rebound where it stands and the ripple runs on.
+        //
+        // a card that arrives or leaves does change the count, and there the whole list is the
+        // honest answer: nothing is being pressed when an import or a delete redraws this.
+        if (sameCount) notifyItemRangeChanged(0, newItems.size, REDRAWN) else notifyDataSetChanged()
     }
 
     override fun getItemCount() = items.size
+
+    private companion object {
+        /**
+         * Handed to every redraw that keeps the same cards.
+         *
+         * **What it is does not matter and that it is there does**: RecyclerView reuses a holder
+         * rather than replacing it for any change that carries a payload, and reuse is what keeps
+         * the pressed view attached and its ripple alive.
+         */
+        val REDRAWN = Any()
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
         // one layout for both kinds of card, and for the other manager: they are the same thing on
