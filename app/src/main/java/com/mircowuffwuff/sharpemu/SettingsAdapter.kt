@@ -69,12 +69,25 @@ class SettingsAdapter(
      * visible blink of the toggle; any payload at all means the holder is reused and rebound in
      * place, leaving only the movement below it to animate.
      *
-     * A row that is not in the list, or a rebuild that changed the list's length, falls back to
-     * [submit] — the affordance appearing inside a row never changes the length, and the one row set
-     * that does grow and shrink belongs to a theme change, which restarts the screen anyway.
+     * **The row is found by its key, and being the same object is only the fast path.** A holder
+     * keeps the row it was bound with, and this method rebinds one row and leaves every other holder
+     * alone — so after any write, every row the user did not touch is still holding an object from a
+     * list that has since been replaced. Looking those up by identity fails, which sends a perfectly
+     * ordinary second tap down the fallback below: the list is rebuilt from nothing, the item views
+     * are torn down and made again, and the ripple under the finger and the switch's own thumb slide
+     * go with them. A key is the same string across every rebuild of a section, so it survives what
+     * an object reference cannot.
+     *
+     * **Keys are unique within a section**, which is what makes this a lookup rather than a guess;
+     * the identity test stays in front of it for the rows that carry no key at all.
+     *
+     * A row that is in no list, or a rebuild that changed the list's length, falls back to [submit]
+     * — the affordance appearing inside a row never changes the length, and the one row set that
+     * does grow and shrink belongs to a theme change, which restarts the screen anyway.
      */
     fun submit(newRows: List<SettingRow>, changed: SettingRow) {
-        val index = rows.indexOfFirst { it === changed }
+        val index =
+            rows.indexOfFirst { it === changed || (changed.key != null && it.key == changed.key) }
         if (index < 0 || newRows.size != rows.size) {
             submit(newRows)
             return
