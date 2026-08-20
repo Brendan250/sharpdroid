@@ -60,20 +60,35 @@
              so.** a linear layout can give a view all of the width or all of the leftover height,
              and neither of those is a square — which is what the artwork is, and what its rounded
              corner needs it to be drawn as. -->
-        <!-- **the artwork is inset from the screen by exactly what the cards are inset by**, so the
-             three edges a person can see at once — the artwork's left, the artwork's right against
-             the first card, and the last card's right against the screen — are one distance. that
-             distance is not this padding: it is the list's own 10dp of scroll padding plus the 6dp
-             margin every card in this app carries, 16dp between a card and whatever is beside it.
+        <!-- **the artwork is inset by half again what the cards are, and both of its sides are the
+             same 24dp** — its left against the screen, and its right against the first card.
 
-             **the two sides are therefore different numbers for the same gap.** on the left nothing
-             else contributes, so the 16dp is spelled here. on the right the list contributes all of
-             it already, so there is nothing left to add and this is zero — stated rather than
-             omitted, because a padding that is absent reads as one nobody thought about.
+             **matching the cards' own inset is not the same as looking like it.** a card is a filled
+             surface with a rounded edge and its own quiet inside it, so the 16dp between the last
+             card and the panel is read as the last of a series of margins; the artwork is ink to all
+             four corners, and the same 16dp beside it reads as the picture having been pushed
+             against the edge. equal numbers, unequal gaps. so this column takes half again the
+             figure and the cards keep theirs, which is what makes the two sides of the screen look
+             evenly placed rather than measure evenly.
+
+             **half again rather than twice**, which the column is wide enough to carry and the
+             picture is not: this column is a third of the panel, so at double the inset the artwork
+             loses an eighth of its side and starts reading as a thumbnail with a lot of air around
+             it rather than as the thing the screen is arranged around.
+
+             **the two sides are different numbers for the same gap**, because only one of them is
+             paid for entirely here. on the left nothing else contributes and the whole 24dp is
+             spelled out. on the right the list beside this column already contributes 16dp — its
+             own 10dp of scroll padding plus the 6dp margin every card in this app carries — so what
+             is left to add is the 8dp between them.
 
              it is only right while those two numbers are what they are, and neither belongs to this
              file: they are the list in activity_settings.xml and the card itself. XML cannot hold
-             the subtraction, which is why it is written out here. -->
+             the subtraction, which is why it is written out here.
+
+             **the square shrinks by exactly what is added here**, its width driving its height
+             through the 1:1 ratio below, and that is the price rather than a side effect: this
+             column is a third of the panel and every dp of inset comes out of the picture. -->
         <!-- **the column scrolls, because a square as wide as a third of the screen plus a path that
              wraps is taller than a short panel.** the cards beside it have scrolled from the day
              there were three of them, and this side had been getting away with it. `fillViewport` is
@@ -100,8 +115,8 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="0dp"
+            android:paddingStart="24dp"
+            android:paddingEnd="8dp"
             android:paddingTop="10dp"
             android:paddingBottom="40dp">
 
