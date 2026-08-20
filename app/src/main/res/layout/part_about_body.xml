@@ -66,8 +66,13 @@
              it answers a tap by moving, and it **carries no ripple** - the one deliberate touch target
              in this app that does not look like one. a borderless ripple on a view this size is a grey
              disc the width of the glow and would make the drawing read as a button about to navigate
-             somewhere; the movement is the cue instead, and it is the only cue there is. see
+             somewhere; the movement is the cue instead, and it is the only cue there is.
 
+             **`mirco` is the resting face and `mirco_tapped` is the one it pulls when it is pressed.**
+             the two are the same drawing at the same size and differ in the eyes and the mouth, so
+             the swap costs no layout pass and nothing on the page moves under it. what is named here
+             is the resting one, because that is the state the screen opens in and the state it is in
+             whenever nobody is pressing it; how long the other one stays on is the activity's.
 
              **the lift is a translation rather than a margin, and the frame lets it out.** the frame
              is exactly as tall as the drawing, so a margin that moved it would have to change the

@@ -63,8 +63,9 @@
             android:background="@drawable/bg_hero_glow"
             android:backgroundTint="?attr/colorPrimary" />
 
-        <!-- it answers a tap by moving and carries no ripple, for the reason the stacked variant
-
+        <!-- it answers a tap by rocking and pulling a face, and it carries no ripple, for the reasons
+             the stacked variant's own comment gives. `mirco` is the resting face here too, and
+             `mirco_tapped` is what the activity swaps in while the press is being answered.
 
              **the lift is a translation rather than a margin, and the frame lets it out.** the frame
              is exactly as tall as the drawing, so a margin that moved it would have to change the

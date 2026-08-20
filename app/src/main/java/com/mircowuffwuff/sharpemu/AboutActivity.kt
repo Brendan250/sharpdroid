@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
@@ -49,7 +50,8 @@ class AboutActivity : AppCompatActivity() {
      *
      * The drawing answers a tap by moving and *then* leaving, so there is a window in which a second
      * tap would queue a second departure. It is cleared in `onResume`, which is where coming back from
-     * the browser lands.
+     * the browser lands — and is also what tells that method the face is still the pulled one and
+     * wants putting back.
      */
     private var leaving = false
 
@@ -74,8 +76,9 @@ class AboutActivity : AppCompatActivity() {
         // **the drawing is the only way to the donation URL and nothing on the screen says so**,
         // which is the point rather than an oversight: the page names what this app is built on and
         // declines to ask anybody for anything. what is there for whoever presses it anyway is the
-        // drawing moving first. the content description is what a screen reader is given instead.
-        body.mirco.setOnClickListener { wiggleThenOpen(it, DONATE) }
+        // drawing rocking and pulling a face first. the content description is what a screen reader
+        // is given instead, and it names the same person in either expression.
+        body.mirco.setOnClickListener { wiggleThenOpen(body.mirco, DONATE) }
 
         val facts = body.facts
         facts.versions.text = versionsLine()
@@ -110,6 +113,11 @@ class AboutActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // **coming back is where the face goes back**, because the departure carries it: the last
+        // thing seen of this screen is the drawing still pulling it, and the first thing seen of it
+        // again is the drawing composed. putting it back on the way out instead would spend the
+        // whole expression on the frame or two before a browser covers the screen.
+        if (leaving) binding.body.mirco.setImageResource(R.drawable.mirco)
         leaving = false
         if (Theme.recreateIfStale(this, drawnWith)) return
         // the fullscreen toggle lives on another section and this screen is reachable after it.
@@ -206,7 +214,7 @@ class AboutActivity : AppCompatActivity() {
     }
 
     /**
-     * Rocks [view], then opens [url].
+     * Rocks [drawing], pulls a face doing it, and opens [url] on the beat the rock lands.
      *
      * **The movement is the whole affordance.** The drawing carries no ripple, so nothing about it
      * says it is pressable until it is pressed — and then what answers is not a highlight but the
@@ -214,39 +222,69 @@ class AboutActivity : AppCompatActivity() {
      * one gesture: a browser that opened on the down-press would take the screen away before anybody
      * saw the drawing react.
      *
+     * **The face is swapped outright rather than crossfaded**, and it is the same drawing with a
+     * different expression on it — same size, same outline, same everything but the eyes and the
+     * mouth. A dissolve between two of those reads as an image loading; a cut reads as somebody
+     * reacting, which is what is being drawn.
+     *
+     * **The face outlasts both the rock and the departure, and `onResume` is what puts it back.**
+     * The rock is over in [WIGGLE_MS] and the expression is worth more than that — but the way to
+     * spend it is not to make anybody wait for it. The browser is asked for the moment the rock
+     * settles, exactly as it would be with one face; what changes is only that the drawing is still
+     * pulling the other one as the screen is taken away, and is composed again when it comes back.
+     *
+     * **Nothing opening is the one case that has to put the face back itself**, since there is then
+     * no browser to cover the screen and no return to be resumed from. [FACE_HELD_MS] is how long it
+     * sits there first, so a failed link still reads as the drawing having answered the press.
+     *
      * The pivot is the bottom edge, so it rocks where it is sitting rather than spinning about its
      * middle, and [leaving] is what stops a second tap queueing a second departure.
      */
-    private fun wiggleThenOpen(view: View, url: String) {
+    private fun wiggleThenOpen(drawing: ImageView, url: String) {
         if (leaving) return
         leaving = true
-        view.pivotX = view.width / 2f
-        view.pivotY = view.height.toFloat()
-        ObjectAnimator.ofFloat(view, View.ROTATION, 0f, -6f, 5f, -3f, 2f, 0f).apply {
+        drawing.setImageResource(R.drawable.mirco_tapped)
+        drawing.pivotX = drawing.width / 2f
+        drawing.pivotY = drawing.height.toFloat()
+        ObjectAnimator.ofFloat(drawing, View.ROTATION, 0f, -6f, 5f, -3f, 2f, 0f).apply {
             duration = WIGGLE_MS
+            // `doOnEnd` runs whether the rock finished or was cancelled under it, so there is no
+            // way to end up rocked, faced and going nowhere.
             doOnEnd {
                 // the screen can be left while this runs -- by the back gesture, or by the theme
                 // being changed behind it -- and a browser opening out of an activity on its way out
-                // is a browser nobody asked for.
-                if (!isFinishing && !isDestroyed) open(url)
+                // is a browser nobody asked for. the face leaves with the screen either way.
+                if (isFinishing || isDestroyed) return@doOnEnd
+                // **the two drawings are the same size**, so putting the resting one back asks for
+                // no layout pass and the page does not move under the swap in either direction.
+                if (!open(url)) {
+                    drawing.postDelayed({ drawing.setImageResource(R.drawable.mirco) }, FACE_HELD_MS)
+                }
             }
             start()
         }
     }
 
     /**
-     * Hands [url] to whatever can open it.
+     * Hands [url] to whatever can open it, and says whether anything took it.
      *
      * **A device with nothing that can is a real state here** — a handheld set up to run games and
      * nothing else has no browser — so every link on this screen fails the same way and none of them
-     * takes the app with it.
+     * takes the app with it. The answer is what the drawing needs: a link that opened is a screen
+     * about to be covered and later resumed, and a link that did not is a screen that stays where it
+     * is, with whatever the press changed still on it.
+     *
+     * The five links that are text ignore it, which is right rather than an oversight — the toast
+     * is the whole of what a failure owes them.
      */
-    private fun open(url: String) {
-        try {
+    private fun open(url: String): Boolean {
+        return try {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            true
         } catch (nothingCanOpenIt: ActivityNotFoundException) {
             leaving = false
             Toast.makeText(this, R.string.about_link_failed, Toast.LENGTH_LONG).show()
+            false
         }
     }
 
@@ -265,6 +303,15 @@ class AboutActivity : AppCompatActivity() {
 
         /** Long enough to read as a reaction, short enough that nobody waits on it to leave. */
         const val WIGGLE_MS = 620L
+
+        /**
+         * How long the pulled face stays on when nothing opens, in milliseconds.
+         *
+         * **It is the failure path's number and no other.** A link that opens spends the face on the
+         * departure and gets it back on the return, so this stands in for a browser that never
+         * arrives — measured from the end of the rock, which keeps it independent of [WIGGLE_MS].
+         */
+        const val FACE_HELD_MS = 1000L
 
         /** How far below its resting place the drawing starts, in pixels. */
         const val ENTRANCE_RISE = 20f
