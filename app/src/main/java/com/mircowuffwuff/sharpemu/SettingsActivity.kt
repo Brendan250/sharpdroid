@@ -141,12 +141,27 @@ class SettingsActivity : AppCompatActivity() {
             /**
              * The sections that have rows, in the order the grid draws them.
              *
+             * **The install's two lead, and [perGame]'s four follow in [perGame]'s own order.** App
+             * and Game files are the pair that has nothing to say about one game, so putting them
+             * together makes the first row of this grid exactly what a game's scene does not carry —
+             * and leaves everything under it as the block the two screens share, arranged the same
+             * way on both. Somebody who has learned where Controls is on one screen has learned it
+             * on the other.
+             *
+             * **What transfers is the arrangement rather than the position, and that is the whole of
+             * what could.** This grid is as wide as the panel and a game's is two columns inside the
+             * right two thirds, so no card can land on the same pixel on both; the shape of the
+             * block is what an eye carries between them. That is also why the install's pair leads
+             * rather than trails: putting it last would line the shared block up by row without
+             * lining anything up by width, and would spend the first slot in the app's own settings
+             * on neither of the sections the app is mostly opened for.
+             *
              * **Not called `entries`**, which is kotlin's own name for every constant of an enum
              * since 1.9 — a member shadowing it compiles with a deprecation warning and then means
              * something different from what it reads as.
              */
             val shown =
-                listOf(APP, EMULATION, GRAPHICS, CONTROLS, GAME_FILES, USER_DATA)
+                listOf(APP, GAME_FILES, EMULATION, GRAPHICS, CONTROLS, USER_DATA)
 
             /**
              * The sections a single game answers for, in the order [GameSettingsActivity] draws them.
