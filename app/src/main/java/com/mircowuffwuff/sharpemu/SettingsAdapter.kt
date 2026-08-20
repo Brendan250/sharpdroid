@@ -96,6 +96,26 @@ class SettingsAdapter(
         notifyItemChanged(index, CHANGED)
     }
 
+    /**
+     * The whole list again, one row longer or one shorter, saying which row arrived or left.
+     *
+     * **This is the only path that animates a row into or out of the list**, and it exists because a
+     * row that comes and goes is otherwise indistinguishable from a list that was replaced: [submit]
+     * says "assume nothing", and RecyclerView answers by laying out again with no animation at all.
+     * Named, an insert fades the new row up while the rows below slide down to make room for it, and
+     * a removal does both in reverse — which is the same pair of movements the Use global value
+     * button inside a row already gets, and for the same reason.
+     *
+     * **It is the caller that knows what moved.** An adapter handed two lists can only diff them,
+     * and a diff of a settings section would have to decide whether a row whose value changed is the
+     * same row — a question the caller never has to ask, because it is the one that added or took
+     * away the row.
+     */
+    fun replaceRow(newRows: List<SettingRow>, at: Int, arriving: Boolean) {
+        rows = newRows
+        if (arriving) notifyItemInserted(at) else notifyItemRemoved(at)
+    }
+
     override fun getItemCount() = rows.size
 
     override fun getItemViewType(position: Int) = when (rows[position]) {

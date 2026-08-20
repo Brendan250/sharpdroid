@@ -44,6 +44,28 @@ class SettingsSectionActivity : AppCompatActivity() {
      */
     private var game: String? = null
 
+    /**
+     * Whether a Custom theme was chosen when this screen was built, and therefore whether the seed
+     * colour row was in the list.
+     *
+     * **The store cannot answer this after the fact**: choosing a theme writes it and then restarts
+     * the screen, so by the time anything asks, the new choice is the only one recorded. This is read
+     * once, on the way in, while it is still true.
+     */
+    private var builtWithColourRow = false
+
+    /**
+     * What the seed colour row is doing on this screen's first layout, carried across the restart a
+     * theme change causes.
+     *
+     * **The restart is why this has to be carried at all.** A palette is resolved when views are
+     * inflated, so a theme cannot be swapped underneath a screen that is already drawn and the
+     * activity is rebuilt instead — and the instance that comes back has no idea a theme just
+     * changed, let alone whether the row it is about to draw was on the screen a moment ago. One
+     * value in the saved state is the whole of what it needs.
+     */
+    private var colourRowArrival = COLOUR_ROW_STILL
+
     override fun onCreate(state: Bundle?) {
         Theme.apply(this)
         drawnWith = Theme.signature(this)
@@ -65,13 +87,47 @@ class SettingsSectionActivity : AppCompatActivity() {
         binding.toolbar.setTitle(section.title)
         binding.toolbar.setNavigationOnClickListener { finish() }
 
+        builtWithColourRow = Theme.chosen(this) == Settings.THEME_CUSTOM
+        colourRowArrival = state?.getInt(STATE_COLOUR_ROW) ?: COLOUR_ROW_STILL
+
+        // **the list is built as it was a moment ago, not as it is**, when a theme change is what
+        // brought this screen back: the row that is arriving is left out so there is something for
+        // it to arrive into, and the row that is leaving is drawn one more time so there is
+        // something to take away. a screen that opened any other way builds the list it means.
+        val arriving = colourRowArrival == COLOUR_ROW_ARRIVING
+        val before =
+            if (colourRowArrival == COLOUR_ROW_STILL) rows() else rows(colourRow = !arriving)
         adapter = SettingsAdapter(
             settings,
-            rows(),
+            before,
             onChanged = this::changed,
         )
         binding.settings.layoutManager = LinearLayoutManager(this)
         binding.settings.adapter = adapter
+
+        // **one layout later, because a row cannot animate into a list that has not been drawn
+        // yet.** the adapter is set during onCreate and nothing is measured until after it returns,
+        // so an insert asked for here would be part of the first layout rather than a change to it,
+        // and would simply appear — which is the thing being fixed.
+        if (colourRowArrival != COLOUR_ROW_STILL) {
+            val at = rows(colourRow = true).indexOfFirst { it.key == Settings.KEY_CUSTOM_COLOUR }
+            binding.settings.post {
+                // **the flag is cleared here rather than above, because [onResume] reads it.** it
+                // runs between this method and this runnable, and its own redraw would settle the
+                // list into its final shape before the row had anywhere to move from.
+                colourRowArrival = COLOUR_ROW_STILL
+                if (at >= 0) adapter.replaceRow(rows(), at, arriving) else adapter.submit(rows())
+            }
+        }
+    }
+
+    /**
+     * **The one value that has to outlive the restart a theme change causes**, and it is written
+     * here rather than when the theme is chosen because that is when the restart takes it.
+     */
+    override fun onSaveInstanceState(out: Bundle) {
+        super.onSaveInstanceState(out)
+        out.putInt(STATE_COLOUR_ROW, colourRowArrival)
     }
 
     /**
@@ -83,6 +139,16 @@ class SettingsSectionActivity : AppCompatActivity() {
      */
     private fun changed(row: SettingRow) {
         if (row.key == Settings.KEY_THEME || row.key == Settings.KEY_CUSTOM_COLOUR) {
+            // **the seed colour row comes and goes with the Custom theme, and the screen it is on is
+            // about to be rebuilt** — so what it is doing is worked out here, while both answers are
+            // still knowable, and handed to the instance that comes back. a seed colour that changed
+            // leaves the row exactly where it was, which is the common case and moves nothing.
+            val nowCustom = Theme.chosen(this) == Settings.THEME_CUSTOM
+            colourRowArrival = when {
+                nowCustom && !builtWithColourRow -> COLOUR_ROW_ARRIVING
+                !nowCustom && builtWithColourRow -> COLOUR_ROW_LEAVING
+                else -> COLOUR_ROW_STILL
+            }
             Theme.reapply(this)
             return
         }
@@ -106,7 +172,12 @@ class SettingsSectionActivity : AppCompatActivity() {
         // the bars may have been toggled on another section, and the all-files switch is changed on
         // the platform's own screen -- both come back through here.
         SystemBars.apply(this, binding.root)
-        adapter.submit(rows())
+        // **a row that is part way in or out is holding the list one row away from what the store
+        // says, and it is doing that deliberately.** this method runs before the pass that moves it,
+        // so redrawing here would put the list straight into its final shape and leave the animation
+        // describing a change that had already happened -- which RecyclerView reports as an
+        // inconsistency rather than ignoring.
+        if (colourRowArrival == COLOUR_ROW_STILL) adapter.submit(rows())
     }
 
     // ----------------------------------------------------------------------------------------------
@@ -121,9 +192,16 @@ class SettingsSectionActivity : AppCompatActivity() {
      * set something that could only ever be set once. Nothing in the app opens either that way; a
      * hand-written intent still can, and an empty list is the same answer the section guard in
      * [onCreate] gives a name that is not a section at all.
+     *
+     * [colourRow] is whether the seed colour row is wanted, and defaults to what the stored theme
+     * says — which is the right answer everywhere except the one layout a theme change is being
+     * animated across, where the list has to be built as it stood before the change so that the
+     * difference is something a viewer can watch happen.
      */
-    private fun rows(): List<SettingRow> = when (section) {
-        SettingsActivity.Section.APP -> if (game == null) appRows() else emptyList()
+    private fun rows(
+        colourRow: Boolean = Theme.chosen(this) == Settings.THEME_CUSTOM,
+    ): List<SettingRow> = when (section) {
+        SettingsActivity.Section.APP -> if (game == null) appRows(colourRow) else emptyList()
         SettingsActivity.Section.EMULATION -> emulationRows()
         SettingsActivity.Section.GRAPHICS -> graphicsRows()
         SettingsActivity.Section.CONTROLS -> controlsRows()
@@ -134,7 +212,7 @@ class SettingsSectionActivity : AppCompatActivity() {
         SettingsActivity.Section.USER_DATA -> emptyList()
     }
 
-    private fun appRows(): List<SettingRow> {
+    private fun appRows(colourRow: Boolean): List<SettingRow> {
         val rows = mutableListOf<SettingRow>()
         // **Material You and Custom are dropped from the list where dynamic colour does not exist**,
         // rather than shown and refused. both are the same generator - one seeded by the wallpaper
@@ -156,7 +234,7 @@ class SettingsSectionActivity : AppCompatActivity() {
         // **only while a Custom theme is chosen.** a seed colour with no scheme to generate would be
         // a control that changes nothing, and it sits directly under the row that put it there so
         // the two read as one choice rather than as two.
-        if (Theme.chosen(this) == Settings.THEME_CUSTOM) {
+        if (colourRow) {
             rows += SettingRow.Colour(
                 key = Settings.KEY_CUSTOM_COLOUR,
                 title = R.string.setting_custom_colour,
@@ -519,5 +597,17 @@ class SettingsSectionActivity : AppCompatActivity() {
          * own settings, which is what every screen reached from the cog sends.
          */
         const val EXTRA_GAME = "game"
+
+        /** Where [colourRowArrival] is kept while a theme change rebuilds this screen. */
+        private const val STATE_COLOUR_ROW = "colourRow"
+
+        /** The seed colour row is where it was: a first visit, or a change that did not move it. */
+        private const val COLOUR_ROW_STILL = 0
+
+        /** A Custom theme was just chosen and the row is coming in under the one that chose it. */
+        private const val COLOUR_ROW_ARRIVING = 1
+
+        /** A Custom theme was just left and the row is going out. */
+        private const val COLOUR_ROW_LEAVING = 2
     }
 }
