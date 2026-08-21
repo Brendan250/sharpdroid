@@ -1,6 +1,5 @@
 package com.mircowuffwuff.sharpemu
 
-import android.util.Log
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -160,7 +159,7 @@ data class Game(
                     readCapped(stream, folder)?.let { JSONObject(it) }?.opt("titleId") as? String
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "[app] could not read " + PARAM + " of " + folder + ": " + e)
+                AppLog.w(TAG, "[app] could not read " + PARAM + " of " + folder + ": " + e)
                 null
             }
             return sanitizeTitleId(raw)
@@ -213,7 +212,7 @@ data class Game(
             } catch (e: Exception) {
                 // and the row falls back to the directory name. logged rather than swallowed,
                 // because a dump the emulator boots and the list cannot name is worth seeing once.
-                Log.w(TAG, "[app] could not read " + PARAM + " of " + source.folder + ": " + e)
+                AppLog.w(TAG, "[app] could not read " + PARAM + " of " + source.folder + ": " + e)
                 null
             }
 
@@ -223,7 +222,7 @@ data class Game(
             // without asking anything how long it is.
             val raw = stream.readAtMost(PARAM_MAX_BYTES + 1)
             if (raw.size > PARAM_MAX_BYTES) {
-                Log.w(TAG, "[app] ignoring oversized " + PARAM + " of " + folder)
+                AppLog.w(TAG, "[app] ignoring oversized " + PARAM + " of " + folder)
                 return null
             }
             return String(raw, Charsets.UTF_8)

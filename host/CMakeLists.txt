@@ -149,6 +149,9 @@ add_library(host-layer-core STATIC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_log.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_procfs.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/host_features.cpp"
+  # the window of printed lines a viewer reads. it links into the shell binary too, where nothing
+  # fills it — the log pump is the library's, so there the ring stays empty and unallocated.
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/log_ring.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/pad_bridge.cpp"
   # the java side of the guest file layer. it links into the shell binary too, where there is no
   # JavaVM to hand it — Available() answers false there and the mount is refused, which is a better

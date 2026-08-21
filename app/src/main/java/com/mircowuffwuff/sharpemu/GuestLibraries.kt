@@ -1,7 +1,6 @@
 package com.mircowuffwuff.sharpemu
 
 import android.content.Context
-import android.util.Log
 import java.io.File
 
 /**
@@ -128,7 +127,7 @@ object GuestLibraries {
             return Outcome.Ready(target)
         }
         if (target.isDirectory) {
-            Log.i(TAG, "[app] the unpacked guest libraries are not the set in this APK, so"
+            AppLog.i(TAG, "[app] the unpacked guest libraries are not the set in this APK, so"
                     + " re-unpacking")
         }
 
@@ -138,7 +137,7 @@ object GuestLibraries {
         val total = contents.sumOf { it.bytes }
         if (!AssetTree.hasSpace(internal, total)) {
             val free = AssetTree.freeSpace(internal)
-            Log.e(TAG, "[app] the guest libraries need $total bytes and $internal has $free free")
+            AppLog.e(TAG, "[app] the guest libraries need $total bytes and $internal has $free free")
             return Outcome.OutOfSpace(total, free)
         }
 
@@ -148,7 +147,7 @@ object GuestLibraries {
         // read back rather than trusting the extraction: this is the last moment a set missing the
         // interpreter is cheap to notice, and after it the failure is the guest's linker exiting.
         if (!usable(target)) {
-            Log.e(TAG, "[app] $target unpacked without " + ESSENTIAL.joinToString(" or "))
+            AppLog.e(TAG, "[app] $target unpacked without " + ESSENTIAL.joinToString(" or "))
             target.deleteRecursively()
             return Outcome.Failed(context.getString(R.string.guest_libs_failed))
         }
@@ -166,9 +165,9 @@ object GuestLibraries {
     @JvmStatic
     fun report(outcome: Outcome) {
         when (outcome) {
-            is Outcome.Staged -> Log.i(TAG, "[app] guest libraries: staged, " + outcome.dir
+            is Outcome.Staged -> AppLog.i(TAG, "[app] guest libraries: staged, " + outcome.dir
                     + " — this overrides the set in the app. re-stage it after an app update")
-            is Outcome.Ready -> Log.i(TAG, "[app] guest libraries: the app's own, " + outcome.dir)
+            is Outcome.Ready -> AppLog.i(TAG, "[app] guest libraries: the app's own, " + outcome.dir)
             else -> {}
         }
     }

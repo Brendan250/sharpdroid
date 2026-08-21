@@ -5,7 +5,6 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.util.Log
 
 /**
  * The guest's rumble, on whatever this device can vibrate with.
@@ -83,7 +82,7 @@ object PadRumble {
         if (device == null || !device.hasVibrator()) {
             // said once, and not an error: a device with no actuator is a perfectly ordinary thing to
             // run this on, and the alternative is a line per rumble for the rest of the run.
-            Log.i(TAG, "[pad] this device has no vibrator, so rumble goes nowhere")
+            AppLog.i(TAG, "[pad] this device has no vibrator, so rumble goes nowhere")
             vibrator = null
             return
         }
@@ -93,7 +92,7 @@ object PadRumble {
         // answered here.** neither hasVibrator nor hasAmplitudeControl consults the VIBRATE
         // permission, so both answer truthfully to an app that has not been granted it and the vibrate
         // call alone throws. so this line says what it actually knows rather than "ready".
-        Log.i(TAG, "[pad] a vibrator is present, amplitude control " +
+        AppLog.i(TAG, "[pad] a vibrator is present, amplitude control " +
                 (if (amplitudeControl) "available" else "absent") +
                 ". whether a buzz arrives is only known when one is asked for")
     }
@@ -154,7 +153,7 @@ object PadRumble {
             // the vibrator service can go away, and a throw crossing back into JNI would be delivered
             // at the delivery thread's next call — a different request entirely. this is not worth
             // ending a run over.
-            Log.w(TAG, "[pad] a rumble request failed", e)
+            AppLog.w(TAG, "[pad] a rumble request failed", e)
             return false
         }
     }

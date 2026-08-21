@@ -1,7 +1,6 @@
 package com.mircowuffwuff.sharpemu
 
 import android.os.Build
-import android.util.Log
 import org.json.JSONObject
 import java.io.File
 import java.util.Locale
@@ -124,7 +123,7 @@ class GpuDriver private constructor(
             return try {
                 GpuDriver(dir, dir.name, JSONObject(meta.readText()))
             } catch (e: Exception) {
-                Log.e(TAG, "[app] could not read $meta", e)
+                AppLog.e(TAG, "[app] could not read $meta", e)
                 null
             }
         }
@@ -174,7 +173,7 @@ class GpuDriver private constructor(
         fun delete(dir: File): Boolean {
             dir.deleteRecursively()
             val gone = !dir.exists()
-            Log.i(TAG, "[app] " + (if (gone) "deleted " else "could not delete ") + dir)
+            AppLog.i(TAG, "[app] " + (if (gone) "deleted " else "could not delete ") + dir)
             return gone
         }
     }

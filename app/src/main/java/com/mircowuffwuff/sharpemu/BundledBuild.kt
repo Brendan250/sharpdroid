@@ -1,7 +1,6 @@
 package com.mircowuffwuff.sharpemu
 
 import android.content.Context
-import android.util.Log
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
@@ -89,7 +88,7 @@ object BundledBuild {
             return Outcome.Ready(onDisk)
         }
         if (onDisk != null) {
-            Log.i(TAG, "[app] the bundled build on disk is not the one in this APK, so re-extracting")
+            AppLog.i(TAG, "[app] the bundled build on disk is not the one in this APK, so re-extracting")
         }
 
         val contents = AssetTree.contents(context, ASSETS) ?: return Outcome.Failed(
@@ -100,7 +99,7 @@ object BundledBuild {
         // leaving the user with a black screen and a partially filled disk.
         if (!AssetTree.hasSpace(internal, total)) {
             val free = AssetTree.freeSpace(internal)
-            Log.e(TAG, "[app] the bundled build needs $total bytes and $internal has $free free")
+            AppLog.e(TAG, "[app] the bundled build needs $total bytes and $internal has $free free")
             return Outcome.OutOfSpace(total, free)
         }
 
@@ -163,7 +162,7 @@ object BundledBuild {
             ?: return null
         val build = SharpEmuBuild.read(target)
         if (build == null || !build.runnable()) {
-            Log.e(TAG, "[app] $target extracted and is not a runnable build")
+            AppLog.e(TAG, "[app] $target extracted and is not a runnable build")
             target.deleteRecursively()
             return null
         }
@@ -179,7 +178,7 @@ object BundledBuild {
         // the ordinary answer in a development build, so it is not logged.
         null
     } catch (e: Exception) {
-        Log.e(TAG, "[app] this APK carries a bundled build with an unreadable meta.json", e)
+        AppLog.e(TAG, "[app] this APK carries a bundled build with an unreadable meta.json", e)
         null
     }
 }

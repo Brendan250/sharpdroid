@@ -1,7 +1,6 @@
 package com.mircowuffwuff.sharpemu
 
 import android.content.Context
-import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -74,7 +73,7 @@ object AssetTree {
                 .toList()
         }
     } catch (e: Exception) {
-        Log.e(TAG, "[app] could not read $assets/$CONTENTS", e)
+        AppLog.e(TAG, "[app] could not read $assets/$CONTENTS", e)
         null
     }
 
@@ -85,7 +84,7 @@ object AssetTree {
         // the ordinary answer for a tree this APK does not carry, so it is not logged.
         null
     } catch (e: Exception) {
-        Log.e(TAG, "[app] could not read the asset $path", e)
+        AppLog.e(TAG, "[app] could not read the asset $path", e)
         null
     }
 
@@ -142,7 +141,7 @@ object AssetTree {
         val partial = File(target.parentFile, target.name + ".partial")
         partial.deleteRecursively()
         if (!partial.mkdirs()) {
-            Log.e(TAG, "[app] could not create $partial")
+            AppLog.e(TAG, "[app] could not create $partial")
             return null
         }
         val started = System.currentTimeMillis()
@@ -167,18 +166,18 @@ object AssetTree {
             }
             stamp?.let { (name, text) -> File(partial, name).writeText(text) }
         } catch (e: Exception) {
-            Log.e(TAG, "[app] could not extract $label", e)
+            AppLog.e(TAG, "[app] could not extract $label", e)
             partial.deleteRecursively()
             return null
         }
 
         target.deleteRecursively()
         if (!partial.renameTo(target)) {
-            Log.e(TAG, "[app] could not move $partial to $target")
+            AppLog.e(TAG, "[app] could not move $partial to $target")
             partial.deleteRecursively()
             return null
         }
-        Log.i(TAG, "[app] extracted $label, $done bytes to $target in "
+        AppLog.i(TAG, "[app] extracted $label, $done bytes to $target in "
                 + (System.currentTimeMillis() - started) + " ms")
         return done
     }

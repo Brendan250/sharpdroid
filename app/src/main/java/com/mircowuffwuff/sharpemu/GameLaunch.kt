@@ -3,7 +3,6 @@ package com.mircowuffwuff.sharpemu
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import java.io.File
 
 /**
@@ -93,7 +92,7 @@ object GameLaunch {
         // the folder, because that is what the intent carries and what the host layer will name in
         // its own lines. the display name is beside it so a log and a screen can be read together,
         // and where the run was started from, since two screens now start one.
-        Log.i(
+        AppLog.i(
             TAG,
             "[app] launching " + source.folder + " (" + name + ", " + how + ", from " +
                 from.label + ")"

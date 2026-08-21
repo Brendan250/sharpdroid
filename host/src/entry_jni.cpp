@@ -7,6 +7,7 @@
 
 #include "boot_progress.h"
 #include "host_layer.h"
+#include "log_ring.h"
 #include "pad_bridge.h"
 #include "saf_bridge.h"
 #include "vulkan_thunk.h"
@@ -16,6 +17,7 @@
 #include <android/native_window_jni.h>
 #include <jni.h>
 
+#include <cstring>
 #include <pthread.h>
 #include <string>
 #include <unistd.h>
@@ -50,6 +52,10 @@ void* LogPump(void*) {
         // the host layer's own lines as well as the guest's, which costs a few comparisons and
         // means a checkpoint could be either side's without this loop knowing the difference.
         HostLayer::BootProgress::Observe(Line.data(), Line.size());
+        // and the window a viewer inside the app reads, kept at the same point and for the same
+        // reason: this thread exists to drain a pipe, so it is the one place every line passes that
+        // is not the guest's own. it costs a lock and a copy against the socket write below it.
+        HostLayer::LogRing::Push(Line.data(), Line.size());
         __android_log_write(ANDROID_LOG_INFO, LogTag, Line.c_str());
         Line.clear();
       } else {
@@ -58,6 +64,9 @@ void* LogPump(void*) {
         // — a .NET stack trace does — and losing it silently is exactly the sort of thing that
         // costs a debugging round, so break it up rather than let it vanish.
         if (Line.size() >= 3800) {
+          // the piece is kept as a line of its own, so a stack trace reaches a reader in the shape
+          // logcat gets it in rather than being whole in one place and broken in the other.
+          HostLayer::LogRing::Push(Line.data(), Line.size());
           __android_log_write(ANDROID_LOG_INFO, LogTag, Line.c_str());
           Line.clear();
         }
@@ -228,6 +237,57 @@ JNIEXPORT jlongArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeBoo
   jlongArray Out = Env->NewLongArray(Count);
   Env->SetLongArrayRegion(Out, 0, Count, Times.data());
   return Out;
+}
+
+// the sequence one past the newest line the process has printed. **the repeatedly-made call of this
+// group**, and it is a lock and a load: a caller polls it while it is showing the log and asks for
+// nothing at all the rest of the time.
+JNIEXPORT jlong JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogNext(JNIEnv*, jclass) {
+  return HostLayer::LogRing::Next();
+}
+
+// the sequence of the oldest line still held. a caller opening a viewer starts here; one that has
+// been away compares this against what it last saw to learn whether anything was dropped meanwhile.
+JNIEXPORT jlong JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogOldest(JNIEnv*, jclass) {
+  return HostLayer::LogRing::Oldest();
+}
+
+// the lines from From up to but not including To, clamped to what is still held.
+//
+// **the copy out of the ring is the whole of what the pump can be made to wait for**, which is why
+// the range is the caller's to choose rather than "everything new": a viewer that polls asks for the
+// handful of lines that arrived since it last looked, and only an opening viewer asks for thousands.
+JNIEXPORT jobjectArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogRange(
+  JNIEnv* Env, jclass, jlong From, jlong To) {
+  std::vector<std::string> Held;
+  HostLayer::LogRing::Range(From, To, Held);
+  jclass StringClass = Env->FindClass("java/lang/String");
+  auto Count = static_cast<jsize>(Held.size());
+  jobjectArray Out = Env->NewObjectArray(Count, StringClass, nullptr);
+  for (jsize Index = 0; Index < Count; ++Index) {
+    jstring Text = Env->NewStringUTF(Held[static_cast<size_t>(Index)].c_str());
+    Env->SetObjectArrayElement(Out, Index, Text);
+    Env->DeleteLocalRef(Text);
+  }
+  Env->DeleteLocalRef(StringClass);
+  return Out;
+}
+
+// one line of the app's own, kept where it arrived among the emulator's.
+//
+// **it is not written to logcat here**, because the caller has already written it there — this puts
+// it in the one place it would otherwise be missing from. the app's lines never touch the pipe under
+// fds 1 and 2: java logging is the platform's own channel and does not pass through stdout.
+JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogLine(
+  JNIEnv* Env, jclass, jstring Line) {
+  if (!Line) {
+    return;
+  }
+  const char* Text = Env->GetStringUTFChars(Line, nullptr);
+  if (Text) {
+    HostLayer::LogRing::Push(Text, ::strlen(Text));
+    Env->ReleaseStringUTFChars(Line, Text);
+  }
 }
 
 // blocks for the whole run, so the app must call it off the UI thread. a guest that calls

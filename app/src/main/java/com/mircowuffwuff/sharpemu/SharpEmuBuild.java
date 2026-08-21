@@ -1,6 +1,5 @@
 package com.mircowuffwuff.sharpemu;
 
-import android.util.Log;
 
 import org.json.JSONObject;
 
@@ -220,11 +219,11 @@ public final class SharpEmuBuild {
             where = "installed";
         }
         if (best == null) {
-            Log.e(TAG, "[app] no build in " + staged + " or " + internal
+            AppLog.e(TAG, "[app] no build in " + staged + " or " + internal
                     + " — stage one with scripts/stage.py, or name one with --es sharpemu <path>");
             return null;
         }
-        Log.i(TAG, "[app] no build named, so the most recently " + where + " one: " + best.dir);
+        AppLog.i(TAG, "[app] no build named, so the most recently " + where + " one: " + best.dir);
         if (!accept(best)) {
             return null;
         }
@@ -278,7 +277,7 @@ public final class SharpEmuBuild {
         if (inStaged.isDirectory()) {
             return resolvePath(inStaged);
         }
-        Log.e(TAG, "[app] the chosen build '" + folder + "' is in neither " + internal
+        AppLog.e(TAG, "[app] the chosen build '" + folder + "' is in neither " + internal
                 + " nor " + staged);
         return null;
     }
@@ -292,13 +291,13 @@ public final class SharpEmuBuild {
      */
     static SharpEmuBuild resolvePath(File dir) {
         if (!dir.isDirectory()) {
-            Log.e(TAG, "[app] no build directory at " + dir
+            AppLog.e(TAG, "[app] no build directory at " + dir
                     + " — stage one with scripts/stage.py");
             return null;
         }
         SharpEmuBuild build = read(dir);
         if (build == null) {
-            Log.e(TAG, "[app] " + dir + " has no readable meta.json, so it has no identity"
+            AppLog.e(TAG, "[app] " + dir + " has no readable meta.json, so it has no identity"
                     + " — package it with scripts/package-build.py");
             return null;
         }
@@ -385,20 +384,20 @@ public final class SharpEmuBuild {
     static boolean delete(File dir) {
         deleteTree(dir);
         boolean gone = !dir.exists();
-        Log.i(TAG, "[app] " + (gone ? "deleted " : "could not delete ") + dir);
+        AppLog.i(TAG, "[app] " + (gone ? "deleted " : "could not delete ") + dir);
         return gone;
     }
 
     /** The two things that make a build runnable: a contract this app speaks, and its payload. */
     private static boolean accept(SharpEmuBuild build) {
         if (build.hostContract < CONTRACT_MIN || build.hostContract > CONTRACT_MAX) {
-            Log.e(TAG, "[app] " + build.identity() + " declares host contract " + build.hostContract
+            AppLog.e(TAG, "[app] " + build.identity() + " declares host contract " + build.hostContract
                     + " and this app speaks " + CONTRACT_MIN + ".." + CONTRACT_MAX
                     + " — refusing to launch it");
             return false;
         }
         if (!build.payloadFile().isFile()) {
-            Log.e(TAG, "[app] " + build.identity() + " names payload '" + build.payload
+            AppLog.e(TAG, "[app] " + build.identity() + " names payload '" + build.payload
                     + "' and it is not in " + build.dir);
             return false;
         }
@@ -436,7 +435,7 @@ public final class SharpEmuBuild {
             return new SharpEmuBuild(dir, dir.getName(),
                     new JSONObject(new String(raw, StandardCharsets.UTF_8)), false);
         } catch (Exception e) {
-            Log.e(TAG, "[app] could not read " + meta, e);
+            AppLog.e(TAG, "[app] could not read " + meta, e);
             return null;
         }
     }

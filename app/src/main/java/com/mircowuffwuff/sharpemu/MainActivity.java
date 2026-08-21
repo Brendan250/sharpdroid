@@ -7,7 +7,6 @@ import android.content.UriPermission;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.format.Formatter;
-import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -314,6 +313,12 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+
+        // **first, so that everything below is in the window as well as in logcat.** this is the
+        // process that loads the host layer, so it is the process whose java lines can be kept
+        // beside the emulator's — and the lines above the first frame are exactly the ones a report
+        // about a launch is made of. see AppLog.
+        AppLog.attach();
 
         // driver selection off the launch intent, so a comparison across driver builds is a loop
         // over `am start --es driver <name>` instead of an APK rebuild per candidate. "stock" and
@@ -657,7 +662,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // which is INVISIBLE rather than GONE so that the panel has a width to slide in from on the
         // first open.
         overlay = new GuestOverlay(themed, () -> {
-            Log.i(TAG, "[app] exit game");
+            AppLog.i(TAG, "[app] exit game");
             endRun();
         });
         root.addView(overlay.view(), new FrameLayout.LayoutParams(
@@ -698,7 +703,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * visible only to somebody running {@code logcat}.
      */
     private void abort(String message) {
-        Log.e(TAG, "[app] " + message);
+        AppLog.e(TAG, "[app] " + message);
         runOnUiThread(() -> {
             // **handed to whoever started this rather than said here, when there is somebody to hand
             // it to.** A toast belongs to the process that posted it, and this process is about to
@@ -744,7 +749,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // so that a request already in flight cannot buzz after the run it belonged to is over.
         PadRumble.detach();
         if (ending) {
-            Log.i(TAG, "[app] the run is over, and so is this process");
+            AppLog.i(TAG, "[app] the run is over, and so is this process");
             android.os.Process.killProcess(android.os.Process.myPid());
         }
     }
@@ -780,7 +785,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        Log.i(TAG, "[app] surface " + width + "x" + height + " format " + format);
+        AppLog.i(TAG, "[app] surface " + width + "x" + height + " format " + format);
         surfaceWidth = width;
         surfaceHeight = height;
         HostLayer.nativeSetSurface(holder.getSurface());
@@ -845,7 +850,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         File stagedRoot = AppStorage.stagedDrivers(externalRoot);
         GpuDriver driver = GpuDriver.resolve(driverName, internalRoot, stagedRoot);
         if (driver == null) {
-            Log.e(TAG, "[app] the chosen GPU driver '" + driverName + "' is in neither "
+            AppLog.e(TAG, "[app] the chosen GPU driver '" + driverName + "' is in neither "
                     + internalRoot + " nor " + stagedRoot);
             driverFailure = R.string.driver_failed_missing;
             return null;
@@ -854,7 +859,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         try {
             File source = driver.library();
             if (!source.isFile()) {
-                Log.e(TAG, "[app] meta.json names " + driver.getLibraryName()
+                AppLog.e(TAG, "[app] meta.json names " + driver.getLibraryName()
                         + " and it is not in " + driver.getDir());
                 driverFailure = R.string.driver_failed;
                 return null;
@@ -863,7 +868,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             // already on internal storage, which is the only requirement there is. copying it a
             // second time would be 15 MB per launch to arrive at the same path.
             if (driver.isInstalled(internalRoot)) {
-                Log.i(TAG, "[app] driver: " + driver.identity() + " at " + source);
+                AppLog.i(TAG, "[app] driver: " + driver.identity() + " at " + source);
                 return source.getAbsolutePath();
             }
 
@@ -871,7 +876,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             // library sitting in the directory being pointed at.
             File installDir = AppStorage.installedDriver(getCacheDir(), driverName);
             if (!installDir.isDirectory() && !installDir.mkdirs()) {
-                Log.e(TAG, "[app] could not create " + installDir);
+                AppLog.e(TAG, "[app] could not create " + installDir);
                 driverFailure = R.string.driver_failed;
                 return null;
             }
@@ -888,14 +893,14 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                         out.write(buffer, 0, n);
                     }
                 }
-                Log.i(TAG, "[app] installed " + driver.getLibraryName() + " ("
+                AppLog.i(TAG, "[app] installed " + driver.getLibraryName() + " ("
                         + installed.length() + " bytes) to " + installDir);
             }
 
-            Log.i(TAG, "[app] driver: " + driver.identity() + " at " + installed);
+            AppLog.i(TAG, "[app] driver: " + driver.identity() + " at " + installed);
             return installed.getAbsolutePath();
         } catch (Exception e) {
-            Log.e(TAG, "[app] could not install the driver", e);
+            AppLog.e(TAG, "[app] could not install the driver", e);
             driverFailure = R.string.driver_failed;
             return null;
         }
@@ -927,7 +932,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         if (buildPath == null || buildPath.isEmpty()) {
             build = chosenBuild(internal, staged);
         } else if (!buildPath.startsWith("/")) {
-            Log.e(TAG, "[app] --es sharpemu wants an absolute path to a build directory, and '"
+            AppLog.e(TAG, "[app] --es sharpemu wants an absolute path to a build directory, and '"
                     + buildPath + "' is a name. an id is not accepted: it names a family rather than"
                     + " a build, so resolving one answers with the highest packagedAt of it and can"
                     + " run a different build to the one that was just staged. stage one with"
@@ -943,9 +948,9 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // the launch log names the build, and that is not decoration: a third-party build
         // misbehaving arrives as "your emulator is broken", so a run has to be traceable to the
         // artefact that produced it without asking the person who ran it.
-        Log.i(TAG, "[app] build: " + build.identity() + " at " + build.dir);
+        AppLog.i(TAG, "[app] build: " + build.identity() + " at " + build.dir);
         if (!build.notes.isEmpty()) {
-            Log.i(TAG, "[app]   " + build.notes);
+            AppLog.i(TAG, "[app]   " + build.notes);
         }
         buildEnv = build.env;
         // and what the boot record files this launch's timings under. the commit is what tells two
@@ -981,7 +986,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             if (build != null) {
                 return build;
             }
-            Log.w(TAG, "[app] the chosen build '" + folder + "' could not be resolved, so falling"
+            AppLog.w(TAG, "[app] the chosen build '" + folder + "' could not be resolved, so falling"
                     + " back. the choice in Settings is unchanged");
         }
         return bundledBuild(internal, staged);
@@ -1097,15 +1102,15 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         Uri tree = grantedTree();
         if (tree == null) {
             if (named != null) {
-                Log.e(TAG, "[app] --es saftree named " + named + " and this app does not hold a read"
+                AppLog.e(TAG, "[app] --es saftree named " + named + " and this app does not hold a read"
                         + " grant on it. it was revoked, or the volume is not mounted");
             } else {
-                Log.e(TAG, "[app] --es safgame needs a granted directory and this app holds none."
+                AppLog.e(TAG, "[app] --es safgame needs a granted directory and this app holds none."
                         + " add one from Settings > Data > Game folders first");
             }
             return false;
         }
-        Log.i(TAG, "[app] the game is in the granted tree " + tree
+        AppLog.i(TAG, "[app] the game is in the granted tree " + tree
                 + (named == null ? " (the first one held, since the launch named none)" : ""));
         return GuestFiles.mount(this, tree, safGameName);
     }
@@ -1189,7 +1194,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private void runGuest() {
         File root = getExternalFilesDir(null);
         if (root == null) {
-            Log.e(TAG, "[app] no external files directory");
+            AppLog.e(TAG, "[app] no external files directory");
             return;
         }
         // where everything the emulator writes for the person using it goes. never null, unlike the
@@ -1249,7 +1254,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 // that is not there was never staged; a path that is not there is one this app is
                 // not allowed to read, which is what all-files access being revoked between the tap
                 // and the launch looks like from in here.
-                Log.e(TAG, "[app] missing: " + staged.getAbsolutePath()
+                AppLog.e(TAG, "[app] missing: " + staged.getAbsolutePath()
                         + (gameName.startsWith("/")
                         ? " — that path is not readable. is all-files access still on?"
                         : " — stage it with scripts/stage.py"));
@@ -1257,7 +1262,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             }
         }
         if (!payload.exists()) {
-            Log.e(TAG, "[app] missing: " + payload.getAbsolutePath()
+            AppLog.e(TAG, "[app] missing: " + payload.getAbsolutePath()
                     + " — stage it with scripts/stage.py");
             return;
         }
@@ -1414,7 +1419,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         for (String assignment : guestEnv) {
             int eq = assignment.indexOf('=');
             if (eq < 1) {
-                Log.e(TAG, "[app] --es guestenv wants NAME=VALUE, ignoring '" + assignment + "'");
+                AppLog.e(TAG, "[app] --es guestenv wants NAME=VALUE, ignoring '" + assignment + "'");
                 continue;
             }
             env.put(assignment.substring(0, eq), assignment.substring(eq + 1));
@@ -1462,10 +1467,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
         // named the way the run reaches it, because the two are different enough that a log which
         // said only "game: X" would not tell you which of the two arms produced the numbers under it.
-        Log.i(TAG, "[app] game: " + (safGameName != null && !safGameName.isEmpty()
+        AppLog.i(TAG, "[app] game: " + (safGameName != null && !safGameName.isEmpty()
                 ? safGameName + " (through a grant)"
                 : gameName + (gameName.startsWith("/") ? " (a path)" : " (staged)")));
-        Log.i(TAG, "[app] starting: " + String.join(" ", args));
+        AppLog.i(TAG, "[app] starting: " + String.join(" ", args));
         // **the last thing before the host layer starts, because that is where its clock starts.**
         // Everything a boot reports is measured from its own entry, and the app's wait began at the
         // tap with the driver check and any unpacking in between — so the two halves of the screen's
@@ -1481,12 +1486,12 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 configKey,
                 driverName != null ? driverName : BootRecord.STOCK_DRIVER));
         int status = HostLayer.nativeRun(args.toArray(new String[0]));
-        Log.i(TAG, "[app] host layer returned " + status);
+        AppLog.i(TAG, "[app] host layer returned " + status);
         // the lookups that came back empty, counted rather than each one reported. it prints only
         // when the guest returns rather than calling exit_group, which is the same limitation the
         // line above it has always had.
         if (safGameName != null && !safGameName.isEmpty()) {
-            Log.i(TAG, "[app] " + GuestFiles.missCount() + " lookups came back empty");
+            AppLog.i(TAG, "[app] " + GuestFiles.missCount() + " lookups came back empty");
         }
     }
 }

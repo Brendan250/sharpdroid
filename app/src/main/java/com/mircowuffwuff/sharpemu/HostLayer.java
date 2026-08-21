@@ -107,6 +107,47 @@ public final class HostLayer {
     public static native long[] nativeBootCheckpointTimes();
 
     /**
+     * The sequence one past the newest line this process has printed.
+     *
+     * <p><b>Everything printed is one stream and this is a window onto it</b> — the emulator's own
+     * logger, its raw console writes and the host layer's, all of which reach the log pump through
+     * the pipe it puts under stdout and stderr, plus whatever {@link AppLog} has added of the app's.
+     * A line is addressed by its sequence rather than by a position, so a reader that was away can
+     * ask for what arrived after the last line it saw and can tell when the answer starts later than
+     * that.
+     *
+     * <p><b>The repeatedly-made call of this group</b>: a lock and a load. Polled while the log is on
+     * screen and not asked for at all otherwise.
+     */
+    public static native long nativeLogNext();
+
+    /**
+     * The sequence of the oldest line still held. Everything below it has been dropped, which the
+     * ring does by line count and by total bytes, whichever it reaches first.
+     */
+    public static native long nativeLogOldest();
+
+    /**
+     * The lines from {@code from} up to but not including {@code to}, clamped to what is still held.
+     *
+     * <p><b>The copy out of the ring is the one thing here that can make the log pump wait</b>, and
+     * the pump is what drains the guest's stdout — a guest blocked writing into a full pipe is a
+     * guest stopped. So the range is the caller's to choose: a poll asks for the few lines that
+     * arrived since it last looked, and only a viewer being opened asks for thousands.
+     */
+    public static native String[] nativeLogRange(long from, long to);
+
+    /**
+     * Keeps one line of the app's own where it arrived among the emulator's.
+     *
+     * <p><b>Java logging never touches that pipe</b> — it is the platform's own channel and does not
+     * pass through stdout — so without this the app's lines are the one part of a run missing from
+     * the window, including the line naming which build is running. It does not write to logcat:
+     * {@link AppLog} has already done that, and this is the second of the two places a line goes.
+     */
+    public static native void nativeLogLine(String line);
+
+    /**
      * Runs a guest to completion. Blocks for the whole run, so never call it on the UI thread.
      *
      * <p>A guest that calls {@code exit_group} does not return from here at all — it ends the

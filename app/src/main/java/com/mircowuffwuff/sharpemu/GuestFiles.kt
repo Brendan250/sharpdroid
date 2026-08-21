@@ -5,7 +5,6 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.provider.DocumentsContract
-import android.util.Log
 import androidx.annotation.Keep
 
 /**
@@ -71,11 +70,11 @@ object GuestFiles {
 
         val probe = statOne("eboot.bin")
         if (probe == null) {
-            Log.e(TAG, "[app] no eboot.bin under $id — is that the name of a game directory in the grant?")
+            AppLog.e(TAG, "[app] no eboot.bin under $id — is that the name of a game directory in the grant?")
             unmount()
             return false
         }
-        Log.i(TAG, "[app] the guest's game directory is $id, reached through a grant rather than a path")
+        AppLog.i(TAG, "[app] the guest's game directory is $id, reached through a grant rather than a path")
         return true
     }
 
@@ -111,7 +110,7 @@ object GuestFiles {
                 // deliberately not called normal, though it usually is: a file the guest is only
                 // checking for and a grant that has been revoked produce exactly this line, and the
                 // count is the only thing that tells them apart.
-                Log.i(TAG, "[app] a lookup came back empty: $uri. said once — this is what a file the" +
+                AppLog.i(TAG, "[app] a lookup came back empty: $uri. said once — this is what a file the" +
                     " guest is only checking for looks like, and it is also what a revoked grant looks" +
                     " like; use --ez tracefiles true to count them", e)
             }

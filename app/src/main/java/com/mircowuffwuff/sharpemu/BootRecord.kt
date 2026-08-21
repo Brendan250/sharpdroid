@@ -2,7 +2,6 @@ package com.mircowuffwuff.sharpemu
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 
 /**
  * How long the last boot took to reach each of its checkpoints, so the next one can be drawn.
@@ -111,7 +110,7 @@ class BootRecord private constructor(private val prefs: SharedPreferences) {
         val at = reached[SPLIT]
         val end = reached[TERMINAL]
         if (at == null || end == null) {
-            Log.w(TAG, "[app] this boot is not recorded: it passed " + reached.size + " of "
+            AppLog.w(TAG, "[app] this boot is not recorded: it passed " + reached.size + " of "
                     + ids.size + " checkpoints and needs both '" + SPLIT + "' and '" + TERMINAL
                     + "'. the next boot of this game draws an indeterminate bar")
             return

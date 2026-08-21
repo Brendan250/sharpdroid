@@ -609,6 +609,10 @@ everything the host layer and the guest print goes to stdout and stderr, and in 
 
 the activity's own lines are prefixed `[app]`, alongside the host layer's `[host-layer]`, `[vulkan]` and `[audio]`. `--timestamps` is passed on every launch, so every guest line carries elapsed time since process start while the app's and the host layer's stay unstamped and therefore instantly distinguishable.
 
+**the pump also keeps what it drains**, in `host/src/log_ring.h`: the last 4000 lines or 4 MB, whichever bound is reached first, addressed by a sequence number rather than by a position so that a reader that was away can ask for what arrived after the last line it saw and can tell when the answer starts later than that. the app reads it by polling — `nativeLogNext` then `nativeLogRange` — because the pump's thread is what drains the pipe and a guest blocked writing into a full pipe is a guest stopped, so nothing here calls up and the copy out of the ring is the only thing that can make the pump wait.
+
+**the app's own java lines are put in beside them rather than left out**, through `AppLog`, which writes each line to logcat and to the ring in one call. java logging is the platform's own channel and never passes through those descriptors, so without that the window would be missing exactly the lines that say which build is running, which driver was chosen and where the guest's libraries came from. it mirrors only in the process that loads the host layer, since that is the only process with a ring to mirror into.
+
 ## what the app never passes
 
 worth stating, because each is a default reached by omission rather than by choice being absent:
