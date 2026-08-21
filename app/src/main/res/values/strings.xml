@@ -455,6 +455,20 @@
          button is already a back press and a deliberate tap. -->
     <string name="overlay_exit">Exit game</string>
 
+    <!-- the log window that fills most of that panel. "Log" alone, because the panel it heads is
+         over a running game and there is only one log: what this run has printed, whichever part of
+         the app, the host layer or the emulator printed it. -->
+    <string name="overlay_log">Log</string>
+    <!-- the copy button's tooltip and what a screen reader says for it. it is an icon with no label
+         beside it, so this is the only place the action is named in words. -->
+    <string name="overlay_log_copy">Copy log</string>
+    <!-- said only below android 13, which announces a copy itself. -->
+    <string name="overlay_log_copied">Log copied</string>
+    <!-- before the first line arrives, which is a real state rather than a slow one: a run started
+         from the game list opens this panel with an empty log for as long as it takes the emulator
+         to say its first word. an empty frame with nothing in it reads as broken. -->
+    <string name="overlay_log_empty">Nothing logged yet</string>
+
     <string name="setting_internal_resolution">Internal resolution</string>
     <string name="setting_internal_resolution_summary">Render offscreen targets below native resolution and upscale on present. Lower values trade image quality for GPU headroom.</string>
 

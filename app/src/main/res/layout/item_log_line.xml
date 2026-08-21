@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  one printed line in the log window the back button opens over a running game.
+
+  **it wraps, where the desktop log viewer does not, and that is the one deliberate departure from
+  it.** a log line here carries a level, a category and a source position before the message even
+  starts, and this panel is two fifths of a handheld panel wide - so a line that did not wrap would
+  need dragging sideways to be read, once per line, with a finger, over somebody's game. wrapping
+  costs the column alignment a wide window buys and buys back the only reading posture this one has.
+
+  **no colour is named here.** the adapter sets one, because which of three a line takes is decided
+  by what the line says; naming a default here would be a fourth colour that only shows when the
+  adapter has not run.
+
+  monospace because the emulator prints addresses, byte counts and tables of them, and a proportional
+  face turns a column of hex into a ragged edge. the size is stated rather than taken from a text
+  appearance: every appearance in the scheme is sized for prose read at arm's length, and this is a
+  transcript read in a narrow column.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="2dp"
+    android:fontFamily="monospace"
+    android:textSize="10sp"
+    android:lineSpacingMultiplier="1.15"
+    android:textIsSelectable="false" />
