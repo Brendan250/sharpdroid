@@ -344,11 +344,12 @@
          what actually tells two builds of one upstream version apart, which is the common case. the
          build-number form is the fallback for a build that recorded no commit.
 
-         **the first two are named for the pair rather than for the build manager, because the About
-         screen states the same pair.** upstream tags its releases with a leading v and so does this
-         screen, and two places spelling one convention two ways is how they drift apart. -->
+         **the leading v belongs to a SharpEmu version, which is what both of these state.**
+         upstream tags its releases that way, so a build reads the same here as it does on the page
+         it came from. this app's own version is a bare counter and takes about_version instead:
+         one v spelled across both would be a version matching neither the tag that names it nor
+         the file it ships as. -->
     <string name="version_commit">v%1$s · %2$s</string>
-    <string name="version_only">v%1$s</string>
     <string name="build_version">v%1$s, packaged %2$d</string>
     <!-- the version line with whoever produced the build after it, the separator a driver card
          already uses for the same claim. -->

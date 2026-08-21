@@ -147,12 +147,14 @@ class AboutActivity : AppCompatActivity() {
         val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }
             .getOrNull().orEmpty()
         val commit = getString(R.string.app_commit)
-        // **the same two formats the build manager states a version with**, so the leading v that
-        // upstream tags its releases with is spelled one way in this app rather than two.
+        // **the version stands bare, unlike the SharpEmu build's version on the same screen.** a
+        // release here is a counter and the tag that names it is what carries the prefix, so a v in
+        // front would be a third spelling of one release. the separator is about_version, which is
+        // also what parts the two emulators, so one screen divides values one way.
         return if (commit.isEmpty()) {
-            getString(R.string.version_only, version)
+            version
         } else {
-            getString(R.string.version_commit, version, commit)
+            getString(R.string.about_version, version, commit)
         }
     }
 

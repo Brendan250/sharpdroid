@@ -69,8 +69,19 @@ android {
         applicationId = identityApplicationId ?: "com.mircowuffwuff.sharpemu"
         minSdk = 28
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0-dev"
+        // **the version is the release counter and nothing else.** a release is tagged wuff-1,
+        // wuff-2, wuff-3, and the prefix lives in the tag alone -- it is a namespace for a git ref,
+        // and repeating it here would put a third spelling of one release beside the tag and the
+        // asset name. bare is what the About screen shows and what a bug report is worth having.
+        //
+        // **the code is ten times the version, and the gap between them is the point.** android
+        // refuses an install whose code is not above the installed one, so the nine values between
+        // two releases are what a diagnostic build published under this identity takes, and
+        // somebody running one can still take the next release afterwards. widening the multiplier
+        // later is safe, since the sequence only has to rise; narrowing it is not, so it starts at
+        // ten rather than at something harder to leave.
+        versionCode = 10
+        versionName = "1"
 
         // the label, which a renamed build has to change too: two entries in the launcher both
         // called "SharpEmu" and no way to tell which is which is the failure this avoids.

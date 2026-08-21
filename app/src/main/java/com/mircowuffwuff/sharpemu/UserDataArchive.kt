@@ -69,7 +69,8 @@ object UserDataArchive {
     /**
      * what an archive says about itself.
      *
-     * [appVersion] is `versionCode`, an integer per release, so an archive from a later build is
+     * [appVersion] is `versionCode`, which only ever rises -- ten of them to a release, the values
+     * between being what a diagnostic build takes -- so an archive from a later build is
      * recognisable as one rather than merely failing oddly.
      */
     data class Manifest(val kind: Kind, val exportedAt: Long, val appVersion: Int)
