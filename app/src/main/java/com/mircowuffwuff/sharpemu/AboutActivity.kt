@@ -73,11 +73,11 @@ class AboutActivity : AppCompatActivity() {
         body.version.text = versionLine()
         body.version.setOnClickListener { copyVersion() }
 
-        // **the drawing is the only way to the donation URL and nothing on the screen says so**,
-        // which is the point rather than an oversight: the page names what this app is built on and
-        // declines to ask anybody for anything. what is there for whoever presses it anyway is the
-        // drawing rocking and pulling a face first. the content description is what a screen reader
-        // is given instead, and it names the same person in either expression.
+        // **the drawing is the only way to the donation URL, and what says so is lettering laid over
+        // it rather than a sentence.** the page names what this app is built on and asks for nothing
+        // in words; the invitation is drawn, and what answers a press is the drawing rocking and
+        // pulling a face. the content description is what a screen reader is given instead, and it
+        // names the same person in either expression.
         body.mirco.setOnClickListener { wiggleThenOpen(body.mirco, DONATE) }
 
         val facts = body.facts
@@ -104,6 +104,11 @@ class AboutActivity : AppCompatActivity() {
         // away on every visit -- silently, since the drawing would simply settle a few dp lower than
         // it was drawn. the resting value is read here rather than named, so moving it is still a
         // one-attribute change in the layout.
+        //
+        // **only the drawing enters. the lettering laid over it is on the page from the first
+        // frame**, at the place and the strength the layout gives it, so what the entrance shows is
+        // the character settling in under an invitation that is already there rather than a block of
+        // picture sliding up as one.
         val resting = body.mirco.translationY
         body.mirco.alpha = 0f
         body.mirco.translationY = resting + ENTRANCE_RISE
@@ -216,11 +221,18 @@ class AboutActivity : AppCompatActivity() {
     /**
      * Rocks [drawing], pulls a face doing it, and opens [url] on the beat the rock lands.
      *
-     * **The movement is the whole affordance.** The drawing carries no ripple, so nothing about it
-     * says it is pressable until it is pressed — and then what answers is not a highlight but the
-     * thing itself moving. Leaving at the end of that rather than at the start is what makes the two
-     * one gesture: a browser that opened on the down-press would take the screen away before anybody
-     * saw the drawing react.
+     * **The lettering asks and the movement answers.** The drawing carries no ripple, so what says it
+     * is pressable is the invitation drawn over it, and what a press gets back is not a highlight but
+     * the thing itself moving. Leaving at the end of that rather than at the start is what makes the
+     * two one gesture: a browser that opened on the down-press would take the screen away before
+     * anybody saw the drawing react.
+     *
+     * **The lettering takes no part in this, which is why it is a sibling view rather than a layer
+     * of this drawable.** A layer would be registered to the artwork for free and would need no
+     * second view — and it is drawn *inside* the view, so it would rotate with the rock and ride the
+     * entrance too, and the lettering does neither. The character is what reacts to a press: a
+     * caption swinging along reads as the whole picture wobbling. Two views laid on the same box
+     * cost a comment instead, and buy animations that move only what is meant to move.
      *
      * **The face is swapped outright rather than crossfaded**, and it is the same drawing with a
      * different expression on it — same size, same outline, same everything but the eyes and the

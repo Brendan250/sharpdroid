@@ -84,6 +84,25 @@
             android:scaleType="fitCenter"
             android:src="@drawable/mirco" />
 
+        <!-- the lettering that invites the press, tinted with the accent, held under full strength
+             and moving for nothing the drawing does - all for the reasons the stacked variant's own
+             comment gives. **what carries across from that file is
+             the recipe rather than the numbers**: this view takes *this* composition's height, and the
+             two land on the same rect because they are the same artwork size solved the same way, not
+             because a figure was copied between the files. -->
+        <ImageView
+            android:id="@+id/tap_me"
+            android:layout_width="wrap_content"
+            android:layout_height="320dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:adjustViewBounds="true"
+            android:alpha="0.82"
+            android:translationY="-12dp"
+            android:importantForAccessibility="no"
+            android:scaleType="fitCenter"
+            android:src="@drawable/tap_me"
+            android:tint="?attr/colorPrimary" />
+
     </FrameLayout>
 
     <LinearLayout

@@ -66,7 +66,7 @@
              it answers a tap by moving, and it **carries no ripple** - the one deliberate touch target
              in this app that does not look like one. a borderless ripple on a view this size is a grey
              disc the width of the glow and would make the drawing read as a button about to navigate
-             somewhere; the movement is the cue instead, and it is the only cue there is.
+             somewhere; the lettering over it and the movement it answers with are the cues instead.
 
              **`mirco` is the resting face and `mirco_tapped` is the one it pulls when it is pressed.**
              the two are the same drawing at the same size and differ in the eyes and the mouth, so
@@ -90,6 +90,50 @@
             android:contentDescription="@string/about_by"
             android:scaleType="fitCenter"
             android:src="@drawable/mirco" />
+
+        <!-- **the lettering that invites the press, laid over the drawing and registered to it by
+             construction.** it is drawn on the same canvas as the two faces and encodes to the same
+             size, so an ImageView carrying the drawing's own height, `adjustViewBounds` and
+             `fitCenter` resolves to the drawing's own rect and the lettering lands where it was
+             drawn. no offset is written anywhere here and there is nothing to keep in step: change
+             the height or redraw the artwork and both move together, because both are solving the
+             same equation from the same two numbers.
+
+             **it is tinted at runtime rather than coloured in the file**, because no one colour suits
+             every scheme - the artwork is black and the surface under it is whatever the scheme says.
+             the tint is the accent, which is what the glow behind the drawing already takes, so the
+             invitation and the light it sits in are the same colour. **only this file's alpha
+             survives the tint**, `SRC_IN` replacing every other channel, which is why a lossy encode
+             of it loses nothing that is drawn.
+
+             **it is held under full strength so it reads as a note on the drawing rather than as a
+             label competing with it.** nothing animates this, so the attribute is the whole of the
+             setting and there is no second place to change.
+
+             **it moves for nothing the drawing does, deliberately - not the rock, and not the
+             entrance.** the rock is the character reacting to being pressed, and the lettering is
+             not part of the character: a label that swings with the thing it labels reads as one
+             picture wobbling rather than as somebody moving. the entrance is the same argument a
+             beat earlier - the invitation is on the page from the first frame, and what is shown is
+             the character settling in under it rather than a block of picture sliding up as one.
+
+             **it is not clickable, so the press reaches the drawing underneath.** a child that does
+             not take a touch is passed over and the next one down is offered it, and these two boxes
+             are the same box, so the drawing is what answers wherever the finger lands. it is out of
+             the accessibility tree for the matching reason: what a screen reader is given here is the
+             drawing and its description rather than a second reading of a cue it cannot see. -->
+        <ImageView
+            android:id="@+id/tap_me"
+            android:layout_width="wrap_content"
+            android:layout_height="300dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:adjustViewBounds="true"
+            android:alpha="0.82"
+            android:translationY="-12dp"
+            android:importantForAccessibility="no"
+            android:scaleType="fitCenter"
+            android:src="@drawable/tap_me"
+            android:tint="?attr/colorPrimary" />
 
     </FrameLayout>
 
