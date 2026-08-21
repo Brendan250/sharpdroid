@@ -8,9 +8,9 @@ import coil.load
 import com.mircowuffwuff.sharpemu.databinding.ItemGameBinding
 
 /**
- * The game grid's tiles.
+ * the game grid's tiles.
  *
- * One tile is one directory: a tap runs it, holding it opens that game's own settings, and pulling
+ * one tile is one directory: a tap runs it, holding it opens that game's own settings, and pulling
  * the grid refreshes it.
  */
 class GameAdapter(
@@ -28,8 +28,8 @@ class GameAdapter(
         val game = games[position]
         holder.binding.name.text = game.name
         // **every tile scrolls its own name, where a manager card scrolls only the chosen one.** a
-        // marquee runs while its view is selected and there is no selection on this screen — nothing
-        // here is picked before it is launched — so the choice is all of them or none. it costs
+        // marquee runs while its view is selected and there is no selection on this screen -- nothing
+        // here is picked before it is launched -- so the choice is all of them or none. it costs
         // nothing on a name that fits, since android animates only when the text is wider than the
         // view, and on a grid of covers the few that overflow are the few worth reading.
         holder.binding.name.isSelected = true
@@ -43,7 +43,7 @@ class GameAdapter(
         holder.binding.root.setOnClickListener { onLaunch(game) }
         // **holding a cover opens that game's settings, and nothing on the tile says so.** it is the
         // gesture the platform's own launchers put a shortcut menu behind, so it is where a person
-        // looks first — and a tile is artwork with a name on it, so any mark saying "hold me" would
+        // looks first -- and a tile is artwork with a name on it, so any mark saying "hold me" would
         // be drawn over the one thing the grid exists to show. the whole tile is the target, which
         // is what makes it discoverable by accident as well as by habit.
         holder.binding.root.setOnLongClickListener {
@@ -55,9 +55,9 @@ class GameAdapter(
         // a quarter of a megabyte, so decoding it on the main thread would stutter a scroll, and
         // decoding it on a worker means a row that scrolled away before the bitmap arrived must not
         // receive it. load() cancels the previous request for this ImageView, samples to the size it
-        // will be drawn at, and caches — none of which is worth writing again.
+        // will be drawn at, and caches -- none of which is worth writing again.
         //
-        // **it is handed a File or a content uri and neither is this class's business** — coil loads
+        // **it is handed a File or a content uri and neither is this class's business** -- coil loads
         // either natively, which is why a granted dump's artwork needs no decoding or copying of
         // ours. GameSource is what knows the difference.
         //

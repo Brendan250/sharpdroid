@@ -87,7 +87,7 @@
                  **one view holding one string, rather than a field each with a separator view between
                  them.** the dot between the two emulators is meant to be the same mark as the dot
                  inside a version, and the only way to be certain of that is for it to be the same
-                 character of the same string in the same font at the same colour — matched instead by
+                 character of the same string in the same font at the same colour. matched instead by
                  setting three attributes on a view of its own, it comes out subtly wrong, and the
                  first two attempts here differed in alpha alone. it is also less to keep in step: the
                  activity composes this with the same format string the app's own version line uses,

@@ -7,22 +7,22 @@ import android.util.Log
 import java.io.File
 
 /**
- * How much of a volume a game takes, counted the two ways a game can be reached.
+ * how much of a volume a game takes, counted the two ways a game can be reached.
  *
- * **It is not on [GameSource] and it is not carried by [Game], because it costs a walk.** A dump is
+ * **it is not on [GameSource] and it is not carried by [Game], because it costs a walk.** a dump is
  * hundreds of files, and the scan that builds the game list opens one of them per game already; a
  * size measured there would be paid for every game on every refresh, to answer a question one screen
- * asks about one game. So the screen that wants it measures it, on a worker, once.
+ * asks about one game. so the screen that wants it measures it, on a worker, once.
  *
- * **Neither walk is cheap and the granted one is not the same kind of expensive.** A staged directory
+ * **neither walk is cheap and the granted one is not the same kind of expensive.** a staged directory
  * is a filesystem walk; a granted one is a content provider query per directory, each a binder round
- * trip returning every child at once. The second is why this may not be called from the main thread.
+ * trip returning every child at once. the second is why this may not be called from the main thread.
  */
 object GameSize {
 
     private const val TAG = "sharpemu"
 
-    /** Every byte under [directory], following it down. */
+    /** every byte under [directory], following it down. */
     fun of(directory: File): Long {
         if (directory.isFile) return directory.length()
         // null for a path that is not a directory and for one that cannot be read; both are nothing
@@ -31,14 +31,14 @@ object GameSize {
     }
 
     /**
-     * Every byte under the document at [documentId], following it down.
+     * every byte under the document at [documentId], following it down.
      *
-     * **One query per directory rather than one per file**, which is the same reason
+     * **one query per directory rather than one per file**, which is the same reason
      * [TreeDocument] appends ids instead of resolving them a component at a time: a query returns
      * every child with its size and its kind, so a dump of hundreds of files costs a handful of
      * round trips rather than hundreds.
      *
-     * A directory's own size column means nothing, so it is a kind to recurse into rather than a
+     * a directory's own size column means nothing, so it is a kind to recurse into rather than a
      * number to add.
      */
     fun of(resolver: ContentResolver, tree: Uri, documentId: String): Long {

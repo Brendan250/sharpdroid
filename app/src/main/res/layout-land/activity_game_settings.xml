@@ -20,7 +20,7 @@
 -->
 <!-- **the frame exists so the floating button can hang off the screen rather than off the row.**
      everything below it is one column of content, and the row that holds it carries a negative top
-     margin — so a button placed inside that row sits that margin higher than the same button on
+     margin, so a button placed inside that row sits that margin higher than the same button on
      every manager screen, which measures as a real difference and reads as a wobble when you move
      between them. a sibling of the whole column is positioned against the panel, which is what a
      floating button is positioned against everywhere else in this app. -->
@@ -42,7 +42,7 @@
         app:navigationIcon="@drawable/ic_back" />
 
     <!-- **the negative margin is against the toolbar, and it is the one every card screen in this
-         app takes** — see activity_settings.xml, which explains it: a toolbar is 64dp with its title
+         app takes**. see activity_settings.xml, which explains it: a toolbar is 64dp with its title
          centred in it, so a strip below the baseline is empty, and the content below borrows a
          little of it rather than starting under the whole thing. without it this screen's cards sat
          6dp lower than the same cards everywhere else.
@@ -58,10 +58,10 @@
 
         <!-- a constraint layout for one reason: **the artwork is square and only a ratio can say
              so.** a linear layout can give a view all of the width or all of the leftover height,
-             and neither of those is a square — which is what the artwork is, and what its rounded
+             and neither of those is a square, which is what the artwork is, and what its rounded
              corner needs it to be drawn as. -->
         <!-- **the artwork is inset by half again what the cards are, and both of its sides are the
-             same 24dp** — its left against the screen, and its right against the first card.
+             same 24dp**: its left against the screen, and its right against the first card.
 
              **matching the cards' own inset is not the same as looking like it.** a card is a filled
              surface with a rounded edge and its own quiet inside it, so the 16dp between the last
@@ -78,8 +78,8 @@
 
              **the two sides are different numbers for the same gap**, because only one of them is
              paid for entirely here. on the left nothing else contributes and the whole 24dp is
-             spelled out. on the right the list beside this column already contributes 16dp — its
-             own 10dp of scroll padding plus the 6dp margin every card in this app carries — so what
+             spelled out. on the right the list beside this column already contributes 16dp, being its
+             own 10dp of scroll padding plus the 6dp margin every card in this app carries, so what
              is left to add is the 8dp between them.
 
              it is only right while those two numbers are what they are, and neither belongs to this
@@ -125,21 +125,21 @@
                  drawn inside it untouched: a square image in a square box fills it exactly, which is
                  what puts the rounded corner on the picture rather than on empty space beside it.
 
-                 **fitCenter rather than a crop**, now that the box is the right shape. a crop would
-                 also fill it, and would quietly take a slice off any dump whose icon is not square —
+                 **fitCenter rather than a crop**, the box being the right shape. a crop would
+                 also fill it, and would quietly take a slice off any dump whose icon is not square,
                  paying with somebody's artwork for a corner that is already correct.
 
-                 the corner is the one every card in this app is cut with — see the shape style,
+                 the corner is the one every card in this app is cut with. see the shape style,
                  which says why it is the card's radius and not a tile's.
 
                  **it starts level with the first card, and the column's own top padding is what
                  makes that exact rather than close.** a card is inset from the top of its list by
                  that list's 4dp of padding and its own 6dp margin, so 10dp here starts the artwork
-                 on the same line — the same trick as the horizontal gap above, and the same warning
+                 on the same line: the same trick as the horizontal gap above, and the same warning
                  applies: neither of those two numbers belongs to this file.
 
                  **the block hangs from that line rather than being centred in the column**, which it
-                 was, and which put its top a couple of pixels above the card's by coincidence — a
+                 was, and which put its top a couple of pixels above the card's by coincidence. a
                  centred block lands where its own height leaves it, and agreeing with a fixed inset
                  is not something it can be relied on to keep doing. -->
             <com.google.android.material.imageview.ShapeableImageView
@@ -172,8 +172,8 @@
         <!-- the same fade the cards' list ends in, and deliberately a taller one.
 
              a fade is only as visible as the difference it makes, and here it makes almost none: the
-             gradient ends in the surface colour, and this column's background already is that colour
-             — so it changes nothing behind the text and takes only the glyphs. the cards beside it
+             gradient ends in the surface colour, and this column's background already is that colour,
+             so it changes nothing behind the text and takes only the glyphs. the cards beside it
              sit on a lighter fill, so the same gradient washes a whole card's width from that fill
              down to the surface and their text dissolves along with everything around it. matching
              that by eye means giving this column the one thing it can be given, which is distance:
@@ -225,7 +225,7 @@
 
 </LinearLayout>
 
-    <!-- **the managers' floating button, in the slot the managers put it in** — see the portrait
+    <!-- **the managers' floating button, in the slot the managers put it in**. see the portrait
          layout, which says why it is theirs rather than this scene's own.
 
          **it is a sibling of the content rather than a child of the cards' column**, which is the

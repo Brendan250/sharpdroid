@@ -1,4 +1,4 @@
-// sharpemu-android host layer — guest VMA tracking, and self-modifying code.
+// sharpemu-android host layer -- guest VMA tracking, and self-modifying code.
 //
 // FEXCore asks the host layer two questions about guest memory and expects to be told when the
 // answers change:
@@ -10,11 +10,11 @@
 //
 //   "this page now holds code i have compiled."
 //        SyscallHandler::MarkGuestExecutableRange, once per page. under SMCChecks=mtrack this is
-//        an invitation to arrange for a fault the next time the guest writes there — which is what
+//        an invitation to arrange for a fault the next time the guest writes there -- which is what
 //        MarkExecutable below does, by taking PROT_WRITE off the host mapping.
 //
-// and the other direction: whenever guest memory stops holding what FEXCore compiled — unmapped,
-// re-protected, moved, discarded, or simply written to — the host layer must call back into
+// and the other direction: whenever guest memory stops holding what FEXCore compiled -- unmapped,
+// re-protected, moved, discarded, or simply written to -- the host layer must call back into
 // Context::InvalidateCodeBuffersCodeRange / InvalidateThreadCachedCodeRange before the guest can
 // reach the stale translation.
 //
@@ -25,7 +25,7 @@
 // *requested* protection exists only here, recorded at the moment the syscall arrives.
 //
 // a mapping that is not recorded here is not executable as far as FEXCore is concerned, so every
-// producer of guest memory has to report in — not just mmap, but the ELF loader, the guest stack,
+// producer of guest memory has to report in -- not just mmap, but the ELF loader, the guest stack,
 // the sigreturn trampoline and the spike's hand-assembled page.
 
 #pragma once
@@ -57,10 +57,10 @@ SMCMode Mode();
 /**
  * @brief The guest's requested protection, as bionic is allowed to see it.
  *
- * PROT_EXEC never reaches the host kernel. FEX does not execute guest memory — it reads those
- * bytes and emits arm64 into its own code buffers — so nothing is lost by mapping guest text
+ * PROT_EXEC never reaches the host kernel. FEX does not execute guest memory -- it reads those
+ * bytes and emits arm64 into its own code buffers -- so nothing is lost by mapping guest text
  * read-only, and something is gained: an android app is denied `execute` on its own
- * app_data_file, so inside an app — which is where this runs — a guest ld.so mapping a library's
+ * app_data_file, so inside an app -- which is where this runs -- a guest ld.so mapping a library's
  * text segment PROT_EXEC would be refused outright. dropping the bit here is what lets a
  * conventional dynamic linker work in a place that forbids executable file mappings.
  *
@@ -71,7 +71,7 @@ int HostProt(int GuestProt);
 
 // --- recording what the guest has ------------------------------------------------------------
 //
-// Prot throughout is what the *guest* asked for, PROT_EXEC included — not what was passed to
+// Prot throughout is what the *guest* asked for, PROT_EXEC included -- not what was passed to
 // bionic. ranges are page-aligned by the tracker, so callers may pass byte lengths.
 
 ///< a new mapping. replaces whatever was recorded over the same range, as MAP_FIXED does.
@@ -114,7 +114,7 @@ enum class WriteFault {
  *
  * called from the host SIGSEGV handler before anything else looks at the fault. if the address
  * lies in a mapping the guest asked to be writable, the only thing that can have made it fault is
- * MarkExecutable — so drop the translations for that page, hand the write permission back, and let
+ * MarkExecutable -- so drop the translations for that page, hand the write permission back, and let
  * the faulting instruction re-run.
  *
  * SingleStep is the case where the guest is rewriting code inside the very block it is executing.

@@ -1,6 +1,6 @@
 // regression guest: guest x86-64 AAudio through the host layer's thunk onto the real device.
 //
-// this is vulkan.c's sibling and it is dynamic for the same reason — it links against nothing but
+// this is vulkan.c's sibling and it is dynamic for the same reason -- it links against nothing but
 // the generated libaaudio.so, so the whole chain is under test rather than just the marshaller:
 //
 //   the guest's own ld.so finds libaaudio.so on LD_LIBRARY_PATH

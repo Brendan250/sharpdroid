@@ -10,29 +10,29 @@ import android.util.Log
 import java.io.File
 
 /**
- * Every game the app can see, from both places one can be, and the folders the user granted us.
+ * every game the app can see, from both places one can be, and the folders the user granted us.
  *
- * **A game is a directory holding an `eboot.bin`, and that is the whole test on either volume.** An
+ * **a game is a directory holding an `eboot.bin`, and that is the whole test on either volume.** an
  * empty directory left behind by a half-finished staging run is not a game, and offering it would
  * mean the host layer reporting a failure the scan could have avoided.
  *
- * The two places are not alike and neither replaces the other:
+ * the two places are not alike and neither replaces the other:
  *
- * - **staged**, under the app's own external files, written by `scripts/stage.py`. This is the
+ * - **staged**, under the app's own external files, written by `scripts/stage.py`. this is the
  *   arm every measurement in the project was taken on, and it stays reachable exactly as it was
  * - **granted**, inside a directory tree the user picked. `docs/guest-files.md` describes what the
  *   guest then pays for reading one, which was measured rather than assumed: nothing above the noise
  *   floor, on either title
  *
- * **This object is the store as well as the scan**, and the store is deliberately two things at
+ * **this object is the store as well as the scan**, and the store is deliberately two things at
  * once: the tree uris live in a `SharedPreferences` line, which is what remembers *which* folders and
  * in what order, and the platform's own persisted-permission list is the authority on whether each is
- * still readable. Keeping only the second would mean a grant taken later for something else — a
- * driver zip, a build zip — appearing in the library; keeping only the first would mean offering a
- * folder whose grant the user revoked in Settings. A folder that fails that cross-check is dropped
+ * still readable. keeping only the second would mean a grant taken later for something else -- a
+ * driver zip, a build zip -- appearing in the library; keeping only the first would mean offering a
+ * folder whose grant the user revoked in Settings. a folder that fails that cross-check is dropped
  * and said so, once.
  *
- * **Everything here talks to a content provider and none of it belongs on the main thread.**
+ * **everything here talks to a content provider and none of it belongs on the main thread.**
  * [GameListActivity] runs it on a worker.
  */
 object GameLibrary {
@@ -42,36 +42,36 @@ object GameLibrary {
     private const val PREFS = "library"
     private const val KEY_TREES = "trees"
 
-    /** What [add] made of a folder the user picked. */
+    /** what [add] made of a folder the user picked. */
     enum class Added {
-        /** Granted, stored, and it will be in the next scan. */
+        /** granted, stored, and picked up by the next scan. */
         OK,
 
-        /** Already in the library. Picking the same folder twice is a no-op rather than a duplicate. */
+        /** already in the library. picking the same folder twice is a no-op rather than a duplicate. */
         ALREADY_THERE,
 
         /**
-         * The folder picked **is** a game rather than a folder of games.
+         * the folder picked **is** a game rather than a folder of games.
          *
-         * Worth its own answer rather than an empty result: it is the likeliest way to get this
+         * worth its own answer rather than an empty result: it is the likeliest way to get this
          * wrong, and it would otherwise present as a grant that was accepted and shows nothing.
          */
         IS_A_GAME,
 
-        /** The grant could not be persisted. */
+        /** the grant could not be persisted. */
         FAILED,
     }
 
     /**
-     * What to tell the user about an [Added], as a toast.
+     * what to tell the user about an [Added], as a toast.
      *
-     * **It is here rather than in a screen because two screens offer the picker** — the folder
-     * manager and the game list's empty state — and a refusal worded differently depending on which
-     * button was pressed is the first thing to drift when a new outcome is added. Every outcome
+     * **it is here rather than in a screen because two screens offer the picker** -- the folder
+     * manager and the game list's empty state -- and a refusal worded differently depending on which
+     * button was pressed is the first thing to drift when a new outcome is added. every outcome
      * speaks, the refusals included: a folder that was picked and then silently did not appear is
      * the one result nobody can act on.
      *
-     * **[IS_A_GAME] carries no label.** It is a whole path, a toast is two lines and truncates
+     * **[IS_A_GAME] carries no label.** it is a whole path, a toast is two lines and truncates
      * without warning, and the half that says what to do about it is the half that gets cut. [add]
      * logs the folder exactly.
      */
@@ -86,10 +86,10 @@ object GameLibrary {
     // the granted folders
 
     /**
-     * The granted folders, in the order they were added, minus any whose grant is gone.
+     * the granted folders, in the order they were added, minus any whose grant is gone.
      *
-     * A grant can be revoked from android's own Settings, and it can go away when the volume it
-     * points at is unmounted. Neither errors here — the folder simply stops being in the library, and
+     * a grant can be revoked from android's own Settings, and it can go away when the volume it
+     * points at is unmounted. neither errors here -- the folder simply stops being in the library, and
      * the count is logged so a list that lost rows says why.
      */
     fun trees(context: Context): List<Uri> {
@@ -106,7 +106,7 @@ object GameLibrary {
         val live = stored.filter { it in held }
         if (live.size != stored.size) {
             Log.w(TAG, "[app] " + (stored.size - live.size) + " folder(s) in the library are no"
-                + " longer granted to this app — revoked, or on a volume that is not mounted."
+                + " longer granted to this app -- revoked, or on a volume that is not mounted."
                 + " dropping them")
             store(context, live)
         }
@@ -114,9 +114,9 @@ object GameLibrary {
     }
 
     /**
-     * Takes a persisted read grant on [tree] and puts it in the library.
+     * takes a persisted read grant on [tree] and puts it in the library.
      *
-     * **The grant is taken last, and only for a folder that will produce rows.** The check above it
+     * **the grant is taken last, and only for a folder that will produce rows.** the check above it
      * costs one provider query and runs on the grant the picker already handed this process, so a
      * folder that is refused leaves nothing behind to release.
      */
@@ -127,7 +127,7 @@ object GameLibrary {
         val resolver = context.applicationContext.contentResolver
         val rootId = TreeDocument.rootId(tree)
         if (exists(resolver, tree, TreeDocument.childId(rootId, Game.EBOOT))) {
-            Log.w(TAG, "[app] " + rootId + " holds an " + Game.EBOOT + " of its own — that is a game,"
+            Log.w(TAG, "[app] " + rootId + " holds an " + Game.EBOOT + " of its own -- that is a game,"
                 + " and the library wants the folder above it")
             return Added.IS_A_GAME
         }
@@ -143,9 +143,9 @@ object GameLibrary {
     }
 
     /**
-     * Drops [tree] from the library and releases its grant.
+     * drops [tree] from the library and releases its grant.
      *
-     * The release is what makes this undoable-by-picking-again rather than merely hidden: a grant the
+     * the release is what makes this undoable-by-picking-again rather than merely hidden: a grant the
      * app holds forever is one the user cannot see the end of, and android's own storage screen is
      * where they would go looking.
      */
@@ -163,10 +163,10 @@ object GameLibrary {
     }
 
     /**
-     * What to call a granted folder on screen — `primary:roms/ps5`, or an SD card's volume id.
+     * what to call a granted folder on screen -- `primary:roms/ps5`, or an SD card's volume id.
      *
-     * The document id rather than the display name, and that is a choice: the display name is the
-     * last component, so two `ps5` folders on two volumes would be one label twice. This says where.
+     * the document id rather than the display name, and that is a choice: the display name is the
+     * last component, so two `ps5` folders on two volumes would be one label twice. this says where.
      */
     fun label(tree: Uri): String =
         try {
@@ -188,9 +188,9 @@ object GameLibrary {
     // the scan
 
     /**
-     * Every game, staged and granted, ordered by display name.
+     * every game, staged and granted, ordered by display name.
      *
-     * Returns empty rather than throwing when [stagedRoot] does not exist — a fresh install has no
+     * returns empty rather than throwing when [stagedRoot] does not exist -- a fresh install has no
      * `games/` until something writes one, and that is an empty list rather than an error.
      */
     fun scan(context: Context, stagedRoot: File): List<Game> {
@@ -204,11 +204,11 @@ object GameLibrary {
     }
 
     /**
-     * The games directly inside one granted folder. One level, not a search.
+     * the games directly inside one granted folder. one level, not a search.
      *
-     * **The child ids come out of the cursor that listed them rather than being built**, which is
-     * free — the listing returns them — and is one fewer place relying on [TreeDocument]'s assumption
-     * about how a provider names things. Below that level the concatenation rule does apply, because
+     * **the child ids come out of the cursor that listed them rather than being built**, which is
+     * free -- the listing returns them -- and is one fewer place relying on [TreeDocument]'s assumption
+     * about how a provider names things. below that level the concatenation rule does apply, because
      * checking for an `eboot.bin` by listing a game directory would mean enumerating hundreds of
      * files to learn one thing.
      */
@@ -235,7 +235,7 @@ object GameLibrary {
         return games
     }
 
-    /** Whether there is a document at [id]. One query, one column, and the answer is `moveToFirst`. */
+    /** whether there is a document at [id]. one query, one column, and the answer is `moveToFirst`. */
     private fun exists(resolver: ContentResolver, tree: Uri, id: String): Boolean =
         query(
             resolver,
@@ -244,11 +244,11 @@ object GameLibrary {
         )?.use { it.moveToFirst() } ?: false
 
     /**
-     * A cursor, or null for every reason there is — including the ordinary one.
+     * a cursor, or null for every reason there is -- including the ordinary one.
      *
-     * **A query for a document that is not there throws**, so an absent `eboot.bin` — which is what
-     * every directory in a folder of screenshots looks like — arrives as an exception rather than as
-     * an empty cursor. It is not logged for that reason: a scan of a folder the user picked by
+     * **a query for a document that is not there throws**, so an absent `eboot.bin` -- which is what
+     * every directory in a folder of screenshots looks like -- arrives as an exception rather than as
+     * an empty cursor. it is not logged for that reason: a scan of a folder the user picked by
      * mistake would otherwise be one line of alarm per subdirectory in it.
      */
     private fun query(resolver: ContentResolver, uri: Uri, columns: Array<String>): Cursor? =

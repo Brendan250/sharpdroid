@@ -1,10 +1,10 @@
-// sharpemu-android host layer — the first call that goes *up* into java.
+// sharpemu-android host layer -- the first call that goes *up* into java.
 //
 // everything else here is one-way. the app calls down through entry_jni.cpp and the host layer never
 // calls back: vulkan is handed a native ANativeWindow*, and audio is pure NDK AAudio with no java
 // anywhere in it. a content provider has no NDK, so reaching one means holding a JavaVM*, a global
 // reference to a helper class, its method ids, and an attachment for every guest thread that might
-// ask a question — which is machinery this project did not have until the guest file layer needed it.
+// ask a question -- which is machinery this project did not have until the guest file layer needed it.
 //
 // it is a separate file from guest_files.cpp on purpose: this is the only part that cannot work
 // outside an app, and keeping it apart is what lets guest_files.cpp be read as syscall semantics
@@ -24,7 +24,7 @@ namespace SafBridge {
 
 // called once from JNI_OnLoad, on a thread the runtime attached for us and with the *app's* class
 // loader in scope. that timing is the whole reason it exists as its own entry point rather than
-// being resolved lazily on first use — see the implementation.
+// being resolved lazily on first use -- see the implementation.
 void OnLoad(JavaVM* VM);
 
 // false in the shell binary, and false in an app whose helper class did not resolve. the file layer
@@ -36,8 +36,8 @@ bool Available();
 int OpenFile(const std::string& Relative);
 
 // one query answering size, kind and modification time together. absent is false rather than an
-// error: a lookup of a file that is not there is an ordinary thing for the guest to do — a fifth of
-// this workload's opens are exactly that — and it is not worth an exception crossing JNI.
+// error: a lookup of a file that is not there is an ordinary thing for the guest to do -- a fifth of
+// this workload's opens are exactly that -- and it is not worth an exception crossing JNI.
 struct StatResult {
   bool Exists {};
   bool Directory {};

@@ -4,7 +4,7 @@
 # pushed to /data/local/tmp/sharpemu/ and run there, because that is where the guests, the staged
 # x86-64 glibc set and the host's own libc++_shared.so live.
 #
-# **every mode is one lowercase token** — `smc-full`, `asyncsig-safepoint`, `vulkan-off` — so a
+# **every mode is one lowercase token** -- `smc-full`, `asyncsig-safepoint`, `vulkan-off` -- so a
 # result can be grepped for on a word boundary, and a mode named in a commit message or a bug report
 # is the same string the run printed. the column is aligned by `report` rather than by spaces inside
 # the name, because padding baked into a name stops it being a name.
@@ -61,7 +61,7 @@ run signals ./signals
 run getent --libs ./guest-libs ./getent --version
 run smc ./smc
 # the default asynchronous-signal site is `syscall`, which is what boots the game. it does
-# not reach the guest's spinning worker, so case 1 of this guest is expected to fail there — which
+# not reach the guest's spinning worker, so case 1 of this guest is expected to fail there -- which
 # is a real gap, recorded rather than papered over. `safepoint` is the mode that
 # covers all three routes, so that is the one this asserts, and running it here is what keeps the
 # interrupt-fault-page machinery from rotting while it waits to be trusted on the real workload.
@@ -89,12 +89,12 @@ run aaudio --audio --libs ./guest-libs ./aaudio
 # AAUDIO_ERROR_UNAVAILABLE, so AAudio_createStreamBuilder must fail and the guest must exit 1.
 run_fails aaudio-off "aaudio played without the thunk enabled" --libs ./guest-libs ./aaudio
 
-# and the same guest under the other two SMC modes. `full` is the fallback configuration — it
-# needs no page protection at all, only InvalidateGuestCodeRange — so it has to keep working or
+# and the same guest under the other two SMC modes. `full` is the fallback configuration -- it
+# needs no page protection at all, only InvalidateGuestCodeRange -- so it has to keep working or
 # there is nothing to fall back to. `none` is expected to *fail*, and is checked for failing:
 # it is what says the smc guest is testing something rather than passing by accident.
 run smc-full --smc full ./smc
-run_fails smc-none "smc passed without SMC detection — the test is not testing anything" --smc none ./smc
+run_fails smc-none "smc passed without SMC detection -- the test is not testing anything" --smc none ./smc
 
 rm -f ./last-run.log
 exit $FAILED

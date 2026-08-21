@@ -1,4 +1,4 @@
-// sharpemu-android host layer — guest threads.
+// sharpemu-android host layer -- guest threads.
 //
 // the host layer began single-threaded, and not incidentally: FEXCore's thread state, the
 // GDT, the call-return shadow stack, the signal mask and the setjmp escape hatch were all file
@@ -7,7 +7,7 @@
 // `clone`.
 //
 // the model is one guest thread to one host thread, always. that is not a simplification we are
-// making — it is what keeps everything else in the host layer honest. `gettid`, `sched_*`,
+// making -- it is what keeps everything else in the host layer honest. `gettid`, `sched_*`,
 // `futex` and `/proc/self/task` can all keep forwarding to bionic and give truthful answers,
 // because the thing the guest calls a thread really is a thread of this process.
 //
@@ -52,7 +52,7 @@ struct FaultReport {
   void* FaultAddress;
   int Signal;
   ///< siginfo's si_code. worth carrying because two of the host layer's own mechanisms are told
-  ///< apart by it — SEGV_ACCERR on a page we protected ourselves is a signal to deliver or a guest
+  ///< apart by it -- SEGV_ACCERR on a page we protected ourselves is a signal to deliver or a guest
   ///< rewriting its own code, not a crash.
   int SiCode;
   bool InJitCode;
@@ -68,8 +68,8 @@ struct GuestThread {
   //
   // the decoder does not tolerate an empty GDT: Decoder::DecodeInstructionsAtEntry reads the CS
   // descriptor to decide 64-bit mode and dereferences the result unchecked. and the JIT reaches
-  // the call-return shadow stack through a pinned register with no null check — the JIT's
-  // ExitFunction op stores to `[REG_CALLRET_SP, #-0x10]` pre-index — so a zero there turns the
+  // the call-return shadow stack through a pinned register with no null check -- the JIT's
+  // ExitFunction op stores to `[REG_CALLRET_SP, #-0x10]` pre-index -- so a zero there turns the
   // thread's first `call` into a store to 0xFFFFFFFFFFFFFFF0.
   //
   // both are per-thread, and both are inherited by a cloned thread rather than defaulted: the GDT
@@ -126,7 +126,7 @@ struct GuestThread {
   size_t SignalStackSize {};
 
   // the two halves of the start-up handshake with the cloning thread. they live here, in storage
-  // that outlives both, rather than on the parent's stack — the parent returns from clone straight
+  // that outlives both, rather than on the parent's stack -- the parent returns from clone straight
   // back into JIT'd code, so by the time the child re-checks its wake-up condition the parent's
   // frame has already been overwritten by guest execution.
   bool StartPublished {};
@@ -152,7 +152,7 @@ GuestThread* Current();
  *
  * a plain function pointer and a void* rather than a std::function, because one caller is the
  * SIGSEGV handler and an allocation there is not something to rely on. the registry lock this
- * takes is a leaf — nothing is ever acquired while holding it — so it is safe to call with the
+ * takes is a leaf -- nothing is ever acquired while holding it -- so it is safe to call with the
  * code invalidation mutex already held, which is how the tracker calls it.
  */
 void ForEachLive(void (*Fn)(GuestThread&, void*), void* User);
@@ -170,7 +170,7 @@ void InstallProcessFaultHandlers();
 /**
  * @brief clone(2), for the CLONE_THREAD case.
  *
- * argument order is the x86-64 kernel's, which is *not* the one x86-32 uses — x86-32 selects
+ * argument order is the x86-64 kernel's, which is *not* the one x86-32 uses -- x86-32 selects
  * CLONE_BACKWARDS and swaps tls with child_tid, and copying that mapping here would put a TLS
  * pointer where a tid pointer belongs.
  *
@@ -194,8 +194,8 @@ uint64_t Clone(FEXCore::Core::CpuStateFrame* Frame, uint64_t Flags, uint64_t Sta
 // --- asynchronous signals ----------------------------------------------------------------------
 //
 // two places, and only two, where a guest thread can be redirected into a signal handler: inside a
-// translated block, and on the way out of a guest syscall. everywhere else — our own syscall
-// implementations, FEXCore's compiler, bionic — there are host locks and host frames that
+// translated block, and on the way out of a guest syscall. everywhere else -- our own syscall
+// implementations, FEXCore's compiler, bionic -- there are host locks and host frames that
 // abandoning them would strand, and delivering means abandoning them.
 //
 // so raising a signal on another thread is two steps that deliver nothing: record the bit, then
@@ -216,7 +216,7 @@ uint64_t SignalGuestThread(int32_t TID, int Signal);
  *
  * called for every syscall this thread makes. at this point CPUState describes the guest exactly
  * and the host layer holds no lock, so it is the safe delivery point for a thread that was
- * somewhere unredirectable when the signal arrived — including one blocked in a host call, which
+ * somewhere unredirectable when the signal arrived -- including one blocked in a host call, which
  * the interrupting signal has just brought back with EINTR.
  *
  * @param Number the syscall the guest asked for, and @param Result what it returned. both are
@@ -273,7 +273,7 @@ struct AsyncSignalStats {
 AsyncSignalStats AsyncStats();
 
 /**
- * @brief Trace the asynchronous signal path — raise, defer, deliver, sigreturn.
+ * @brief Trace the asynchronous signal path -- raise, defer, deliver, sigreturn.
  *
  * a handful of lines per run rather than a firehose, because these events are rare. it exists to
  * answer one question `--trace` cannot: what the guest's handler did to the frame. CoreCLR's GC
@@ -294,17 +294,17 @@ bool SignalTrace();
  * so resuming re-runs the instruction over its own partial results. it is an expensive mistake to
  * make: nothing errors, and the corruption surfaces far from the interrupt that caused it.
  *
- * - SyscallOnly (the default): syscall exits alone. sound by construction — the guest chose that
- *   boundary itself — and it is what gets `Dreaming Sarah` through its boot. what it does not do
+ * - SyscallOnly (the default): syscall exits alone. sound by construction -- the guest chose that
+ *   boundary itself -- and it is what gets `Dreaming Sarah` through its boot. what it does not do
  *   is reach a thread that spins in translated code without ever calling anything, which is case 1
  *   of the `asyncsig` regression guest.
  * - SafePoint: FEXCore's interrupt fault page. the JIT stores to it at every block entry and ahead
  *   of every backward branch, so arming it PROT_NONE turns the next of those into a fault we can
- *   deliver from. it covers the spin case and the regression guest passes all three routes on it —
+ *   deliver from. it covers the spin case and the regression guest passes all three routes on it --
  *   but the game still dies under it, and a back-edge check is *not* the boundary a block entry is:
  *   the host PC there maps back to a guest instruction that has already run. not trusted yet.
  * - Block: the original behaviour, delivering anywhere inside a translated block. kept because it is
- *   what *shows* the bug — it is not safe and is not a supported mode.
+ *   what *shows* the bug -- it is not safe and is not a supported mode.
  */
 enum class AsyncSite {
   SyscallOnly,

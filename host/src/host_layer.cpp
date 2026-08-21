@@ -10,14 +10,14 @@
 //
 // the spike came first on purpose. android enforces W^X far more strictly than desktop linux
 // and a JIT must write memory then execute it; Dispatcher::Create() allocating buffers was not
-// proof they were usable. they are — so everything from the loader onwards is typing.
+// proof they were usable. they are -- so everything from the loader onwards is typing.
 //
-// this file is the driver and nothing else. the per-thread machinery — the GDT, the call-return
-// stack, the escape hatch, the fault handler and the dispatch loop — lives in guest_threads.cpp,
+// this file is the driver and nothing else. the per-thread machinery -- the GDT, the call-return
+// stack, the escape hatch, the fault handler and the dispatch loop -- lives in guest_threads.cpp,
 // because there is one of each per guest thread rather than one of each per process.
 //
 // it is not the process entry either. HostLayer::RunMain is called either by entry_exe.cpp's main()
-// or by entry_jni.cpp on behalf of the app — see host_layer.h.
+// or by entry_jni.cpp on behalf of the app -- see host_layer.h.
 // the argument vector is the interface in both cases, so the app passes the same flags a shell
 // would and every measurement stays comparable.
 
@@ -36,7 +36,7 @@
 #include <FEXCore/Config/Config.h>
 // CodeCache.h before SyscallHandler.h, and not for tidiness: SyscallHandler.h names
 // ExecutableFileSectionInfo unqualified from inside namespace FEXCore::HLE, resolving it via
-// the enclosing namespace to FEXCore::ExecutableFileSectionInfo — which CodeCache.h declares.
+// the enclosing namespace to FEXCore::ExecutableFileSectionInfo -- which CodeCache.h declares.
 // without this include the header does not compile on its own.
 #include <FEXCore/Core/CodeCache.h>
 #include <FEXCore/Core/Context.h>
@@ -67,7 +67,7 @@ namespace {
 
 // --- FEXCore configuration by name -------------------------------------------------------------
 
-// resolves a FEXCore option's json name — `TSOEnabled`, `Multiblock` — to the enumerator
+// resolves a FEXCore option's json name -- `TSOEnabled`, `Multiblock` -- to the enumerator
 // FEXCore::Config::Set takes, so that a JIT knob can be chosen at launch rather than compiled in.
 //
 // the table is FEXCore's own, expanded here rather than restated. `ConfigValues.inl` is generated
@@ -77,7 +77,7 @@ namespace {
 // removed stops compiling here rather than resolving to the wrong thing.
 //
 // the names are the ones FEX documents. the `FEX_TSOENABLED` environment spelling is deliberately
-// not accepted, and cannot be: FEX reads those in EnvLoader, which lives in FEX's frontend — the
+// not accepted, and cannot be: FEX reads those in EnvLoader, which lives in FEX's frontend -- the
 // part this project does not build. a variable by that name reaches nothing here, so accepting the
 // spelling would promise a route that does not exist.
 std::optional<FEXCore::Config::ConfigOption> ConfigOptionByName(std::string_view Name) {
@@ -115,7 +115,7 @@ void PrintRunSummary() {
   if (Async.Raised) {
     // "deferred" means the host interrupt landed somewhere the thread could not be redirected
     // from. under the default site that is every one of them by construction, so the number to
-    // read is Raised against how many were delivered above — a gap between the two is a thread
+    // read is Raised against how many were delivered above -- a gap between the two is a thread
     // that never reached a boundary.
     std::printf("[host-layer] %llu signal(s) raised on a guest thread, %llu interrupt(s) left for a later boundary\n",
                 static_cast<unsigned long long>(Async.Raised), static_cast<unsigned long long>(Async.Deferred));
@@ -249,7 +249,7 @@ int RunSpike(FEXCore::Context::Context* CTX) {
   std::memcpy(CodeMem, SpikeGuestCode, sizeof(SpikeGuestCode));
 
   // the guest's view: executable code, and a writable stack. the host mapping stays RW either
-  // way — HostProt drops PROT_EXEC — but this is what the decoder is told, and without it the
+  // way -- HostProt drops PROT_EXEC -- but this is what the decoder is told, and without it the
   // spike never decodes its first instruction.
   HostLayer::VMA::Record(reinterpret_cast<uint64_t>(CodeMem), 64 * 1024, PROT_READ | PROT_EXEC);
   HostLayer::VMA::Record(reinterpret_cast<uint64_t>(StackMem), 256 * 1024, PROT_READ | PROT_WRITE);
@@ -417,7 +417,7 @@ int RunELF(FEXCore::Context::Context* CTX, const char* Path, const char* LibDir,
     HomeVar,
     TmpVar,
     BundleVar,
-    // .NET links globalization against ICU at runtime and FailFast()s if it cannot find it —
+    // .NET links globalization against ICU at runtime and FailFast()s if it cannot find it --
     // "Couldn't find a valid ICU package installed on the system", from a static constructor deep
     // under the first DateTimeOffset.ToLocalTime() SharpEmu's logger performs. that is not a host
     // layer problem: libicu is simply not among the x86-64 shared objects staged in guest-libs/,
@@ -430,14 +430,14 @@ int RunELF(FEXCore::Context::Context* CTX, const char* Path, const char* LibDir,
     // here.
     "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1",
     // deliberately NOT setting DOTNET_GCRegionRange. the early throwaway probe under wine needed
-    // it — the regions GC reserved a range covering 0x8_0000_0000 and the PS5 image landed on top
-    // of it — but that was wine's address space, not ours. measured here: setting it to 0x100000000
+    // it -- the regions GC reserved a range covering 0x8_0000_0000 and the PS5 image landed on top
+    // of it -- but that was wine's address space, not ours. measured here: setting it to 0x100000000
     // changes nothing either way, and without it the guest maps the full PS5 image at 32 GiB and
     // applies all 120,776 relocations. so it is a wine artefact, not a latent fix to keep around.
   };
 
   // the fixed set above, then whatever --env added. a flag rather than more entries in that array
-  // because the interesting .NET knobs — W^X, tiered compilation, AVX — are one-line experiments
+  // because the interesting .NET knobs -- W^X, tiered compilation, AVX -- are one-line experiments
   // whose whole value is being cheap to try, and a rebuild per experiment is not cheap.
   std::vector<const char*> Env {std::begin(GuestEnv), std::end(GuestEnv)};
   for (const char* Entry : ExtraEnv) {
@@ -456,7 +456,7 @@ int RunELF(FEXCore::Context::Context* CTX, const char* Path, const char* LibDir,
   {
     // what the guest is about to find at RSP, from the host's side. worth printing every run:
     // if the guest and the host ever disagree about these eight words, the fault is between
-    // them — in the JIT or in guest state setup — and not in either one's arithmetic.
+    // them -- in the JIT or in guest state setup -- and not in either one's arithmetic.
     const auto* Slots = reinterpret_cast<const uint64_t*>(Stack.RSP);
     for (int i = 0; i < 8; ++i) {
       std::printf("[host-layer]   [rsp+%02d] = 0x%016llX\n", i * 8, static_cast<unsigned long long>(Slots[i]));
@@ -483,7 +483,7 @@ int RunELF(FEXCore::Context::Context* CTX, const char* Path, const char* LibDir,
   switch (T->Reason) {
   case HostLayer::Escape::Exited:
     // the initial guest thread called exit(2) rather than exit_group(2). on linux the process
-    // outlives it — every other thread keeps running — so we wait rather than tearing the address
+    // outlives it -- every other thread keeps running -- so we wait rather than tearing the address
     // space down under threads that are still using it.
     HostLayer::Threads::WaitForOthers();
     [[fallthrough]];
@@ -493,7 +493,7 @@ int RunELF(FEXCore::Context::Context* CTX, const char* Path, const char* LibDir,
     // what linux reports and, more practically, it is the one that says why.
     HostLayer::Threads::ProcessExitRequested(&Status);
     // the kernel keeps only the low 8 bits of an exit status, so a guest exiting with a value
-    // that has meaning above them — .NET's apphost exits with 0x80008031-shaped HRESULTs — must
+    // that has meaning above them -- .NET's apphost exits with 0x80008031-shaped HRESULTs -- must
     // be reported the way linux would report it, or the number on screen is one no real system
     // would ever show. the raw value is worth printing too, since for those callers it is the
     // actual error code.
@@ -571,7 +571,7 @@ int HostLayer::RunMain(int argc, char** argv) {
       FileProbeRoot = argv[++ArgIndex];
     } else if (std::strcmp(argv[ArgIndex], "--saf-mount") == 0 && ArgIndex + 1 < argc) {
       // where the guest's game directory appears, when the game came from a grant on a directory the
-      // user picked rather than from a path. the prefix is invented — nothing at that path exists —
+      // user picked rather than from a path. the prefix is invented -- nothing at that path exists --
       // so an ordinary run never names one and never reaches any of that machinery. it needs the
       // app: there is no provider to ask on the other side of a shell.
       SafMount = argv[++ArgIndex];
@@ -647,7 +647,7 @@ int HostLayer::RunMain(int argc, char** argv) {
     } else if (std::strcmp(argv[ArgIndex], "--vulkan-size") == 0 && ArgIndex + 1 < argc) {
       // the presentation size the guest is told the display is. it must match whatever the
       // client thinks its drawable is, or the client recreates its swapchain forever without
-      // ever erroring — a silent hang rather than a failure. it applies only when there is no window:
+      // ever erroring -- a silent hang rather than a failure. it applies only when there is no window:
       // with one, the size comes from the ANativeWindow and this flag is refused. under android
       // WSI the driver answers the question and none of it is consulted.
       unsigned Width = 0, Height = 0;
@@ -785,7 +785,7 @@ int HostLayer::RunMain(int argc, char** argv) {
   // an unknown name is refused rather than ignored. FEX's own loaders skip what they do not
   // recognise, which suits a config file a user edits by hand; here the names arrive from a table
   // in the app, so a typo that merely did nothing would look exactly like a knob that had no
-  // effect on this workload — and telling those two apart is the whole point of setting it.
+  // effect on this workload -- and telling those two apart is the whole point of setting it.
   for (const char* Option : FexOptions) {
     const char* Equals = std::strchr(Option, '=');
     if (!Equals || Equals == Option) {
@@ -799,7 +799,7 @@ int HostLayer::RunMain(int argc, char** argv) {
       return 2;
     }
     // the value is passed through as written. Config::Set takes strings and FEXCore converts by
-    // the option's own type, so a bool wants "0" or "1" — the "none"/"mtrack"/"full" spellings and
+    // the option's own type, so a bool wants "0" or "1" -- the "none"/"mtrack"/"full" spellings and
     // friends are handled by FEX's argument parser, which this does not use, exactly as the
     // SMCCHECKS line below already notes.
     FEXCore::Config::Set(*Resolved, Equals + 1);
@@ -808,7 +808,7 @@ int HostLayer::RunMain(int argc, char** argv) {
 
   // FEXCore defaults to 32-bit mode, and nothing complains if you leave it there: the decoder
   // takes its bitness from the CS descriptor, so 64-bit instructions still decode correctly.
-  // what changes is the *register file* — the Arm64Emitter constructor picks x32::SRA over x64::SRA,
+  // what changes is the *register file* -- the Arm64Emitter constructor picks x32::SRA over x64::SRA,
   // which is 8 guest GPRs instead of 16 mapped to host registers. guest code touching R8-R15,
   // or holding a 64-bit value anywhere, then quietly gets 32-bit results.
   //
@@ -829,7 +829,7 @@ int HostLayer::RunMain(int argc, char** argv) {
                                                                                                    "2");
 
   // the interrupt fault page, which is how an asynchronous signal reaches a thread that is off
-  // running already-compiled guest code — see guest_threads.h's AsyncSite.
+  // running already-compiled guest code -- see guest_threads.h's AsyncSite.
   //
   // GDBSERVER is a strange-looking way to ask for it, and it is deliberate: inside FEXCore this
   // option does exactly one thing in ContextImpl::InitCore,
@@ -848,7 +848,7 @@ int HostLayer::RunMain(int argc, char** argv) {
 
   // told here rather than worked out there, because this is the one place that decides it. both
   // thunks read guest float arguments straight out of the spilled register file, and FEX only uses
-  // the 32-byte-stride avx layout when both of these are set — so a host whose SVE is 256 bits
+  // the 32-byte-stride avx layout when both of these are set -- so a host whose SVE is 256 bits
   // wide moves the thunk boundary's ABI, which is the one thing in this probe that can break a
   // thunk rather than merely slow the JIT down.
   HostLayer::ThunkABI::SetAvxRegisterFile(Features.SupportsAVX && Features.SupportsSVE256);
@@ -876,8 +876,8 @@ int HostLayer::RunMain(int argc, char** argv) {
   }
   CTX->SetSyscallHandler(SpikeMode ? static_cast<FEXCore::HLE::SyscallHandler*>(&SpikeSyscalls) : &LinuxSyscalls);
 
-  // InitCore() unconditionally dereferences the signal delegator — it calls
-  // SignalDelegation->SetConfig(...) with no null check — so one must be installed first or it
+  // InitCore() unconditionally dereferences the signal delegator -- it calls
+  // SignalDelegation->SetConfig(...) with no null check -- so one must be installed first or it
   // segfaults at +0x38. a plain instance is enough to get through init; it delivers nothing,
   // which is what makes an unhandled guest fault fatal.
   FEXCore::SignalDelegator Signals;

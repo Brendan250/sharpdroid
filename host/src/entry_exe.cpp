@@ -1,4 +1,4 @@
-// the host layer as a process — the shell binary every milestone before the app was measured through,
+// the host layer as a process -- the shell binary every milestone before the app was measured through,
 // and the one regression.sh runs.
 //
 // it still exists, for the same reason it always did: an app is a bad place to bisect a JIT

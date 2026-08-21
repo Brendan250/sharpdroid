@@ -7,7 +7,7 @@
 # dependency graph ourselves and add FEXCore directly.
 #
 # doing it this way keeps every line of our build glue in our tree and leaves the FEX
-# checkout pristine — which matters, because FEX bans AI-generated contributions, so any
+# checkout pristine -- which matters, because FEX bans AI-generated contributions, so any
 # patch we made to it could never go upstream and would be a permanent private delta.
 
 cmake_minimum_required(VERSION 3.22)
@@ -113,12 +113,12 @@ add_subdirectory("${FEX_ROOT}/FEXCore"                         FEXCore)
 #
 # FEXCore/Source builds two libraries from the same objects: libFEXCore.a and libFEXCore.so.
 # neither links FEXCore_Base (the static half holding Config, LogMan, the allocator hooks and
-# SoftFloat) except under MinGW — on linux the .so is *meant* to ship with those symbols
+# SoftFloat) except under MinGW -- on linux the .so is *meant* to ship with those symbols
 # undefined, and the final FEXInterpreter executable satisfies them at load time.
 #
 # android's linker does not allow that: the NDK passes -Wl,--no-undefined for shared
 # libraries, so libFEXCore.so cannot link and never will. that is fine, because route B wants
-# the static library regardless — FEXCore gets linked directly into the single bionic .so we
+# the static library regardless -- FEXCore gets linked directly into the single bionic .so we
 # ship, together with our own frontend. so drop the .so from the default target.
 set_target_properties(FEXCore_shared PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
@@ -150,11 +150,11 @@ add_library(host-layer-core STATIC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_procfs.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/host_features.cpp"
   # the window of printed lines a viewer reads. it links into the shell binary too, where nothing
-  # fills it — the log pump is the library's, so there the ring stays empty and unallocated.
+  # fills it -- the log pump is the library's, so there the ring stays empty and unallocated.
   "${CMAKE_CURRENT_SOURCE_DIR}/src/log_ring.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/pad_bridge.cpp"
   # the java side of the guest file layer. it links into the shell binary too, where there is no
-  # JavaVM to hand it — Available() answers false there and the mount is refused, which is a better
+  # JavaVM to hand it -- Available() answers false there and the mount is refused, which is a better
   # answer than a second build configuration would be.
   "${CMAKE_CURRENT_SOURCE_DIR}/src/saf_bridge.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/guest_signals.cpp"
@@ -167,7 +167,7 @@ add_library(host-layer-core STATIC
 # reason is the STL. the hook libraries are dlopened into an *isolated* linker namespace, so they
 # are built against c++_static and carry their own; this build uses c++_shared. one ANDROID_STL
 # setting cannot be two things, so the two builds stay two builds and only the static archives
-# cross over — which is safe, because an archive records no STL choice of its own.
+# cross over -- which is safe, because an archive records no STL choice of its own.
 set(ADRENOTOOLS_BUILD "${CMAKE_CURRENT_SOURCE_DIR}/../build/adrenotools")
 
 # same submodule-first, workspace-fallback rule as FEX above.

@@ -50,8 +50,8 @@ bool ReadExactly(int FD, void* Dest, size_t Size, off_t Offset) {
 
 // PF_X deliberately does not become PROT_EXEC.
 //
-// FEX never executes the guest mapping — it *reads* those bytes and emits arm64 into its own
-// code buffers — so the guest image only ever needs to be readable. dropping PROT_EXEC is not
+// FEX never executes the guest mapping -- it *reads* those bytes and emits arm64 into its own
+// code buffers -- so the guest image only ever needs to be readable. dropping PROT_EXEC is not
 // a shortcut, it is what makes this work inside an android app at all: apps are denied
 // `execute` on their own app_data_file, so a file the app wrote could never be mapped
 // executable. an emulator that needed PROT_EXEC on guest images would be stuck; route B does
@@ -195,7 +195,7 @@ LoadedELF LoadELF64(const char* Path, uint64_t PIEBase) {
     Result.Error = "could not reserve the guest image range (already occupied?)";
     return Result;
   }
-  // the whole span as the reservation currently is — unreadable. the per-segment Record calls
+  // the whole span as the reservation currently is -- unreadable. the per-segment Record calls
   // below then carve the real segments out of it, and whatever gap alignment leaves between them
   // stays PROT_NONE instead of inheriting a neighbour's executability.
   VMA::Record(SpanBegin, SpanSize, PROT_NONE);
@@ -277,8 +277,8 @@ LoadedELF LoadELF64(const char* Path, uint64_t PIEBase) {
 namespace {
 
 // PT_INTERP names "/lib64/ld-linux-x86-64.so.2" on anything built for a normal linux distro, and
-// android has no /lib64. rather than fabricate that path on the device — which the app could not
-// do anyway, having no write access outside its own directory — the basename is looked up in the
+// android has no /lib64. rather than fabricate that path on the device -- which the app could not
+// do anyway, having no write access outside its own directory -- the basename is looked up in the
 // directory the guest libraries were staged in.
 bool ResolveInterp(const char* InterpPath, const char* SearchDir, char* Out, size_t OutSize) {
   if (::access(InterpPath, R_OK) == 0) {
@@ -336,7 +336,7 @@ LoadedProgram LoadProgram(const char* Path, uint64_t PIEBase, uint64_t InterpBas
   Result.Ok = true;
   Result.InterpBase = Result.Interp.LoadBias;
   // control goes to the interpreter. the program's own entry still reaches the guest, as AT_ENTRY
-  // — ld.so relocates everything and then jumps there itself.
+  // -- ld.so relocates everything and then jumps there itself.
   Result.StartRIP = Result.Interp.Entry;
   return Result;
 }
@@ -354,7 +354,7 @@ LoadedProgram LoadProgram(const char* Path, uint64_t PIEBase, uint64_t InterpBas
 //
 // RSP is 16-byte aligned on entry. getting that wrong is not a crash at _start but a fault
 // hundreds of instructions later inside the first SSE store to a stack local, which is a
-// miserable thing to debug — hence the explicit alignment step below.
+// miserable thing to debug -- hence the explicit alignment step below.
 
 namespace {
 
@@ -385,7 +385,7 @@ constexpr uint64_t AT_EXECFN_ = 31;
 GuestStack BuildGuestStack(const LoadedProgram& Program, const char* GuestPath, int Argc, const char* const* Argv,
                            const char* const* Envp, size_t StackSize) {
   GuestStack Result {};
-  // every auxv entry below describes the *program*, never the interpreter — AT_PHDR, AT_PHNUM and
+  // every auxv entry below describes the *program*, never the interpreter -- AT_PHDR, AT_PHNUM and
   // AT_ENTRY are how ld.so finds the thing it was asked to run. AT_BASE is the one exception, and
   // is where the interpreter learns its own load address.
   const LoadedELF& Elf = Program.Exec;

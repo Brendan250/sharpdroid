@@ -164,7 +164,7 @@ the payload is *found* inside the archive rather than assumed at a fixed depth, 
 
 `contents` exists for two things an APK asset cannot otherwise answer: how large the unpacking is before it starts, and which names are directories — `AssetManager` reports names without kinds, so telling a file from a directory otherwise means opening each one and reading a failure as "directory".
 
-**a name android's asset packer will not ship is not in the tree.** aapt2 applies a default ignore pattern to `assets/` — dot-prefixed names among them — without saying so, so `scripts/build-apk.py` removes those before it writes the listing and then checks every line of the listing against the APK it produced. a listing that names a file the APK does not have is a launch that aborts part-way through unpacking.
+**a name android's asset packer does not ship is not in the tree.** aapt2 applies a default ignore pattern to `assets/` — dot-prefixed names among them — without saying so, so `scripts/build-apk.py` removes those before it writes the listing and then checks every line of the listing against the APK it produced. a listing that names a file the APK does not have is a launch that aborts part-way through unpacking.
 
 ## how a build is selected
 

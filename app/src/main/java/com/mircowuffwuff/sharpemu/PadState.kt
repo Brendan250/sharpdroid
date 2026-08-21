@@ -7,10 +7,10 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * One gamepad, as the emulator's input seam wants it, assembled from android's key and motion events.
+ * one gamepad, as the emulator's input seam wants it, assembled from android's key and motion events.
  *
- * The button numbering is the seam's own and not the guest's: the emulator translates these to
- * `SCE_PAD_BUTTON` bits on its side of the boundary, so no PlayStation ABI value appears here. Sticks
+ * the button numbering is the seam's own and not the guest's: the emulator translates these to
+ * `SCE_PAD_BUTTON` bits on its side of the boundary, so no PlayStation ABI value appears here. sticks
  * are 0..255 with 128 centred and **Y growing downward**, which matches both android's axis sign and
  * the seam's convention, so nothing is flipped anywhere.
  */
@@ -35,19 +35,19 @@ object PadButton {
 }
 
 /**
- * The live state of the pad, and the only thing that talks to the host layer about input.
+ * the live state of the pad, and the only thing that talks to the host layer about input.
  *
- * **Held here rather than rebuilt per event**, because android delivers one event per changed control:
+ * **held here rather than rebuilt per event**, because android delivers one event per changed control:
  * a key event says a button went down and says nothing about the sticks, so a snapshot assembled from
- * one event alone would report every other control as released. So each event edits this and the whole
+ * one event alone would report every other control as released. so each event edits this and the whole
  * of it is pushed down afterwards.
  *
- * Not thread-safe and deliberately not synchronised: every caller is the input dispatch on the UI
- * thread. The crossing into other threads happens on the native side, which takes a lock for it.
+ * not thread-safe and deliberately not synchronised: every caller is the input dispatch on the UI
+ * thread. the crossing into other threads happens on the native side, which takes a lock for it.
  */
 object PadState {
 
-    /** Centre for a stick axis. The seam's convention, and android's 0.0 maps onto it. */
+    /** centre for a stick axis. the seam's convention, and android's 0.0 maps onto it. */
     private const val CENTRE = 128
 
     private var buttons = 0
@@ -59,28 +59,28 @@ object PadState {
     private var rightTrigger = 0
 
     /**
-     * Which device ids are gamepads we are tracking, in the order they arrived.
+     * which device ids are gamepads we are tracking, in the order they arrived.
      *
-     * **One pad reaches the guest and that is a real ceiling rather than a shortcut**: the emulator's
+     * **one pad reaches the guest and that is a real ceiling rather than a shortcut**: the emulator's
      * pad exports read at most two states and take the type, motion and touch of the first, so ports
-     * are not addressable from here yet. What this set is for is knowing whether *any* pad is present,
+     * are not addressable from here yet. what this set is for is knowing whether *any* pad is present,
      * so that unplugging one of two does not report the pad as gone.
      */
     private val devices = LinkedHashSet<Int>()
 
-    /** True once anything has been seen, which is what the guest is told as `connected`. */
+    /** true once anything has been seen, which is what the guest is told as `connected`. */
     val connected: Boolean get() = devices.isNotEmpty()
 
     /**
-     * Whether a controller reaches the guest at all — Settings, Controls, the mapping switch.
+     * whether a controller reaches the guest at all -- Settings, Controls, the mapping switch.
      *
-     * **Turning it off releases everything and says so, rather than simply going quiet.** A button
+     * **turning it off releases everything and says so, rather than simply going quiet.** a button
      * held at the moment it is switched off would otherwise stay held for the rest of the run, since
      * nothing after this point will process its release.
      *
-     * **Events are then not consumed either**, which matters more than it looks: an unconsumed key
+     * **events are then not consumed either**, which matters more than it looks: an unconsumed key
      * goes on to the view hierarchy, so the panel drawn over a running guest stays reachable with the
-     * d-pad by somebody who has turned controller input off. Consuming and discarding would leave a
+     * d-pad by somebody who has turned controller input off. consuming and discarding would leave a
      * pad that does nothing at all, including to the app's own screens.
      */
     @JvmStatic
@@ -96,9 +96,9 @@ object PadState {
         }
 
     /**
-     * Whether this event came from something with a stick or a gamepad button on it.
+     * whether this event came from something with a stick or a gamepad button on it.
      *
-     * The source is a bit mask and a device is commonly several things at once — a gamepad that also
+     * the source is a bit mask and a device is commonly several things at once -- a gamepad that also
      * reports itself as a keyboard is the normal case, which is why this tests for the bits rather
      * than comparing equality.
      */
@@ -113,16 +113,16 @@ object PadState {
     }
 
     /**
-     * The button mapping, or 0 for a key that is not one of ours.
+     * the button mapping, or 0 for a key that is not one of ours.
      *
-     * **Positional rather than by letter.** Android names the face buttons A, B, X and Y after the
+     * **positional rather than by letter.** Android names the face buttons A, B, X and Y after the
      * layout most controllers are printed with, and the mapping is by where the button physically is:
-     * A is the bottom button and becomes Cross, B is the right one and becomes Circle, X is the left
-     * one and becomes Square, Y is the top one and becomes Triangle. That is what makes a controller
+     * a is the bottom button and becomes Cross, B is the right one and becomes Circle, X is the left
+     * one and becomes Square, Y is the top one and becomes Triangle. that is what makes a controller
      * with PlayStation glyphs on it behave the way its glyphs say, and it is what every other android
      * emulator of a PlayStation does.
      *
-     * `KEYCODE_BACK` is deliberately absent. A gamepad that reports its own back button would
+     * `KEYCODE_BACK` is deliberately absent. a gamepad that reports its own back button would
      * otherwise open the in-game panel, and on this device the built-in controls do exactly that.
      */
     private fun buttonFor(keyCode: Int): Int = when (keyCode) {
@@ -148,9 +148,9 @@ object PadState {
     }
 
     /**
-     * Takes a key event. Returns true when it was the pad's, in which case it goes no further.
+     * takes a key event. returns true when it was the pad's, in which case it goes no further.
      *
-     * **Consuming it is what stops a d-pad walking the app's focus.** An unconsumed `DPAD_DOWN`
+     * **consuming it is what stops a d-pad walking the app's focus.** an unconsumed `DPAD_DOWN`
      * reaching the view hierarchy moves focus to whatever is focusable, and the in-game panel has a
      * button on it.
      */
@@ -188,10 +188,10 @@ object PadState {
     }
 
     /**
-     * Takes a joystick motion event. Returns true when it was the pad's.
+     * takes a joystick motion event. returns true when it was the pad's.
      *
-     * One event carries every axis the device has, so all of them are read rather than looking for
-     * which changed — android does not say, and reading them all is what makes the snapshot whole.
+     * one event carries every axis the device has, so all of them are read rather than looking for
+     * which changed -- android does not say, and reading them all is what makes the snapshot whole.
      */
     @JvmStatic
     fun onMotion(event: MotionEvent): Boolean {
@@ -243,9 +243,9 @@ object PadState {
     }
 
     /**
-     * A device arriving or leaving. Neither is an event on its own, so both come from the activity.
+     * a device arriving or leaving. neither is an event on its own, so both come from the activity.
      *
-     * A pad going away pushes a released state rather than only clearing the flag: a stick held over
+     * a pad going away pushes a released state rather than only clearing the flag: a stick held over
      * when the cable came out would otherwise be the last thing the guest was told, and it would hold
      * that position forever.
      */
@@ -270,7 +270,7 @@ object PadState {
         push()
     }
 
-    /** Everything up and centred. What a pad that has gone away reports. */
+    /** everything up and centred. what a pad that has gone away reports. */
     @JvmStatic
     fun release() {
         buttons = 0
@@ -282,7 +282,7 @@ object PadState {
         rightTrigger = 0
     }
 
-    /** Releases everything and tells the host, for a run being left rather than a pad being unplugged. */
+    /** releases everything and tells the host, for a run being left rather than a pad being unplugged. */
     @JvmStatic
     fun clear() {
         release()
@@ -293,11 +293,11 @@ object PadState {
         device?.getMotionRange(axis, InputDevice.SOURCE_JOYSTICK) != null
 
     /**
-     * A stick axis, -1.0..1.0 from android, onto 0..255 with 128 centred.
+     * a stick axis, -1.0..1.0 from android, onto 0..255 with 128 centred.
      *
-     * The device's own flat and fuzz are not applied. Android reports them per axis and the emulator
+     * the device's own flat and fuzz are not applied. Android reports them per axis and the emulator
      * applies a deadzone of its own when it merges the stick, so subtracting one here would be a
-     * deadzone inside a deadzone — and the second one would be invisible to anybody tuning the first.
+     * deadzone inside a deadzone -- and the second one would be invisible to anybody tuning the first.
      */
     private fun axisToByte(event: MotionEvent, axis: Int): Int {
         if (!hasAxis(event.device, axis)) {
@@ -313,7 +313,7 @@ object PadState {
         return (CENTRE + value * 127f).roundToInt().coerceIn(0, 255)
     }
 
-    /** A trigger axis, 0.0..1.0 from android, onto 0..255. */
+    /** a trigger axis, 0.0..1.0 from android, onto 0..255. */
     private fun triggerToByte(event: MotionEvent, axis: Int): Int {
         if (!hasAxis(event.device, axis)) {
             return 0
@@ -323,10 +323,10 @@ object PadState {
     }
 
     /**
-     * Hands the whole state down to the host layer.
+     * hands the whole state down to the host layer.
      *
-     * **Every event, with no coalescing.** The native side takes one uncontended lock and copies
-     * twelve bytes, and the guest reads whatever is latest — so a push that arrives between two polls
+     * **every event, with no coalescing.** the native side takes one uncontended lock and copies
+     * twelve bytes, and the guest reads whatever is latest -- so a push that arrives between two polls
      * costs nothing and a push that is skipped is a control the guest never learns about.
      */
     private fun push() {

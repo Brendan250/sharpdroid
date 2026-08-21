@@ -16,57 +16,57 @@ import java.io.File
 import java.util.concurrent.Executors
 
 /**
- * One game's settings: which game, and what can be set for it.
+ * one game's settings: which game, and what can be set for it.
  *
- * **Three blocks in both compositions — the artwork, what the dump says about itself, and the cards.**
- * Wide, they are a column beside a column; upright they are one column that scrolls as a whole, the
- * artwork leading at the width of the panel. The blocks and their order are the same either way, so
- * the two are one arrangement at two widths rather than two arrangements. See the layouts.
+ * **three blocks in both compositions -- the artwork, what the dump says about itself, and the cards.**
+ * wide, they are a column beside a column; upright they are one column that scrolls as a whole, the
+ * artwork leading at the width of the panel. the blocks and their order are the same either way, so
+ * the two are one arrangement at two widths rather than two arrangements. see the layouts.
  *
- * **The sections behind these cards are the app's own**, not copies of them — [SettingsSectionActivity]
- * is handed a game and writes that game's store instead of the app's. So this scene is a way in rather
+ * **the sections behind these cards are the app's own**, not copies of them -- [SettingsSectionActivity]
+ * is handed a game and writes that game's store instead of the app's. so this scene is a way in rather
  * than a second implementation, and a row added to Emulation, Graphics or Controls is offered here the
  * day it is written.
  *
- * **Everything it draws travels in the intent, except the one thing that costs a walk.** The list that
+ * **everything it draws travels in the intent, except the one thing that costs a walk.** the list that
  * opened it had already opened the dump to draw the row, so the name, the artwork and the identity are
- * handed over rather than read again — which for a game inside a granted tree is a provider round trip
- * saved on every long press. The dump's *size* is the exception: it is hundreds of files either way, so
+ * handed over rather than read again -- which for a game inside a granted tree is a provider round trip
+ * saved on every long press. the dump's *size* is the exception: it is hundreds of files either way, so
  * what travels is where to look and this screen measures it on a worker.
  *
- * **It is reached by holding a cover and by nothing else.** Not exported, like every screen behind the
+ * **it is reached by holding a cover and by nothing else.** not exported, like every screen behind the
  * cog: what is set here decides what a launch runs.
  *
- * **And it can start the game, on the button the managers put in that corner.** Somebody who came here
+ * **and it can start the game, on the button the managers put in that corner.** somebody who came here
  * to change how a game runs is one gesture from finding out, rather than backing out to the grid to
- * tap the cover they were just holding. It is the list's own launch — [GameLaunch] builds the intent
- * for both — so the run is identical whichever screen started it.
+ * tap the cover they were just holding. it is the list's own launch -- [GameLaunch] builds the intent
+ * for both -- so the run is identical whichever screen started it.
  */
 class GameSettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityGameSettingsBinding
 
-    /** The theme this screen was drawn with, so a change made behind it is noticed on the way back. */
+    /** the theme this screen was drawn with, so a change made behind it is noticed on the way back. */
     private lateinit var drawnWith: String
 
     private lateinit var configKey: String
     private lateinit var gameName: String
 
-    /** What the emulator calls this game. See [Game.emulatorTitleId]. */
+    /** what the emulator calls this game. see [Game.emulatorTitleId]. */
     private lateinit var emulatorTitleId: String
 
-    /** One thread, for the one measurement this screen makes. */
+    /** one thread, for the one measurement this screen makes. */
     private val worker = Executors.newSingleThreadExecutor()
 
     /**
-     * A run started from here, and why it did not start when it did not.
+     * a run started from here, and why it did not start when it did not.
      *
-     * **The message is said by this screen because a toast belongs to the process that posted one**,
+     * **the message is said by this screen because a toast belongs to the process that posted one**,
      * which is the game list's reason exactly: a guest gets a process of its own and is ended with
-     * it, so a run that gives up would post a toast and be killed before it could be read. This
+     * it, so a run that gives up would post a toast and be killed before it could be read. this
      * screen is in the process that survives.
      *
-     * Registered at construction, as the contract requires — this activity can be recreated while a
+     * registered at construction, as the contract requires -- this activity can be recreated while a
      * guest is in front of it, and a launcher registered later has nothing to deliver a result to.
      */
     private val run = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -134,7 +134,7 @@ class GameSettingsActivity : AppCompatActivity() {
         binding.sections.adapter =
             SectionAdapter(SettingsActivity.Section.perGame, perGame = true) { section ->
                 // **a section is usually the app's own screen told which store to write, and User
-                // data is the one that is not** — see [SettingsActivity.Section.perGameScreen]. It
+                // data is the one that is not** -- see [SettingsActivity.Section.perGameScreen]. it
                 // is handed the emulator's title id rather than the config key, because what it acts
                 // on are directories the emulator named.
                 startActivity(
@@ -150,24 +150,24 @@ class GameSettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * Sizes the artwork against the panel, and the facts to match it, where the layout asks for it.
+     * sizes the artwork against the panel, and the facts to match it, where the layout asks for it.
      *
-     * **Upright the artwork leads at the width of the column, and a square sized by width is as tall
-     * as the panel is wide.** On a 16:9 panel that is over half the height, which puts the first card
-     * below the fold and makes a screen of settings one nobody can act on without scrolling — and it
+     * **upright the artwork leads at the width of the column, and a square sized by width is as tall
+     * as the panel is wide.** on a 16:9 panel that is over half the height, which puts the first card
+     * below the fold and makes a screen of settings one nobody can act on without scrolling -- and it
      * is worst on 16:9 rather than on the 21:9 panels this is drawn for, because those are the ones
      * with the least height per unit of width.
      *
-     * So the side is the smaller of what the column allows and a share of the panel's height, which
-     * `integers.xml` names. Where the cap binds the artwork is narrower than the column and the
+     * so the side is the smaller of what the column allows and a share of the panel's height, which
+     * `integers.xml` names. where the cap binds the artwork is narrower than the column and the
      * layout centres it; on the 21:9 panels this is drawn for it very nearly does not bind at all.
      *
      * **XML cannot take a minimum of two numbers**, which is the only reason this is here rather than
-     * in the layout beside the view it moves. Whether it applies at all is a resource — see
-     * `values/bools.xml` — so the wide composition, which bounds the artwork by its own column, is
+     * in the layout beside the view it moves. whether it applies at all is a resource -- see
+     * `values/bools.xml` -- so the wide composition, which bounds the artwork by its own column, is
      * left exactly as it draws itself rather than being excluded by a test on the orientation.
      *
-     * The display's own height is what a third is taken of. The window is a few dozen pixels shorter
+     * the display's own height is what the share is taken of. the window is a few dozen pixels shorter
      * once the system bars are inset, and the difference does not change what this is for: the cap is
      * a proportion chosen by eye, not a measurement something else depends on.
      */
@@ -190,14 +190,14 @@ class GameSettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * Measures the whole dump and fills the size row in when it lands.
+     * measures the whole dump and fills the size row in when it lands.
      *
-     * **The row is on screen before the number is**, drawn with its label and an empty value, so the
-     * path under it does not jump a line down a moment after the screen opens. A measurement that
+     * **the row is on screen before the number is**, drawn with its label and an empty value, so the
+     * path under it does not jump a line down a moment after the screen opens. a measurement that
      * finds nothing takes the row away instead: a game that reads as `0 B` is a wrong answer stated
      * confidently, where a missing row is the same thing said honestly.
      *
-     * **The walk is off the main thread and the result is checked against the screen still being
+     * **the walk is off the main thread and the result is checked against the screen still being
      * there**, since a dump is hundreds of files and a granted one is that many through a provider.
      */
     private fun measureSize() {
@@ -224,10 +224,10 @@ class GameSettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * Starts this game, exactly as a tap on its cover does.
+     * starts this game, exactly as a tap on its cover does.
      *
-     * **The same builder the list uses**, so the two ways in produce one intent rather than two that
-     * agree today — [GameLaunch].
+     * **the same builder the list uses**, so the two ways in produce one intent rather than two that
+     * agree today -- [GameLaunch].
      */
     private fun launch() {
         val source = source() ?: return
@@ -235,18 +235,18 @@ class GameSettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * This game's source, rebuilt from what the intent already carries.
+     * this game's source, rebuilt from what the intent already carries.
      *
-     * **Rebuilt rather than carried, because a [GameSource] is not something an intent can hold** —
-     * the granted kind owns a content resolver. What travels is the pair of facts each kind is made
+     * **rebuilt rather than carried, because a [GameSource] is not something an intent can hold** --
+     * the granted kind owns a content resolver. what travels is the pair of facts each kind is made
      * of, which is what the artwork and the size measurement already needed, plus the directory's
      * own name.
      *
-     * **The name travels rather than being derived**, though a staged source could derive it from
+     * **the name travels rather than being derived**, though a staged source could derive it from
      * its path: the granted kind cannot, its folder having come from the cursor that listed it and
      * never from a guess.
      *
-     * Null for an intent naming neither kind, which is a hand-written one — the button is taken away
+     * null for an intent naming neither kind, which is a hand-written one -- the button is taken away
      * rather than left to start a run with nothing in it.
      */
     private fun source(): GameSource? {
@@ -266,17 +266,17 @@ class GameSettingsActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    /** One row of the fact table, or no row at all where the dump does not carry that fact. */
+    /** one row of the fact table, or no row at all where the dump does not carry that fact. */
     private fun fact(row: View, value: android.widget.TextView, text: String?) {
         value.text = text.orEmpty()
         row.visibility = if (text.isNullOrEmpty()) View.GONE else View.VISIBLE
     }
 
     /**
-     * What coil is handed for the artwork.
+     * what coil is handed for the artwork.
      *
-     * **The two kinds are carried as two extras rather than as one string and a rule for reading it.**
-     * A staged dump's icon is a path and a granted one's is a `content://` uri, and a launcher that
+     * **the two kinds are carried as two extras rather than as one string and a rule for reading it.**
+     * a staged dump's icon is a path and a granted one's is a `content://` uri, and a launcher that
      * guessed by looking for a scheme would be right until the day a path contained one.
      */
     private fun icon(): Any? {
@@ -286,7 +286,7 @@ class GameSettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * **The theme is changed on a screen this one leads to**, so coming back has to notice — the same
+     * **the theme is changed on a screen this one leads to**, so coming back has to notice -- the same
      * reason the app's own settings scene watches for it.
      */
     override fun onResume() {
@@ -301,24 +301,24 @@ class GameSettingsActivity : AppCompatActivity() {
         const val EXTRA_NAME = "name"
 
         /**
-         * The title id as the *list* answers it, which is what the fact table under the artwork
-         * prints — a dump's own field, or the `[PPSA…]` in its directory name.
+         * the title id as the *list* answers it, which is what the fact table under the artwork
+         * prints -- a dump's own field, or the `[PPSA…]` in its directory name.
          *
-         * **[EXTRA_EMULATOR_TITLE_ID] is the other one and they are both here on purpose.** This is
+         * **[EXTRA_EMULATOR_TITLE_ID] is the other one and they are both here on purpose.** this is
          * the string a person matches against a log line or a folder on their PC; that one is the
-         * string the emulator names a directory with. They agree for every dump that carries the
+         * string the emulator names a directory with. they agree for every dump that carries the
          * field, and a screen acting on a directory must not be handed the one that guesses.
          */
         const val EXTRA_TITLE_ID = "titleId"
 
-        /** See [Game.emulatorTitleId], and [EXTRA_TITLE_ID] on why this is a second extra. */
+        /** see [Game.emulatorTitleId], and [EXTRA_TITLE_ID] on why this is a second extra. */
         const val EXTRA_EMULATOR_TITLE_ID = "emulatorTitleId"
         const val EXTRA_VERSION = "version"
         const val EXTRA_PATH = "path"
 
         /**
-         * Where to look to measure the dump: a directory for a staged game, or the tree and document
-         * id for a granted one. **Not a size**, because measuring one is a walk of hundreds of files
+         * where to look to measure the dump: a directory for a staged game, or the tree and document
+         * id for a granted one. **not a size**, because measuring one is a walk of hundreds of files
          * and the gesture that opens this screen is a finger held down on a cover.
          */
         const val EXTRA_DIRECTORY = "directory"
@@ -326,17 +326,17 @@ class GameSettingsActivity : AppCompatActivity() {
         const val EXTRA_DOCUMENT_ID = "documentId"
 
         /**
-         * The directory's own name, which is what a launch intent carries.
+         * the directory's own name, which is what a launch intent carries.
          *
-         * **A staged game could derive it and a granted one could not**, its folder having come from
-         * the cursor that listed the tree rather than from anything this screen can take apart. So it
+         * **a staged game could derive it and a granted one could not**, its folder having come from
+         * the cursor that listed the tree rather than from anything this screen can take apart. so it
          * travels for both, one rule being better than a rule with an exception in it.
          */
         const val EXTRA_FOLDER = "folder"
         const val EXTRA_ICON_PATH = "iconPath"
         const val EXTRA_ICON_URI = "iconUri"
 
-        /** The scene for one game, with everything it draws already in hand. */
+        /** the scene for one game, with everything it draws already in hand. */
         fun intent(activity: AppCompatActivity, game: Game): Intent =
             Intent(activity, GameSettingsActivity::class.java)
                 .putExtra(EXTRA_CONFIG_KEY, game.configKey)

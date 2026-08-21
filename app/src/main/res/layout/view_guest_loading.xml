@@ -34,10 +34,10 @@
   dialog role above it, and which is therefore the scheme's own colour in all five rather than the
   library's baseline in one.
 
-  **its height is fixed and its width is capped.** the height used to follow its contents, so the card
-  grew a line at the moment the bar gained a figure - partway through the wait, with nothing to
-  explain it. the percentage now keeps its place whether or not there is a number in it, and the card
-  is the same size for the whole of a launch and between one launch and the next.
+  **its height is fixed and its width is capped.** a height that follows its contents grows a line at
+  the moment the bar gains a figure, partway through the wait and with nothing to explain it. the
+  percentage keeps its place whether or not there is a number in it, so the card is the same size for
+  the whole of a launch and between one launch and the next.
 
   ConstraintLayout for exactly one property: `layout_constraintWidth_max`. the card wants to be a
   readable column rather than the width of a landscape panel, and a fixed width would be wrong on a

@@ -3,33 +3,33 @@ package com.mircowuffwuff.sharpemu
 import java.io.File
 
 /**
- * One card on the User data screen.
+ * one card on the User data screen.
  *
- * **[Kind.EVERYTHING] leads, and it contains the cards under it.** Nesting is what a first slot is
+ * **[Kind.EVERYTHING] leads, and it contains the cards under it.** nesting is what a first slot is
  * for: the whole thing is what most people came to export, and burying it in a toolbar made the one
- * common action the least visible thing on the screen. The parts below it are for somebody who wants
+ * common action the least visible thing on the screen. the parts below it are for somebody who wants
  * one of them, and each says its own size so the containment is legible rather than guessed at.
  *
- * **The settings card is here even though it is not a file under the user directory.** It is a
+ * **the settings card is here even though it is not a file under the user directory.** it is a
  * `SharedPreferences` line, and it is still something the person chose and something an export has to
  * carry: a backup that restores a library and its saves but drops the theme, the driver and the preset
  * leaves setup work behind, which is exactly what a backup is for avoiding.
  */
 data class UserDataItem(
     val kind: Kind,
-    /** Bytes on disk, or zero where there is nothing yet. */
+    /** bytes on disk, or zero where there is nothing yet. */
     val bytes: Long,
     /**
-     * What the card counts beside its size — titles, or settings that differ from their default —
+     * what the card counts beside its size -- titles, or settings that differ from their default --
      * or null where the kind has nothing countable and the size stands alone.
      */
     val count: Int?,
     /**
-     * The card's second line.
+     * the card's second line.
      *
-     * **A card's description belongs to the screen and its title does not**, which is why only this
-     * one is overridable. Save data is Save data on both screens; what it *is* differs — "your
-     * progress across titles" on the app's own screen and this game's progress on a game's — and a
+     * **a card's description belongs to the screen and its title does not**, which is why only this
+     * one is overridable. Save data is Save data on both screens; what it *is* differs -- "your
+     * progress across titles" on the app's own screen and this game's progress on a game's -- and a
      * line naming titles in the plural under one game's artwork would be describing the wrong thing.
      */
     val description: Int = kind.description,
@@ -45,13 +45,13 @@ data class UserDataItem(
     companion object {
 
         /**
-         * Measures each part, walking the tree.
+         * measures each part, walking the tree.
          *
-         * **On a worker.** It is a recursive walk of a directory a long session fills, and the number
+         * **on a worker.** it is a recursive walk of a directory a long session fills, and the number
          * it produces is the only thing on a card that has to be read from disk at all.
          *
          * @param settingsChanged how many rows differ from their default, from
-         *   [Settings.changedFromDefault]. It is not a measurement and is not taken here.
+         *   [Settings.changedFromDefault]. it is not a measurement and is not taken here.
          */
         @JvmStatic
         fun measure(filesDir: File, settingsChanged: Int): List<UserDataItem> {
@@ -75,14 +75,14 @@ data class UserDataItem(
         }
 
         /**
-         * The two parts of one title, for the per-game screen.
+         * the two parts of one title, for the per-game screen.
          *
-         * **No count on either card.** On the app's screen the figure counts titles, which is the
+         * **no count on either card.** on the app's screen the figure counts titles, which is the
          * thing that varies there; here it is one by construction, and a card reading "4.1 MB · 1
          * title" would be spending a clause to say what the screen is already about.
          *
          * **Save data is measured even when [titleId] is shared**, and the caller is what decides
-         * whether to draw the card at all — see [Game.sharesSaveDirectory]. Measuring is honest
+         * whether to draw the card at all -- see [Game.sharesSaveDirectory]. measuring is honest
          * either way; offering to act on it is not.
          */
         @JvmStatic
@@ -103,10 +103,10 @@ data class UserDataItem(
             )
         }
 
-        /** How many entries sit directly under [dir], or null where it does not exist yet. */
+        /** how many entries sit directly under [dir], or null where it does not exist yet. */
         private fun children(dir: File): Int? = dir.listFiles()?.count { it.isDirectory }
 
-        /** Bytes an Everything export would carry: the two roots it packs, less what it skips. */
+        /** bytes an Everything export would carry: the two roots it packs, less what it skips. */
         private fun exportable(data: File): Long =
             listOf("files", "shared_prefs").sumOf { top -> exportable(data, File(data, top)) }
 
@@ -120,7 +120,7 @@ data class UserDataItem(
         }
 
         /**
-         * Bytes under [file], following the tree.
+         * bytes under [file], following the tree.
          *
          * `listFiles` answers null for a path that is not a directory and for one that cannot be
          * read; both are zero here, which is what a card with nothing in it should say.

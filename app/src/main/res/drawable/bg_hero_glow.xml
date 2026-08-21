@@ -8,7 +8,7 @@
   than as a thing.
 
   it is solid white and the layout tints it, which is `bg_badge.xml`'s rule and is here for the same
-  reason — a shape's own colour cannot be a theme attribute on every API this app supports, where
+  reason: a shape's own colour cannot be a theme attribute on every API this app supports, where
   `android:backgroundTint` on the view can. the tint replaces the colour and keeps the alpha, so a
   white-to-transparent ramp becomes an accent-to-transparent one in whichever palette is on.
 

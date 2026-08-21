@@ -24,7 +24,7 @@ jmethodID ListChildrenMethod {};
 // attaching a guest thread to the runtime, and detaching it again when it ends.
 //
 // **the destructor is not optional.** ART aborts the process when a thread that is still attached
-// exits — "native thread exited without detaching" — so an attachment that outlives its thread would
+// exits -- "native thread exited without detaching" -- so an attachment that outlives its thread would
 // turn the end of a guest thread into a crash, at a point with nothing to do with files. a
 // thread_local with a destructor is what makes the detach happen wherever the thread ends, including
 // the paths through FEXCore that this file never sees.
@@ -51,7 +51,7 @@ JNIEnv* Env() {
   JNIEnv* Found {};
   const jint Status = VM->GetEnv(reinterpret_cast<void**>(&Found), JNI_VERSION_1_6);
   if (Status == JNI_OK) {
-    // already attached — the UI thread and anything else the app calls us on. it is not ours to
+    // already attached -- the UI thread and anything else the app calls us on. it is not ours to
     // detach, hence the flag rather than an unconditional detach in the destructor.
     Current.Env = Found;
     return Found;
@@ -71,7 +71,7 @@ JNIEnv* Env() {
 }
 
 // an exception crossing back into the syscall layer would be delivered at the next JNI call, which
-// could be a different file entirely — so every call site clears it here and reports the errno the
+// could be a different file entirely -- so every call site clears it here and reports the errno the
 // syscall should have returned. the java side is written not to throw; this is for the provider
 // dying underneath it, which is a real thing when a grant is revoked mid-run.
 bool Failed(JNIEnv* E, const char* What) {
@@ -101,7 +101,7 @@ void OnLoad(JavaVM* Vm) {
   jclass Local = E->FindClass(HelperClass);
   if (!Local) {
     E->ExceptionClear();
-    std::printf("[files] %s not found — the guest file layer cannot mount\n", HelperClass);
+    std::printf("[files] %s not found -- the guest file layer cannot mount\n", HelperClass);
     std::fflush(stdout);
     return;
   }
@@ -116,7 +116,7 @@ void OnLoad(JavaVM* Vm) {
   if (!OpenFdMethod || !StatOneMethod || !ListChildrenMethod) {
     E->ExceptionClear();
     Helper = nullptr;
-    std::printf("[files] %s is missing a method — the guest file layer cannot mount\n", HelperClass);
+    std::printf("[files] %s is missing a method -- the guest file layer cannot mount\n", HelperClass);
     std::fflush(stdout);
   }
 }

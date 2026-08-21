@@ -12,45 +12,45 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 /**
- * The zip behind the User data screen's Export and Import.
+ * the zip behind the User data screen's Export and Import.
  *
- * **Two shapes, one format.** An [Kind.EVERYTHING] archive carries `files/` and `shared_prefs/` as
+ * **two shapes, one format.** an [Kind.EVERYTHING] archive carries `files/` and `shared_prefs/` as
  * they sit inside this app's data directory; a [Kind.SAVE_DATA] archive carries one directory per
- * title id. Both open with an `export.json` at the root, and that file is what stops one being fed to
- * the other's Import — a save-data archive extracted over a whole install would be a wipe wearing the
+ * title id. both open with an `export.json` at the root, and that file is what stops one being fed to
+ * the other's Import -- a save-data archive extracted over a whole install would be a wipe wearing the
  * wrong button's name.
  *
- * **Nothing is written until the whole archive has been read.** An import extracts into the cache
+ * **nothing is written until the whole archive has been read.** an import extracts into the cache
  * directory first and only then replaces anything, which is [BuildImport]'s `.partial` rule applied
  * to a larger target: a corrupt zip, a full disk or a backed-out picker leaves the install exactly as
- * it was. The two are on the same filesystem, so the move at the end is a rename rather than a second
+ * it was. the two are on the same filesystem, so the move at the end is a rename rather than a second
  * copy of every byte.
  */
 object UserDataArchive {
 
     private const val TAG = "sharpemu"
 
-    /** The marker at the root of every archive this app writes. */
+    /** the marker at the root of every archive this app writes. */
     const val MANIFEST = "export.json"
 
     /**
-     * **Paths never packed and never replaced**, relative to the data directory.
+     * **paths never packed and never replaced**, relative to the data directory.
      *
-     * **Matched exactly, never by substring**, and it is a rule about paths rather than names for a
+     * **matched exactly, never by substring**, and it is a rule about paths rather than names for a
      * reason that outlives this particular list. `gpu-drivers` is the name of three directories in
      * three roots, only one of which an export packs; the derived copies of staged drivers' libraries
-     * are in the cache directory, which an export does not reach at all. So the day something here
-     * shares a name — or a prefix — with a directory that *is* packed, a `contains` test would drop
+     * are in the cache directory, which an export does not reach at all. so the day something here
+     * shares a name -- or a prefix -- with a directory that *is* packed, a `contains` test would drop
      * every imported driver on the device, silently, which is the collection an export exists to
-     * carry. A whole-path match cannot make that mistake.
+     * carry. a whole-path match cannot make that mistake.
      *
      * - `files/profileInstalled` is `androidx.profileinstaller`'s marker for *this* install.
-     * - `files/builds/bundled` is the build unpacked out of this APK. Every install can lay it down
+     * - `files/builds/bundled` is the build unpacked out of this APK. every install can lay it down
      *   again in about a quarter of a second, so carrying 76 MB of it would roughly double an archive
      *   to deliver bytes the destination already has inside its own package.
      * - `files/guest-libs` is the x86-64 set unpacked out of this APK, and the argument above
      *   transfers word for word: 12 MB the destination already holds in its own package, remade in
-     *   the time it takes to unpack. **Never replaced matters more here than never packed** — an
+     *   the time it takes to unpack. **never replaced matters more here than never packed** -- an
      *   archive written by an older app version must not lay an older library set over a newer one,
      *   because the failure is a guest resolving an old thunk stub against a new host layer rather
      *   than anything that looks like a missing file.
@@ -67,7 +67,7 @@ object UserDataArchive {
     }
 
     /**
-     * What an archive says about itself.
+     * what an archive says about itself.
      *
      * [appVersion] is `versionCode`, an integer per release, so an archive from a later build is
      * recognisable as one rather than merely failing oddly.
@@ -78,10 +78,10 @@ object UserDataArchive {
     // export
 
     /**
-     * Packs [roots] into [out], each entry named by its path relative to [base].
+     * packs [roots] into [out], each entry named by its path relative to [base].
      *
-     * @return the number of bytes read off disk, or null if anything failed. A failure leaves the
-     *   document the picker created behind — it is the user's file in the user's chosen place, and
+     * @return the number of bytes read off disk, or null if anything failed. a failure leaves the
+     *   document the picker created behind -- it is the user's file in the user's chosen place, and
      *   this app has no business deleting it.
      */
     private fun pack(
@@ -97,7 +97,7 @@ object UserDataArchive {
             context.contentResolver.openOutputStream(out)?.use { stream ->
                 ZipOutputStream(stream.buffered()).use { zip ->
                     // the manifest first, so a reader can refuse an archive without having read all
-                    // of it — the scan below stops at the moment it finds this.
+                    // of it -- the scan below stops at the moment it finds this.
                     zip.putNextEntry(ZipEntry(MANIFEST))
                     zip.write(manifest(context, kind).toString().toByteArray())
                     zip.closeEntry()
@@ -128,7 +128,7 @@ object UserDataArchive {
         0
     }
 
-    /** Walks [file], writing every ordinary file under it. Skips [IGNORED] and follows nothing. */
+    /** walks [file], writing every ordinary file under it. skips [IGNORED] and follows nothing. */
     private fun write(zip: ZipOutputStream, base: File, file: File): Long {
         val name = relative(base, file) ?: return 0L
         if (name in IGNORED) return 0L
@@ -145,10 +145,10 @@ object UserDataArchive {
     }
 
     /**
-     * Whether [file] is itself a symlink.
+     * whether [file] is itself a symlink.
      *
-     * **The file, not its path.** Comparing a canonical path against an absolute one answers a
-     * different question — whether *anything along the way* is a link — and on android that is always
+     * **the file, not its path.** comparing a canonical path against an absolute one answers a
+     * different question -- whether *anything along the way* is a link -- and on android that is always
      * yes inside an app's own data: `/data/data/<package>` is a link to `/data/user/0/<package>`, so
      * every single entry resolves elsewhere and a walk guarded that way packs nothing at all.
      */
@@ -162,7 +162,7 @@ object UserDataArchive {
         return path.substring(root.length).replace(File.separatorChar, '/')
     }
 
-    /** Everything: `files/` and `shared_prefs/`, less [IGNORED]. */
+    /** everything: `files/` and `shared_prefs/`, less [IGNORED]. */
     fun exportEverything(context: Context, out: Uri): Long? {
         val data = dataDir(context)
         return pack(
@@ -182,13 +182,13 @@ object UserDataArchive {
     }
 
     /**
-     * One title's save data, in the same shape and under the same [Kind.SAVE_DATA] manifest.
+     * one title's save data, in the same shape and under the same [Kind.SAVE_DATA] manifest.
      *
-     * **A per-game archive is a save-data archive that happens to hold one title, and that is worth
-     * more than a kind of its own.** It means an archive written here can be fed to the whole-of-it
+     * **a per-game archive is a save-data archive that happens to hold one title, and that is worth
+     * more than a kind of its own.** it means an archive written here can be fed to the whole-of-it
      * Save data import, which merges by title and would take it correctly; and an archive written
      * there can be fed to *this* game's import, which reads its own title out of it and leaves the
-     * rest. A second kind would have bought a refusal in both directions and nothing else.
+     * rest. a second kind would have bought a refusal in both directions and nothing else.
      */
     fun exportGameSaveData(context: Context, out: Uri, titleId: String): Long? {
         val saves = AppStorage.saveData(context.filesDir)
@@ -201,10 +201,10 @@ object UserDataArchive {
     // import
 
     /**
-     * Reads an archive's manifest without writing anything.
+     * reads an archive's manifest without writing anything.
      *
-     * Returns null for a zip this app did not write, one whose manifest does not parse, and one whose
-     * `kind` is not a kind this build knows — all of which are "not an archive of ours" and get the
+     * returns null for a zip this app did not write, one whose manifest does not parse, and one whose
+     * `kind` is not a kind this build knows -- all of which are "not an archive of ours" and get the
      * same refusal, because a reader cannot tell them apart usefully and neither can the person.
      */
     fun read(context: Context, zip: Uri): Manifest? = try {
@@ -240,14 +240,14 @@ object UserDataArchive {
     }
 
     /**
-     * Extracts [zip] into a fresh staging directory under the cache, and writes nothing else.
+     * extracts [zip] into a fresh staging directory under the cache, and writes nothing else.
      *
-     * **A sibling of `files/` and `shared_prefs/` rather than either of them**, because an Everything
-     * import replaces both — staging inside one would be staging inside what is about to be cleared.
+     * **a sibling of `files/` and `shared_prefs/` rather than either of them**, because an Everything
+     * import replaces both -- staging inside one would be staging inside what is about to be cleared.
      *
-     * **And not the cache directory either**, which is the obvious other sibling and the wrong one:
+     * **and not the cache directory either**, which is the obvious other sibling and the wrong one:
      * `cacheDir` is setgid to the app's cache group, so every file created under it inherits that
-     * group and keeps it through the rename — leaving the imported tree sitting in `files/` wearing
+     * group and keeps it through the rename -- leaving the imported tree sitting in `files/` wearing
      * the group the platform reclaims space from.
      */
     private fun stage(context: Context, zip: Uri): Staged? {
@@ -296,15 +296,15 @@ object UserDataArchive {
         return Staged(staging, bytes)
     }
 
-    /** An unpacked archive, and how much of it there was. */
+    /** an unpacked archive, and how much of it there was. */
     private class Staged(val dir: File, val bytes: Long)
 
     /**
-     * Replaces `files/` and `shared_prefs/` with what the archive holds.
+     * replaces `files/` and `shared_prefs/` with what the archive holds.
      *
-     * **The caller has to end the process afterwards.** `SharedPreferences` is cached per process, so
-     * the framework is still holding the settings this call just replaced on disk — and the next
-     * write of any row would put the old ones straight back over the imported file. See
+     * **the caller has to end the process afterwards.** `SharedPreferences` is cached per process, so
+     * the framework is still holding the settings this call just replaced on disk -- and the next
+     * write of any row would put the old ones straight back over the imported file. see
      * [UserDataActivity].
      */
     fun importEverything(context: Context, zip: Uri): Long? {
@@ -329,11 +329,11 @@ object UserDataArchive {
     }
 
     /**
-     * Merges one archive's titles into the save directory.
+     * merges one archive's titles into the save directory.
      *
-     * A title in the archive replaces the same title on the device, wholesale rather than file by
-     * file — half of one save set and half of another is not a state any emulator's save format
-     * promises to survive. **A title the archive does not mention is left alone**, which is what makes
+     * a title in the archive replaces the same title on the device, wholesale rather than file by
+     * file -- half of one save set and half of another is not a state any emulator's save format
+     * promises to survive. **a title the archive does not mention is left alone**, which is what makes
      * this a merge: restoring one game's saves onto a device holding five others should not be a way
      * to lose the other five.
      */
@@ -359,12 +359,12 @@ object UserDataArchive {
     }
 
     /**
-     * What a one-title import did.
+     * what a one-title import did.
      *
      * **[Absent] is a third answer rather than a flavour of failure**, because it is the one outcome
      * with something useful to say: the archive was read perfectly well and simply does not hold this
-     * game. Somebody who picked another game's export wants to be told that, not told the file is
-     * broken — and the two are indistinguishable to a caller handed a null.
+     * game. somebody who picked another game's export wants to be told that, not told the file is
+     * broken -- and the two are indistinguishable to a caller handed a null.
      */
     sealed class GameImport {
         /** [bytes] is this title's own, never the whole archive's. */
@@ -376,13 +376,13 @@ object UserDataArchive {
     }
 
     /**
-     * Replaces one title's save data with what the archive holds under that title, and nothing else.
+     * replaces one title's save data with what the archive holds under that title, and nothing else.
      *
-     * **The archive's other titles are not merely left on the device — they are not read out of it**,
-     * which is what stops this being the whole-of-it import wearing one game's name. An archive
+     * **the archive's other titles are not merely left on the device -- they are not read out of it**,
+     * which is what stops this being the whole-of-it import wearing one game's name. an archive
      * holding five games restores one here.
      *
-     * **Wholesale for that title**, [importSaveData]'s rule and for its reason: half of one save set
+     * **wholesale for that title**, [importSaveData]'s rule and for its reason: half of one save set
      * and half of another is not a state any save format promises to survive.
      */
     fun importGameSaveData(context: Context, zip: Uri, titleId: String): GameImport {
@@ -414,11 +414,11 @@ object UserDataArchive {
         }
     }
 
-    /** Bytes under [file], following the tree and counting nothing else. */
+    /** bytes under [file], following the tree and counting nothing else. */
     private fun sizeOf(file: File): Long =
         if (file.isDirectory) file.listFiles()?.sumOf { sizeOf(it) } ?: 0L else file.length()
 
-    /** Empties [dir], keeping anything [IGNORED] names. */
+    /** empties [dir], keeping anything [IGNORED] names. */
     private fun clear(dir: File, base: File) {
         dir.listFiles()?.forEach { child ->
             val name = relative(base, child)
@@ -434,16 +434,16 @@ object UserDataArchive {
     }
 
     /**
-     * Moves [from] onto [to], **merging directories and replacing only files**.
+     * moves [from] onto [to], **merging directories and replacing only files**.
      *
-     * **It must not replace a directory wholesale, and that is the whole point of this function.**
-     * Renaming a staged `files/` over the real one begins by deleting the real one — which throws
-     * away every path [clear] has just gone to the trouble of keeping. The ignore list would be
+     * **it must not replace a directory wholesale, and that is the whole point of this function.**
+     * renaming a staged `files/` over the real one begins by deleting the real one -- which throws
+     * away every path [clear] has just gone to the trouble of keeping. the ignore list would be
      * honoured and then undone one line later, and what disappears is exactly what nobody would think
      * to check: the derived driver libraries and the bundled build, neither of which is in the
      * archive because neither belongs there.
      *
-     * So a directory is walked into and a file is what gets replaced. [clear] has already emptied
+     * so a directory is walked into and a file is what gets replaced. [clear] has already emptied
      * everything that was not spared, so merging cannot leave a stale file behind.
      */
     private fun move(from: File, to: File): Boolean {
@@ -464,9 +464,9 @@ object UserDataArchive {
 
     private fun normalise(name: String): String = name.replace('\\', '/')
 
-    /** The app's data directory — the parent of both `files/` and `shared_prefs/`. */
+    /** the app's data directory -- the parent of both `files/` and `shared_prefs/`. */
     private fun dataDir(context: Context): File = context.filesDir.parentFile!!
 
-    /** Where an import is unpacked before anything on the device is touched. */
+    /** where an import is unpacked before anything on the device is touched. */
     private const val STAGING = ".user-data-import"
 }

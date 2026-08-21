@@ -29,22 +29,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * One activity, one SurfaceView, one guest — <b>and one process, which ends with the run</b>.
+ * one activity, one SurfaceView, one guest -- <b>and one process, which ends with the run</b>.
  *
- * <p>The manifest puts this activity in {@code :guest}, and the reason is the guest's own exit: a
+ * <p>the manifest puts this activity in {@code :guest}, and the reason is the guest's own exit: a
  * guest calling {@code exit_group} ends the process it is in, and the host layer answers with
  * {@code _exit} because the other guest threads are inside translated code and cannot be unwound.
- * Sharing a process with the game list would make that the app dying with the game.
+ * sharing a process with the game list would make that the app dying with the game.
  *
- * <p><b>The other half is that this process is ended deliberately when a run finishes any other
- * way</b> — see {@link #endRun}. A guest run leaves a loaded payload, a guest address space and a
+ * <p><b>the other half is that this process is ended deliberately when a run finishes any other
+ * way</b> -- see {@link #endRun}. a guest run leaves a loaded payload, a guest address space and a
  * JIT behind it, and none of that may reach the next run; a process that answered a second launch
  * would also be answering it from whatever it had cached of the settings store before the user
- * changed a row in the other process. So the invariant is one process per guest run, and it is what
+ * changed a row in the other process. so the invariant is one process per guest run, and it is what
  * makes two launches of one intent the same launch twice.
  *
- * <p>The payload lives in the app's own external files directory rather than in
- * {@code /data/local/tmp}, which is {@code shell_data_file} and which SELinux denies an app. That
+ * <p>the payload lives in the app's own external files directory rather than in
+ * {@code /data/local/tmp}, which is {@code shell_data_file} and which SELinux denies an app. that
  * costs nothing: the host layer maps guest images into anonymous memory and reads into them rather
  * than mapping them from a file, so a {@code noexec} volume is not a problem and never was.
  */
@@ -52,9 +52,9 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
     private static final String TAG = "sharpemu";
     /**
-     * The game directory under {@code <external files>/games/}, without the {@code eboot.bin}.
+     * the game directory under {@code <external files>/games/}, without the {@code eboot.bin}.
      *
-     * <p>Overridden per launch by {@code --es game <name>}, for the same reason the driver is an
+     * <p>overridden per launch by {@code --es game <name>}, for the same reason the driver is an
      * extra: comparing titles should not cost an APK rebuild.
      */
     private static final String GAME = "Dreaming Sarah [PPSA02929]";
@@ -62,10 +62,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     /**
      * {@code --es game}: a directory name under {@code games/}, <b>or an absolute path to one</b>.
      *
-     * <p><b>A leading slash is the whole distinction, and it cannot be ambiguous</b> — a directory
-     * name under {@code games/} does not begin with one. A path is what the game list sends for a
+     * <p><b>a leading slash is the whole distinction, and it cannot be ambiguous</b> -- a directory
+     * name under {@code games/} does not begin with one. a path is what the game list sends for a
      * game in a granted folder while all-files access is held, and what a script sends to reach a
-     * library outside the app's own directory. Either way it is one code path, and it is the one a
+     * library outside the app's own directory. either way it is one code path, and it is the one a
      * staged game has always taken: an ordinary directory the guest opens with ordinary syscalls,
      * with no interception registered anywhere.
      */
@@ -74,8 +74,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     /**
      * {@code --es safgame <directory name>}, a game inside the granted tree instead of a staged one.
      *
-     * <p>Null means the staged path, which is the mode every script uses and every number was
-     * measured on. The two are deliberately reachable side by side, on the same build, so the cost of
+     * <p>null means the staged path, which is the mode every script uses and every number was
+     * measured on. the two are deliberately reachable side by side, on the same build, so the cost of
      * the file layer stays something that can be measured rather than argued about.
      */
     private String safGameName;
@@ -83,43 +83,43 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     /**
      * {@code --es saftree <tree uri>}, which of the granted trees {@link #safGameName} is in.
      *
-     * <p><b>Absent means the first persisted read grant this app holds</b>, which is what
-     * {@code am start --es safgame} means from a script. With one grant that is the same answer as
+     * <p><b>absent means the first persisted read grant this app holds</b>, which is what
+     * {@code am start --es safgame} means from a script. with one grant that is the same answer as
      * naming it; with two it is not, and the list is the only thing that knows which the user
      * tapped.
      */
     private String safTreeUri;
 
     /**
-     * Which staged GPU driver to inject, or null for the stock Adreno one.
+     * which staged GPU driver to inject, or null for the stock Adreno one.
      *
-     * <p>A folder name: a package the driver manager imported, or one staged under
-     * {@code <external files>/gpu-drivers/} by {@code scripts/stage.py}. Both spellings
+     * <p>a folder name: a package the driver manager imported, or one staged under
+     * {@code <external files>/gpu-drivers/} by {@code scripts/stage.py}. both spellings
      * resolve through {@link GpuDriver}, so a driver a script names and one a user chose are the
      * same code path.
      *
-     * <p>This constant is the last of the three answers rather than the only one: the launch intent
+     * <p>this constant is the last of the three answers rather than the only one: the launch intent
      * wins, then Settings → Graphics → Custom driver, then this.
      *
-     * <p><b>Null on purpose.</b> Turnip injection works, and the stock driver is nonetheless the
-     * default, because it is the configuration every measurement in this project is taken at — a
+     * <p><b>null on purpose.</b> turnip injection works, and the stock driver is nonetheless the
+     * default, because it is the configuration every measurement in this project is taken at -- a
      * baseline that moves with the driver is not a baseline.
      *
-     * <p>Overridden per launch by {@code --es driver <name>}, so comparing drivers is a loop over
+     * <p>overridden per launch by {@code --es driver <name>}, so comparing drivers is a loop over
      * {@code am start} rather than a rebuild each time. {@code stock} means the same as null.
      */
     private static final String DRIVER = null;
 
-    // Which SharpEmu build to run is deliberately not a constant here. It is
+    // which SharpEmu build to run is deliberately not a constant here. it is
     // `--es sharpemu <absolute path to a build directory>`, or, with no extra, whatever the build
-    // manager settled on — see chosenBuild. Exactly one build ships inside the APK, so a launch that
+    // manager settled on -- see chosenBuild. exactly one build ships inside the APK, so a launch that
     // names nothing has a concrete artefact to answer with rather than a rule to apply.
 
-    /** Resolved once in {@link #onCreate}, because the intent is not readable from a worker. */
+    /** resolved once in {@link #onCreate}, because the intent is not readable from a worker. */
     /**
-     * The extra a refused launch sends back, carrying the message a person is shown.
+     * the extra a refused launch sends back, carrying the message a person is shown.
      *
-     * <p>Present only on a launch that gave up; a run that ends normally sends nothing at all, which
+     * <p>present only on a launch that gave up; a run that ends normally sends nothing at all, which
      * is what lets the receiving side treat absence as "nothing to say" rather than as a state.
      */
     public static final String ABORT_MESSAGE = "abort";
@@ -127,8 +127,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private String driverName;
     private String[] driverEnv = {};
     /**
-     * Why the chosen driver could not be used, as the string resource a person is shown, or zero when
-     * there is nothing wrong with it. Set by {@link #installDriver} for the four things this side can
+     * why the chosen driver could not be used, as the string resource a person is shown, or zero when
+     * there is nothing wrong with it. set by {@link #installDriver} for the four things this side can
      * see, and by the host layer's answer for the one it cannot; read immediately after both.
      */
     private int driverFailure;
@@ -140,48 +140,48 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     /**
      * {@code --ez tracepad}, printing every pad poll and every rumble request.
      *
-     * <p>Chatty by the standards of the others: the emulator samples the pad up to a thousand times a
+     * <p>chatty by the standards of the others: the emulator samples the pad up to a thousand times a
      * second per polling thread, so this is for one question at a time and not for a whole run.
      */
     private boolean tracePad;
     /**
      * {@code --ez padselftest}, one fabricated rumble when the guest first polls.
      *
-     * <p>It exists because the two directions of the pad bridge fail independently and an ordinary run
+     * <p>it exists because the two directions of the pad bridge fail independently and an ordinary run
      * exercises only one: a game that polls proves the read path continuously, and rumble is proven by
-     * nothing unless the title happens to vibrate. This fires the real delivery path and says so in the
+     * nothing unless the title happens to vibrate. this fires the real delivery path and says so in the
      * log, so a buzz can never be mistaken for the game's own.
      */
     private boolean padSelfTest;
-    /** The host layer's SMC tracking mode. mtrack is the default every measurement was taken on. */
+    /** the host layer's SMC tracking mode. mtrack is the default every measurement was taken on. */
     private String smcMode = "mtrack";
     private String[] guestEnv = {};
     /** {@code --es sharpemu}, an absolute path to a build directory, or null for the latest staged. */
     private String buildPath;
-    /** The selected build's own environment defaults. The lowest-precedence source there is. */
+    /** the selected build's own environment defaults. the lowest-precedence source there is. */
     private Map<String, String> buildEnv = new LinkedHashMap<>();
 
     /**
      * {@code --strict} on the payload's own command line, or null for "the user did not say".
      *
-     * <p><b>Three-valued rather than boolean, and that is the whole precedence rule in one field.</b>
-     * A launch that names {@code --ez strict} wins; a launch that does not falls back to what the
+     * <p><b>three-valued rather than boolean, and that is the whole precedence rule in one field.</b>
+     * a launch that names {@code --ez strict} wins; a launch that does not falls back to what the
      * settings scene stored; a setting the user never touched leaves this null and the flag is not
-     * passed at all. Collapsing it to a boolean would make "off" and "unsaid" the same answer, and
+     * passed at all. collapsing it to a boolean would make "off" and "unsaid" the same answer, and
      * the day a default changes, every script that relied on omission would silently be pinned to
      * the old one.
      */
     private Boolean strictDynlib;
 
     /**
-     * The FEXCore JIT preset, or null for "the user did not say".
+     * the FEXCore JIT preset, or null for "the user did not say".
      *
-     * <p>Three-valued for the same reason {@link #strictDynlib} is, and null passes no {@code --fex}
-     * at all — which is the argument vector every measurement in this project was taken on, and is
+     * <p>three-valued for the same reason {@link #strictDynlib} is, and null passes no {@code --fex}
+     * at all -- which is the argument vector every measurement in this project was taken on, and is
      * also what {@link FexPreset#COMPATIBILITY} would produce, since every value in that rung is
      * FEXCore's own default.
      *
-     * <p><b>It is a host-layer flag and not a guest environment variable.</b> See {@link FexPreset}:
+     * <p><b>it is a host-layer flag and not a guest environment variable.</b> see {@link FexPreset}:
      * the {@code FEX_} environment spelling other FEX frontends use is read by machinery this
      * project does not build, so it would reach nothing here while looking like it had.
      */
@@ -189,37 +189,37 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private boolean hostFeatureProbe;
 
     /**
-     * Extra FEXCore options for one run, appended after whatever the preset contributes.
+     * extra FEXCore options for one run, appended after whatever the preset contributes.
      *
-     * <p><b>An instrument, and absent unless a launch names it.</b> The preset ladder is a fixed
-     * table, so measuring a knob that is not on it would otherwise mean an APK per candidate. With
+     * <p><b>an instrument, and absent unless a launch names it.</b> the preset ladder is a fixed
+     * table, so measuring a knob that is not on it would otherwise mean an APK per candidate. with
      * no {@code --es fex} the argument vector is exactly the one the preset alone produces.
      *
-     * <p>Nothing validates the names here. The host layer resolves each against FEXCore's own option
+     * <p>nothing validates the names here. the host layer resolves each against FEXCore's own option
      * table and refuses one it does not know, so a typo ends the run with a message naming it rather
      * than becoming a knob that silently did nothing.
      */
     private String[] fexOptions = new String[0];
 
     /**
-     * What the settings scene contributes to the guest environment. Empty when nothing was chosen.
+     * what the settings scene contributes to the guest environment. empty when nothing was chosen.
      *
-     * <p>It sits above the build's own {@code env} and below the launcher's five, which is the order
-     * {@code docs/build-format.md} documents — and below {@code --es guestenv}, so a script naming a
+     * <p>it sits above the build's own {@code env} and below the launcher's five, which is the order
+     * {@code docs/build-format.md} documents -- and below {@code --es guestenv}, so a script naming a
      * variable still wins over a row that set it.
      */
     private Map<String, String> settingsEnv = new LinkedHashMap<>();
 
     /**
-     * Whether compiled graphics pipelines survive the run that built them.
+     * whether compiled graphics pipelines survive the run that built them.
      *
-     * <p><b>Two-valued and defaulting to off, unlike every other row here.</b> The emulator's own
-     * default is on. Keeping the cache is derived state written throughout a run and held per
-     * title, so it is a thing to opt into rather than something an install starts doing unasked —
+     * <p><b>two-valued and defaulting to off, unlike every other row here.</b> the emulator's own
+     * default is on. keeping the cache is derived state written throughout a run and held per
+     * title, so it is a thing to opt into rather than something an install starts doing unasked --
      * and the app is where that call belongs, since the app is what owns the directory it lands in.
      *
-     * <p><b>It travels as {@code SHARPEMU_VK_PIPELINE_CACHE=0}, the emulator's own opt-out</b>, which
-     * keeps the cache in memory for the run and writes nothing. Leaving
+     * <p><b>it travels as {@code SHARPEMU_VK_PIPELINE_CACHE=0}, the emulator's own opt-out</b>, which
+     * keeps the cache in memory for the run and writes nothing. leaving
      * {@code SHARPEMU_VK_PIPELINE_CACHE_PATH} unset would not have done this: unset means the
      * emulator resolves its portable default, which is a path inside the build directory, so the
      * cache would persist and land somewhere a re-stage destroys.
@@ -227,85 +227,85 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     private boolean diskShaderCache;
 
     /**
-     * The title id the emulator will resolve for this launch's game — see {@link #resolveTitleId()}.
+     * the title id the emulator will resolve for this launch's game -- see {@link #resolveTitleId()}.
      *
-     * <p>Read once, in {@code onCreate}, and used twice: to find the game's own settings store, and
+     * <p>read once, in {@code onCreate}, and used twice: to find the game's own settings store, and
      * to name the per-title pipeline cache the emulator is handed.
      */
     private String titleId;
 
     /**
-     * What this launch's game is filed under — its title id, or its directory name when it has none.
+     * what this launch's game is filed under -- its title id, or its directory name when it has none.
      *
-     * <p><b>Not {@link #titleId}, and the difference is a dump that names no title of its own.</b> The
+     * <p><b>not {@link #titleId}, and the difference is a dump that names no title of its own.</b> the
      * emulator files every such dump under one id, so two of them share a save directory; this app
-     * does not, and keys them by their folders instead. Anything of the app's own that belongs to one
-     * game is keyed by this — the settings store, and the record of how long this game took to boot.
+     * does not, and keys them by their folders instead. anything of the app's own that belongs to one
+     * game is keyed by this -- the settings store, and the record of how long this game took to boot.
      */
     private String configKey;
 
     /**
-     * Which build this launch resolved, for the boot record to be keyed by.
+     * which build this launch resolved, for the boot record to be keyed by.
      *
-     * <p>The commit where there is one, since that is what tells two builds of one version apart, and
-     * the folder otherwise. Set in {@link #resolvePayload}, which is the only place that sees a build
+     * <p>the commit where there is one, since that is what tells two builds of one version apart, and
+     * the folder otherwise. set in {@link #resolvePayload}, which is the only place that sees a build
      * rather than the path to its payload.
      */
     private String buildKey = "";
 
     /**
-     * This launch's settings: the game's own store, with the app's behind it.
+     * this launch's settings: the game's own store, with the app's behind it.
      *
-     * <p>Built in {@code onCreate} and kept, because the build is resolved much later — in
-     * {@code runGuest} — and resolving it against the app's store while every other row came from
+     * <p>built in {@code onCreate} and kept, because the build is resolved much later -- in
+     * {@code runGuest} -- and resolving it against the app's store while every other row came from
      * this one is exactly the split-brain the precedence rule exists to prevent.
      */
     private Settings settings;
 
     private boolean started;
-    /** Set once the run is over, so {@code onDestroy} can tell an ending from an ordinary one. */
+    /** set once the run is over, so {@code onDestroy} can tell an ending from an ordinary one. */
     private boolean ending;
     private int surfaceWidth;
     private int surfaceHeight;
 
     /**
-     * The panel the back button opens, and the only way out of a run that is not the guest's own.
+     * the panel the back button opens, and the only way out of a run that is not the guest's own.
      *
-     * <p>It is the only thing this activity draws, and it exists from the moment the activity does
-     * rather than from the moment a guest starts — a launch is several seconds of black screen
+     * <p>it is the only thing this activity draws, and it exists from the moment the activity does
+     * rather than from the moment a guest starts -- a launch is several seconds of black screen
      * before the first frame, and being unable to leave during it is exactly the state the overlay
      * is for.
      */
     private GuestOverlay overlay;
 
     /**
-     * What fills the window from the tap until the guest presents its first frame.
+     * what fills the window from the tap until the guest presents its first frame.
      *
-     * <p><b>It exists from {@code onCreate}, not from the moment a guest starts.</b> The black begins
+     * <p><b>it exists from {@code onCreate}, not from the moment a guest starts.</b> the black begins
      * when the activity does, and the thread that can report anything about a boot is not started
-     * until the surface exists — so a screen inflated any later would leave the first stretch of a
+     * until the surface exists -- so a screen inflated any later would leave the first stretch of a
      * launch unaccounted for, which is the part that looks most like a tap having done nothing.
      */
     private GuestLoading loading;
 
     /**
-     * The game's display name and its cover, as the launch handed them down.
+     * the game's display name and its cover, as the launch handed them down.
      *
-     * <p><b>Absent is ordinary and is what {@code am start} sends.</b> The name falls back to the
+     * <p><b>absent is ordinary and is what {@code am start} sends.</b> the name falls back to the
      * directory, which is what this activity has always been given; the cover is simply not drawn.
      */
     private String gameDisplayName;
     private String gameIcon;
 
     /**
-     * Whether the loading screen draws its bar against a prediction, or simply says a boot is
+     * whether the loading screen draws its bar against a prediction, or simply says a boot is
      * happening.
      *
-     * <p><b>Off is the indeterminate bar on every launch</b>, with the cover, the name and the phase
-     * line unchanged and the screen still coming down at the first frame — the record is never read.
-     * It is still <i>written</i>: the host layer stamps every checkpoint whether or not anything
+     * <p><b>off is the indeterminate bar on every launch</b>, with the cover, the name and the phase
+     * line unchanged and the screen still coming down at the first frame -- the record is never read.
+     * it is still <i>written</i>: the host layer stamps every checkpoint whether or not anything
      * predicts from them, because the position reaching the end of that table is the only signal this
-     * activity has that the guest has drawn. So recording costs one store commit against data that
+     * activity has that the guest has drawn. so recording costs one store commit against data that
      * exists either way, and it keeps switching this back on immediate.
      */
     private boolean loadingEstimate;
@@ -316,7 +316,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
         // **first, so that everything below is in the window as well as in logcat.** this is the
         // process that loads the host layer, so it is the process whose java lines can be kept
-        // beside the emulator's — and the lines above the first frame are exactly the ones a report
+        // beside the emulator's -- and the lines above the first frame are exactly the ones a report
         // about a launch is made of. see AppLog.
         AppLog.attach();
 
@@ -378,7 +378,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // --es safgame <directory name>, naming a game inside the tree the user granted rather than
         // one staged into the app's own directory. **absent is the whole point**: without it nothing
         // here changes, the game is a path, no interception is registered, and the run is exactly the
-        // one every measurement so far was taken on. That is what keeps a frame rate measured through
+        // one every measurement so far was taken on. that is what keeps a frame rate measured through
         // the scripts free of any alibi.
         safGameName = getIntent().getStringExtra("safgame");
         // --es saftree <tree uri>, naming which grant that directory is in. the game list sends it
@@ -387,7 +387,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         safTreeUri = getIntent().getStringExtra("saftree");
         // --es sharpemu <absolute path>, in the shape --es driver and --es game already have:
         // comparing two builds should be a loop over `am start`, not an APK rebuild per candidate.
-        // **A path, never an id** — see resolvePayload for why an id is refused. Null here means
+        // **a path, never an id** -- see resolvePayload for why an id is refused. null here means
         // none was given, which is a real answer rather than a missing one.
         buildPath = getIntent().getStringExtra("sharpemu");
 
@@ -407,13 +407,13 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // launch of a game nobody has configured is the argument vector it has always been.
         //
         // it is keyed by the title id the emulator itself resolves, which is also what names this
-        // game's save data and its pipeline cache — one game, one name, in all three places.
+        // game's save data and its pipeline cache -- one game, one name, in all three places.
         titleId = resolveTitleId();
         configKey = Game.configKeyFor(titleId, gameFolderName());
         settings = Settings.forGame(this, configKey);
         // **the intent wins over the driver manager, and the manager over the constant.** an
         // untouched row leaves the store empty and the constant is null, so a launch that names
-        // nothing loads the driver this device shipped with — which is the configuration every
+        // nothing loads the driver this device shipped with -- which is the configuration every
         // measurement in this project is taken on, and a baseline that moved with a stored setting
         // would not be one.
         if (driverName == null) {
@@ -507,7 +507,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         PadRumble.attach(getApplicationContext());
         // and the pads already attached. android reports one arriving as an event and one that was
         // already there as nothing at all, so the initial sweep is the only thing that finds a
-        // controller the device booted with — which on this hardware is the built-in one.
+        // controller the device booted with -- which on this hardware is the built-in one.
         PadState.onDeviceChanged();
 
         SurfaceView view = new SurfaceView(this);
@@ -517,15 +517,15 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * The gamepad, before the view hierarchy sees it.
+     * the gamepad, before the view hierarchy sees it.
      *
      * <p><b>{@code dispatchKeyEvent} rather than {@code onKeyDown}, and that is what makes the d-pad
-     * work.</b> An unconsumed {@code DPAD_DOWN} reaching the views moves focus to whatever is
-     * focusable, and the in-game panel has a button on it — so the d-pad would walk the panel's focus
-     * instead of reaching the game. Taking the event here means the hierarchy never gets the chance.
+     * work.</b> an unconsumed {@code DPAD_DOWN} reaching the views moves focus to whatever is
+     * focusable, and the in-game panel has a button on it -- so the d-pad would walk the panel's focus
+     * instead of reaching the game. taking the event here means the hierarchy never gets the chance.
      *
      * <p>{@code KEYCODE_BACK} is deliberately not one of the pad's keys, so a controller's own back
-     * button still opens the panel like the software one does. Everything else the pad claims goes no
+     * button still opens the panel like the software one does. everything else the pad claims goes no
      * further.
      */
     @Override
@@ -537,9 +537,9 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * The sticks and the analogue triggers, before the view hierarchy sees them, for the same reason.
+     * the sticks and the analogue triggers, before the view hierarchy sees them, for the same reason.
      *
-     * <p>A joystick motion event would otherwise be offered to the focused view first, and a focused
+     * <p>a joystick motion event would otherwise be offered to the focused view first, and a focused
      * button treats a stick deflection as a focus move.
      */
     @Override
@@ -551,10 +551,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * A controller arriving or leaving mid-run.
+     * a controller arriving or leaving mid-run.
      *
-     * <p><b>Removal is what this is for.</b> A pad that is used registers itself on its first event, so
-     * one plugged in during a game is picked up without help. One unplugged is not an event at all, and
+     * <p><b>removal is what this is for.</b> a pad that is used registers itself on its first event, so
+     * one plugged in during a game is picked up without help. one unplugged is not an event at all, and
      * without this a stick that was held over when the cable came out stays held as far as the guest is
      * concerned, forever.
      */
@@ -590,9 +590,9 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * Releases every control on the way out of the foreground.
+     * releases every control on the way out of the foreground.
      *
-     * <p><b>The run keeps going and that is deliberate</b> — nothing here pauses emulation. What must
+     * <p><b>the run keeps going and that is deliberate</b> -- nothing here pauses emulation. what must
      * not keep going is a button: this activity stops receiving key events when it loses focus, so the
      * release for a button held as the app went away would never arrive and the guest would see it held
      * for the rest of the run.
@@ -609,20 +609,20 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * What a back press does during a run.
+     * what a back press does during a run.
      *
-     * <p><b>It never leaves.</b> A run holds nothing that survives being left — no pause, no save of
-     * ours — so finishing on a back press would end a game at the depth of one accidental gesture,
-     * and this activity is a full-screen surface where a gesture is easy to make by mistake. So back
+     * <p><b>it never leaves.</b> a run holds nothing that survives being left -- no pause, no save of
+     * ours -- so finishing on a back press would end a game at the depth of one accidental gesture,
+     * and this activity is a full-screen surface where a gesture is easy to make by mistake. so back
      * opens the overlay, back again closes it, and leaving is the labelled button inside it.
      *
      * <p>{@code super} is deliberately never called, which is what makes that a rule rather than a
-     * default. The framework's answer to a back press on the last activity of a task is to finish
-     * it, and the process would then be left alive and warm — the state {@link #endRun} exists to
+     * default. the framework's answer to a back press on the last activity of a task is to finish
+     * it, and the process would then be left alive and warm -- the state {@link #endRun} exists to
      * prevent.
      *
-     * <p>This is the legacy dispatch rather than an {@code OnBackInvokedCallback}, and it stays that
-     * way while the manifest does not opt into the predictive gesture. Opting in is a change to
+     * <p>this is the legacy dispatch rather than an {@code OnBackInvokedCallback}, and it stays that
+     * way while the manifest does not opt into the predictive gesture. opting in is a change to
      * every screen in the app at once and it wants its own piece of work.
      */
     @Override
@@ -634,7 +634,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         }
     }
 
-    /** The surface, with the loading screen and then the back overlay over it. */
+    /** the surface, with the loading screen and then the back overlay over it. */
     private View withOverlays(SurfaceView view) {
         FrameLayout root = new FrameLayout(this);
         root.addView(view, new FrameLayout.LayoutParams(
@@ -646,7 +646,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         Context themed = Theme.overlayContext(this);
 
         // under the back overlay, because the panel is how a person leaves a launch that is still
-        // loading — a screen that covered it would be the one moment in a run with no way out.
+        // loading -- a screen that covered it would be the one moment in a run with no way out.
         loading = new GuestLoading(themed, this::onFirstFrame);
         loading.describe(
                 gameDisplayName != null && !gameDisplayName.isEmpty()
@@ -658,7 +658,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         root.addView(loading.view(), new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        // it is invisible until a back press and consumes nothing until then — see GuestOverlay,
+        // it is invisible until a back press and consumes nothing until then -- see GuestOverlay,
         // which is INVISIBLE rather than GONE so that the panel has a width to slide in from on the
         // first open.
         overlay = new GuestOverlay(themed, () -> {
@@ -671,15 +671,15 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * The guest has presented its first frame: the loading screen is gone and the boot is on record.
+     * the guest has presented its first frame: the loading screen is gone and the boot is on record.
      *
-     * <p><b>Written here rather than when the run ends, because the run does not end anywhere this
-     * process can see.</b> A guest calling {@code exit_group} ends the process from inside itself —
-     * {@code nativeRun} never returns, {@code onDestroy} never runs — so a record deferred to teardown
-     * would never be written on the ending nearly every run takes. This is the same reason the
+     * <p><b>written here rather than when the run ends, because the run does not end anywhere this
+     * process can see.</b> a guest calling {@code exit_group} ends the process from inside itself --
+     * {@code nativeRun} never returns, {@code onDestroy} never runs -- so a record deferred to teardown
+     * would never be written on the ending nearly every run takes. this is the same reason the
      * emulator's own pipeline cache is written by a periodic save.
      *
-     * <p><b>It is keyed the way this launch was configured</b>, since that is what makes the last
+     * <p><b>it is keyed the way this launch was configured</b>, since that is what makes the last
      * boot a prediction of the next one rather than of a different run: the build and the JIT preset
      * for the half of a boot that is the emulator starting itself, the game and the GPU driver for
      * the half that is the game's own.
@@ -695,24 +695,24 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * Says why nothing is going to start. The going back is {@link #endRun}'s, which follows.
+     * says why nothing is going to start. the going back is {@link #endRun}'s, which follows.
      *
-     * <p><b>Back rather than black.</b> A tap from the game list returns to it; an
+     * <p><b>back rather than black.</b> a tap from the game list returns to it; an
      * {@code am start} that names nothing else simply ends, and the message is in the log either
-     * way. The alternative is this activity sitting on a black surface forever with the reason
+     * way. the alternative is this activity sitting on a black surface forever with the reason
      * visible only to somebody running {@code logcat}.
      */
     private void abort(String message) {
         AppLog.e(TAG, "[app] " + message);
         runOnUiThread(() -> {
             // **handed to whoever started this rather than said here, when there is somebody to hand
-            // it to.** A toast belongs to the process that posted it, and this process is about to
+            // it to.** a toast belongs to the process that posted it, and this process is about to
             // end: the platform cancels it along with us a few hundred milliseconds later, and what
-            // a person sees is a flicker too short to read. The game list is in the process that
-            // survives, so it says this instead — see its own launcher.
+            // a person sees is a flicker too short to read. the game list is in the process that
+            // survives, so it says this instead -- see its own launcher.
             setResult(RESULT_FIRST_USER, new Intent().putExtra(ABORT_MESSAGE, message));
-            // and when nothing started us for a result — `am start`, every script — there is nobody
-            // to hand it to, so it is said here for what that is worth. The log is the real answer
+            // and when nothing started us for a result -- `am start`, every script -- there is nobody
+            // to hand it to, so it is said here for what that is worth. the log is the real answer
             // on that path and it is the line above.
             if (getCallingActivity() == null) {
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show();
@@ -722,18 +722,18 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
 
     /**
-     * Ends the run, the activity and this process, in that order.
+     * ends the run, the activity and this process, in that order.
      *
-     * <p><b>The process is the point.</b> Finishing alone would leave {@code :guest} alive and
+     * <p><b>the process is the point.</b> finishing alone would leave {@code :guest} alive and
      * warm, and a warm one is a process that has a payload mapped, a guest address space reserved,
      * a JIT populated and a settings store cached from before whatever the user changed in the
-     * other process — so the second launch of one intent would not be the first launch again.
-     * Killing it is also the only way to reach a state {@code exit_group} reaches for free, which
+     * other process -- so the second launch of one intent would not be the first launch again.
+     * killing it is also the only way to reach a state {@code exit_group} reaches for free, which
      * is what makes the two endings one behaviour rather than two.
      *
-     * <p>The kill is in {@code onDestroy} rather than here so that the activity record is gone
-     * before the process hosting it is. Killed first, the task is left resuming an activity whose
-     * process died, which is a state android recovers from by restarting it — the one outcome a
+     * <p>the kill is in {@code onDestroy} rather than here so that the activity record is gone
+     * before the process hosting it is. killed first, the task is left resuming an activity whose
+     * process died, which is a state android recovers from by restarting it -- the one outcome a
      * run that has ended must not have.
      */
     private void endRun() {
@@ -763,8 +763,8 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * The system bars are not decoration here. They shrink the surface, and the surface is what
-     * decides the extent the guest renders at — so a visible navigation bar would mean the guest
+     * the system bars are not decoration here. they shrink the surface, and the surface is what
+     * decides the extent the guest renders at -- so a visible navigation bar would mean the guest
      * presenting 1920x1005 into a panel that is 1920x1080.
      */
     private void goFullscreen() {
@@ -792,7 +792,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
         if (!started) {
             started = true;
-            // endRun runs however runGuest leaves — a payload that did not resolve, a game that is
+            // endRun runs however runGuest leaves -- a payload that did not resolve, a game that is
             // not there, or a guest that returned. the one exit it never sees is exit_group, which
             // does not come back through nativeRun at all and does not need to: it has already
             // ended this process, which is the same thing endRun arranges.
@@ -811,31 +811,31 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * Resolves the chosen adrenotools driver package to a {@code .so} the loader will accept, or
-     * null — in which case the run is the driver this device shipped with and the flags below are
+     * resolves the chosen adrenotools driver package to a {@code .so} the loader will accept, or
+     * null -- in which case the run is the driver this device shipped with and the flags below are
      * simply not passed.
      *
-     * <p><b>An imported package is loaded where it is and a staged one is copied first</b>, and the
+     * <p><b>an imported package is loaded where it is and a staged one is copied first</b>, and the
      * difference is the platform's rather than a preference. adrenotools stats the driver and then
-     * {@code dlopen}s it, and {@code /storage/emulated/0} is mounted {@code noexec} — so mapping the
+     * {@code dlopen}s it, and {@code /storage/emulated/0} is mounted {@code noexec} -- so mapping the
      * library's executable segment off it fails with {@code EPERM}, the loader reports
      * {@code couldn't map … segment 2}, and adrenotools' hook falls back to the system driver while
-     * still returning a usable handle. That is the quiet failure, not a loud one. So a package the
+     * still returning a usable handle. that is the quiet failure, not a loud one. so a package the
      * driver manager imported already lives on internal storage and needs nothing, while one staged
      * by {@code scripts/stage.py} is copied to where it can be mapped. External storage is also
      * FUSE-backed and this is 15 MB, which is the second reason not to load one in place.
      *
-     * <p><b>The copy is a cache entry rather than app data</b>, because it is derived from bytes that
+     * <p><b>the copy is a cache entry rather than app data</b>, because it is derived from bytes that
      * are still on external storage and is remade whenever it is missing. {@link AppStorage} says
      * what that buys.
      *
-     * <p><b>A package that is gone ends the launch rather than falling back to the system driver.</b>
-     * It is a state a user reaches without doing anything wrong — deleted from a PC, or the volume
-     * wiped — and there is a driver that always works, which is what once made falling back look like
-     * the kind thing to do. It is not: the game starts, the picture is right, and the only evidence
-     * that the driver somebody chose did nothing is a line in a log. Somebody comparing two drivers
-     * then compares one of them with itself. The choice is stored, so a fallback is also not a
-     * one-launch problem — it is every launch from then on, silently. Refusing says it once, on the
+     * <p><b>a package that is gone ends the launch rather than falling back to the system driver.</b>
+     * it is a state a user reaches without doing anything wrong -- deleted from a PC, or the volume
+     * wiped -- and there is a driver that always works, which is what once made falling back look like
+     * the kind thing to do. it is not: the game starts, the picture is right, and the only evidence
+     * that the driver somebody chose did nothing is a line in a log. somebody comparing two drivers
+     * then compares one of them with itself. the choice is stored, so a fallback is also not a
+     * one-launch problem -- it is every launch from then on, silently. refusing says it once, on the
      * screen, and names where the choice is changed.
      *
      * <p>{@link #driverFailure} carries which message that is, because the difference between a
@@ -907,22 +907,22 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * Resolves {@link #buildPath} to a payload, or null if it does not resolve.
+     * resolves {@link #buildPath} to a payload, or null if it does not resolve.
      *
-     * <p><b>A build is named by path, and never by id.</b> An id names a family and not a build, so
-     * resolving one means answering with the newest of it — and a freshly staged build then loses
-     * silently to a later-stamped one still lying around. That is a plausible number attributed to
+     * <p><b>a build is named by path, and never by id.</b> an id names a family and not a build, so
+     * resolving one means answering with the newest of it -- and a freshly staged build then loses
+     * silently to a later-stamped one still lying around. that is a plausible number attributed to
      * the wrong artefact with nothing erroring, which is this project's most expensive failure
-     * shape. A path cannot be ambiguous about which directory it meant.
+     * shape. a path cannot be ambiguous about which directory it meant.
      *
-     * <p><b>An id here is refused outright rather than resolved</b>, because offering both forms is
+     * <p><b>an id here is refused outright rather than resolved</b>, because offering both forms is
      * what would keep the ambiguous one reachable. {@code hostContract} does not gate it: the
      * contract gates the <i>payload</i>, and this is a rule on the launcher's side of the line that
-     * leaves every build byte-for-byte compatible either way. Bumping it would refuse working builds
+     * leaves every build byte-for-byte compatible either way. bumping it would refuse working builds
      * by name, which is a false negative in the mechanism built to prevent false negatives.
      *
-     * <p><b>Nothing at all means whatever the build manager settled on</b>, which is what the
-     * scripts mean by omitting the flag. Naming nothing is a real answer; naming something ambiguous
+     * <p><b>nothing at all means whatever the build manager settled on</b>, which is what the
+     * scripts mean by omitting the flag. naming nothing is a real answer; naming something ambiguous
      * is not.
      */
     private File resolvePayload(File root) {
@@ -961,24 +961,24 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * Which build a launch that named none runs.
+     * which build a launch that named none runs.
      *
-     * <p><b>Three answers, and the first is the one that shipping exactly one build buys.</b> Nothing
-     * stored means the bundled build — a concrete artefact, the same on every device, with no
-     * per-release constant behind it and no toggle in front of it. A stored folder means that build.
-     * Neither present means the most recently staged one, which is a debug app's normal state and the
+     * <p><b>three answers, and the first is the one that shipping exactly one build buys.</b> nothing
+     * stored means the bundled build -- a concrete artefact, the same on every device, with no
+     * per-release constant behind it and no toggle in front of it. a stored folder means that build.
+     * neither present means the most recently staged one, which is a debug app's normal state and the
      * behaviour the deploy loop has always had.
      *
-     * <p><b>A chosen build that is gone falls back loudly rather than refusing.</b> It is a state a
-     * user reaches without doing anything wrong — deleted from a PC, or the external volume wiped —
+     * <p><b>a chosen build that is gone falls back loudly rather than refusing.</b> it is a state a
+     * user reaches without doing anything wrong -- deleted from a PC, or the external volume wiped --
      * and with no error UI the alternative is a game that does not start with the reason only in a
-     * log. The line names the build that was wanted <i>and</i> the one that ran, and the stored
+     * log. the line names the build that was wanted <i>and</i> the one that ran, and the stored
      * choice is left alone: this is a launch working around a problem, not resolving it.
      */
     private SharpEmuBuild chosenBuild(File internal, File staged) {
         String folder = settings.getBuild();
         // **the reserved folder goes down the bundled path rather than being resolved as a folder**,
-        // because before the first launch it is not a folder at all — it is 76 MB of APK. resolving
+        // because before the first launch it is not a folder at all -- it is 76 MB of APK. resolving
         // it would find nothing and fall back to a staged build, which is a launch quietly running
         // something other than what the build manager's radio says it will.
         if (folder != null && !SharpEmuBuild.BUNDLED.equals(folder)) {
@@ -993,28 +993,28 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * The bundled build, unpacked out of the APK first if this is the launch that needs it.
+     * the bundled build, unpacked out of the APK first if this is the launch that needs it.
      *
-     * <p><b>Nothing is extracted until now, which is what makes an app-only update free.</b> The
+     * <p><b>nothing is extracted until now, which is what makes an app-only update free.</b> the
      * asset is a directory tree in the APK; this is the first launch that resolves to it, so this is
-     * where it becomes a build directory. An update that carries a different fork commit
+     * where it becomes a build directory. an update that carries a different fork commit
      * re-extracts, and one that carries the same build does not.
      *
-     * <p><b>It is drawn as a phase of the launch rather than on a screen of its own.</b> The
+     * <p><b>it is drawn as a phase of the launch rather than on a screen of its own.</b> the
      * extraction is a fraction of a second against the several seconds a boot takes, so a screen for
-     * this one alone would dress the shortest wait in a launch and leave the longest bare. It is one
-     * wait, on one screen, naming whichever part of itself it is in — see {@link GuestLoading}.
+     * this one alone would dress the shortest wait in a launch and leave the longest bare. it is one
+     * wait, on one screen, naming whichever part of itself it is in -- see {@link GuestLoading}.
      *
-     * <p><b>A failure ends the launch instead of falling back.</b> Running the most recently staged
+     * <p><b>a failure ends the launch instead of falling back.</b> running the most recently staged
      * build because the bundled one could not be written would be a plausible run attributed to the
-     * wrong artefact — this project's oldest and most expensive failure — and on a release install
-     * there would usually be no staged build to fall back to anyway. Having nothing bundled is a
+     * wrong artefact -- this project's oldest and most expensive failure -- and on a release install
+     * there would usually be no staged build to fall back to anyway. having nothing bundled is a
      * different answer entirely, and is the one a development build gives.
      */
     private SharpEmuBuild bundledBuild(File internal, File staged) {
         // **the progress this reports is deliberately not drawn, and the callback stays because it is
         // what says an unpack is happening at all.** the screen names the phase and leaves its bar
-        // indeterminate for the whole launch — see GuestLoading, where the reason is that an unpack
+        // indeterminate for the whole launch -- see GuestLoading, where the reason is that an unpack
         // is a few hundred milliseconds of a launch of several seconds and cannot be a segment of a
         // bar the boot owns.
         BundledBuild.Outcome outcome = BundledBuild.ensure(this, internal,
@@ -1037,22 +1037,22 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * The directory the guest's own linker searches, unpacked out of the APK first if this is the
+     * the directory the guest's own linker searches, unpacked out of the APK first if this is the
      * launch that needs it.
      *
-     * <p><b>It is not staged content any more, and that is what this pays for.</b> The set used to
-     * reach a device only over {@code adb}, so a release install could not start a game at all and a
-     * data wipe put a working install in the same state — {@code clearApplicationUserData} takes the
-     * external files directory, which was where the guest's dynamic linker lived. The APK carries it
-     * now; {@link GuestLibraries} is where the two tiers are decided.
+     * <p><b>it is not staged content, and that is what this pays for.</b> a set reaching a device only
+     * over {@code adb} leaves a release install unable to start a game at all, and puts a working
+     * install in that same state after a data wipe -- {@code clearApplicationUserData} takes the
+     * external files directory, which is where a staged set lives. the APK carries the set instead;
+     * {@link GuestLibraries} is where the two tiers are decided.
      *
-     * <p><b>A failure ends the launch rather than falling back</b>, for {@link #bundledBuild}'s
-     * reason and one of its own: there is nothing to fall back <i>to</i>. Without an interpreter the
+     * <p><b>a failure ends the launch rather than falling back</b>, for {@link #bundledBuild}'s
+     * reason and one of its own: there is nothing to fall back <i>to</i>. without an interpreter the
      * guest does not start, and the honest thing is to say so on the screen instead of leaving the
      * reason in {@code logcat}, which is exactly how this arrived as "tapping a game does nothing".
      */
     private File resolveGuestLibs(File root, File internal) {
-        // the second of the two trees, named separately on the same line — the same arrangement
+        // the second of the two trees, named separately on the same line -- the same arrangement
         // bundledBuild has, and the same reason. **this one is the case that is not a fresh install**:
         // the set carries a packaging-time content hash, so an update bringing new libraries
         // re-extracts them beside a build that is already unpacked and a boot record that is already
@@ -1084,17 +1084,17 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * Points the guest file layer at a game inside a tree the user has already granted us.
+     * points the guest file layer at a game inside a tree the user has already granted us.
      *
-     * <p><b>The tree is named by the launch, and only falls back to a guess when it is not.</b> The
+     * <p><b>the tree is named by the launch, and only falls back to a guess when it is not.</b> the
      * game list sends {@code --es saftree} because it knows which granted folder the row came out of.
-     * A launch that says nothing takes the first persisted read permission this app holds: exact
+     * a launch that says nothing takes the first persisted read permission this app holds: exact
      * with one granted folder, arbitrary with two, and it stays because it is what
      * {@code am start --es safgame} means from a script.
      *
-     * <p><b>A named tree is checked against what we actually hold rather than trusted.</b> A grant
+     * <p><b>a named tree is checked against what we actually hold rather than trusted.</b> a grant
      * revoked in android's own settings, or a volume that is not mounted, would otherwise reach the
-     * guest as a game whose every file is missing — which reads as a corrupt dump rather than as
+     * guest as a game whose every file is missing -- which reads as a corrupt dump rather than as
      * access that is gone.
      */
     private boolean mountSafGame() {
@@ -1116,10 +1116,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * Which granted tree this launch's game is in, or null if we hold none that fits.
+     * which granted tree this launch's game is in, or null if we hold none that fits.
      *
-     * <p><b>It says nothing.</b> Two things ask — the identity resolved in {@code onCreate} and the
-     * mount in {@code runGuest} — and a message printed by both would report one missing grant twice.
+     * <p><b>it says nothing.</b> two things ask -- the identity resolved in {@code onCreate} and the
+     * mount in {@code runGuest} -- and a message printed by both would report one missing grant twice.
      * {@link #mountSafGame()} is the one that explains, because it is the one that refuses a launch.
      */
     private Uri grantedTree() {
@@ -1139,20 +1139,20 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * The title id the emulator will resolve for this launch's game, read the way it reads one.
+     * the title id the emulator will resolve for this launch's game, read the way it reads one.
      *
-     * <p><b>In {@code onCreate}, because the settings this run merges are keyed by it.</b> A game's
+     * <p><b>in {@code onCreate}, because the settings this run merges are keyed by it.</b> a game's
      * own store is found by {@link Game#configKeyFor}, and the merge happens before anything is
-     * resolved or installed — so this is read early rather than beside the pipeline cache line it
-     * also names. It is read <b>once</b> and both uses take the field.
+     * resolved or installed -- so this is read early rather than beside the pipeline cache line it
+     * also names. it is read <b>once</b> and both uses take the field.
      *
-     * <p><b>All three ways in answer through {@link GameSource}, including the granted one, and that
-     * needs no mount.</b> A child document's id is its parent's plus {@code /name} — see
-     * {@link TreeDocument} — so the tree and the directory's name are the whole of what it takes to
-     * open a file inside a grant. The host layer's mount is for the guest's own reads and stays where
+     * <p><b>all three ways in answer through {@link GameSource}, including the granted one, and that
+     * needs no mount.</b> a child document's id is its parent's plus {@code /name} -- see
+     * {@link TreeDocument} -- so the tree and the directory's name are the whole of what it takes to
+     * open a file inside a grant. the host layer's mount is for the guest's own reads and stays where
      * it is, in {@code runGuest}, behind the driver check that has to come first.
      *
-     * <p><b>Every failure answers {@code UNKNOWN}</b> rather than refusing: a game that is not there,
+     * <p><b>every failure answers {@code UNKNOWN}</b> rather than refusing: a game that is not there,
      * a grant that is gone or a dump with no {@code param.json} are all cases {@code runGuest} reports
      * properly a moment later, and a launch that dies here would report them worse.
      */
@@ -1178,10 +1178,10 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
     }
 
     /**
-     * The directory name of this launch's game, whichever extra named it.
+     * the directory name of this launch's game, whichever extra named it.
      *
-     * <p>It is what a game with no title id of its own is filed under — see {@link Game#configKeyFor}
-     * — so the path form is reduced to its last component: the same game reached by name and by
+     * <p>it is what a game with no title id of its own is filed under -- see {@link Game#configKeyFor}
+     * -- so the path form is reduced to its last component: the same game reached by name and by
      * absolute path has to be the same game.
      */
     private String gameFolderName() {
@@ -1203,14 +1203,14 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
         // **the driver first, before a payload is resolved or a byte of a game is touched.** it is
         // the only thing here that can refuse a launch on grounds the person can do something about,
-        // and it is settled in milliseconds — so settling it first is the difference between a
+        // and it is settled in milliseconds -- so settling it first is the difference between a
         // refusal that looks like the tap did nothing and one that arrives after several seconds of
         // black screen.
         String driver = installDriver(root);
         // and then the one question this side cannot answer: adrenotools falls back to the system
         // driver and returns a handle that is good in every way, so a package that resolves, exists
         // and copies correctly still may not be the driver a guest renders through. the host layer
-        // opens it — the same one-time open the guest's first Vulkan call would have done — and says.
+        // opens it -- the same one-time open the guest's first Vulkan call would have done -- and says.
         if (driverFailure == 0 && driver != null
                 && !HostLayer.nativeDriverLoads(driver, getApplicationInfo().nativeLibraryDir)) {
             driverFailure = R.string.driver_failed;
@@ -1240,7 +1240,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 ? new File(gameName) : new File(AppStorage.games(root), gameName);
         File staged = new File(gameDirectory, "eboot.bin");
         // the title id was resolved in onCreate, because the settings this run merges are keyed by it
-        // — see resolveTitleId. it names the pipeline cache's directory below, which is the
+        // -- see resolveTitleId. it names the pipeline cache's directory below, which is the
         // emulator's to name everywhere except here.
         if (safGameName != null && !safGameName.isEmpty()) {
             if (!mountSafGame()) {
@@ -1256,14 +1256,14 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 // and the launch looks like from in here.
                 AppLog.e(TAG, "[app] missing: " + staged.getAbsolutePath()
                         + (gameName.startsWith("/")
-                        ? " — that path is not readable. is all-files access still on?"
-                        : " — stage it with scripts/stage.py"));
+                        ? " -- that path is not readable. is all-files access still on?"
+                        : " -- stage it with scripts/stage.py"));
                 return;
             }
         }
         if (!payload.exists()) {
             AppLog.e(TAG, "[app] missing: " + payload.getAbsolutePath()
-                    + " — stage it with scripts/stage.py");
+                    + " -- stage it with scripts/stage.py");
             return;
         }
         File guestLibs = resolveGuestLibs(root, files);
@@ -1281,7 +1281,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         args.add("--vulkan");
         // the audio thunk, in the shape --vulkan has. nothing at all is needed from this side
         // besides the flag: AAudio is a pure NDK C API, so there is no JNI, no looper and no
-        // permission — RECORD_AUDIO gates input and this only ever plays.
+        // permission -- RECORD_AUDIO gates input and this only ever plays.
         args.add("--audio");
         if (audioWatchdog) {
             args.add("--audio-watchdog");
@@ -1303,7 +1303,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             args.add("--vulkan-driver");
             args.add(driver);
             // and the hooks, which adrenotools loads by soname from this directory and nowhere
-            // else. it must be nativeLibraryDir itself — a directory that merely contains copies
+            // else. it must be nativeLibraryDir itself -- a directory that merely contains copies
             // of them is not the same thing, and getting it wrong fails by quietly falling back
             // to the stock driver rather than by erroring.
             args.add("--vulkan-hooks");
@@ -1348,7 +1348,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
         // guest environment, in precedence order: **build defaults < app settings < intent
         // extras**, last wins. it is a map rather than a list of --env flags so a variable a build
-        // defaults on and a launch overrides reaches the guest once, with the override's value —
+        // defaults on and a launch overrides reaches the guest once, with the override's value --
         // two --env flags naming the same variable would be a coin toss over which the guest reads.
         //
         // the missing tier is explicit --env on the shell binary's command line, which is above all
@@ -1374,7 +1374,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         env.put("SHARPEMU_HOST_AUDIO", "android");
         // and the fourth of the same family: without it the payload registers no input source at all,
         // and its pad exports report a controller that is permanently connected and permanently
-        // neutral — a game that responds to nothing, with nothing anywhere returning an error. that is
+        // neutral -- a game that responds to nothing, with nothing anywhere returning an error. that is
         // the same shape of failure the audio selector exists to prevent, so it is written here beside
         // it and above anything a build or a settings row can reach.
         env.put("SHARPEMU_HOST_INPUT", "android");
@@ -1387,12 +1387,12 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // executable; on android that executable sits in a directory the app re-stages, re-unpacks
         // and deletes, so anything written beside it has a lifetime nobody chose. each variable is
         // upstream's own and each is read only when it is set, so a payload too old to know one
-        // keeps the portable behaviour for that one — which is why the contract number does not
+        // keeps the portable behaviour for that one -- which is why the contract number does not
         // move for any of them. AppStorage.user is where they point and why.
         //
         // the layout under them is the emulator's own in every case. it keys save data itself, from
         // the title id it reads out of the dump; the pipeline cache's variable takes a file rather
-        // than a root, so that one key is read here instead — the same field, the same sanitising.
+        // than a root, so that one key is read here instead -- the same field, the same sanitising.
         //
         // these ask nothing of a payload, the way DOTNET_EnableWriteXorExecute does, and they are
         // written after the settings map for the same reason the three above are: a build's env or
@@ -1403,7 +1403,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // and the switch above it, which decides whether that path is ever read or written.
         //
         // **the path is written either way, and only the mode moves.** the emulator reads the path
-        // only while persistence is on, so naming it costs a disabled run nothing — and the
+        // only while persistence is on, so naming it costs a disabled run nothing -- and the
         // alternative, leaving the variable out, is not an off switch at all: unset means the
         // emulator resolves its own portable default, which is a directory inside the build. that
         // would keep caching and put the bytes somewhere a re-stage deletes.
@@ -1472,12 +1472,12 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
                 : gameName + (gameName.startsWith("/") ? " (a path)" : " (staged)")));
         AppLog.i(TAG, "[app] starting: " + String.join(" ", args));
         // **the last thing before the host layer starts, because that is where its clock starts.**
-        // Everything a boot reports is measured from its own entry, and the app's wait began at the
-        // tap with the driver check and any unpacking in between — so the two halves of the screen's
+        // everything a boot reports is measured from its own entry, and the app's wait began at the
+        // tap with the driver check and any unpacking in between -- so the two halves of the screen's
         // timeline only join if this moment is taken here.
         //
         // **a null here is the indeterminate bar, and it is also what the switch in Settings hands
-        // over** — the store is not opened at all when the estimate is off, rather than opened and
+        // over** -- the store is not opened at all when the estimate is off, rather than opened and
         // its answer discarded, so off is the state a device with no record is already in and not a
         // second way of reaching it.
         loading.booting(!loadingEstimate ? null : BootRecord.of(this).expected(

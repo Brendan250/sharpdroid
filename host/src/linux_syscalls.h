@@ -1,4 +1,4 @@
-// sharpemu-android host layer — guest linux x86-64 syscalls onto bionic/android.
+// sharpemu-android host layer -- guest linux x86-64 syscalls onto bionic/android.
 //
 // FEX's JIT hands us the guest's RAX/RDI/RSI/RDX/R10/R8/R9 in SyscallArguments::Argument[0..6]
 // and puts our return value back in guest RAX. everything else is ours to do.
@@ -42,7 +42,7 @@ public:
   void SetTrace(bool Enabled) {
     Trace = Enabled;
   }
-  // count what the guest asks of one directory subtree — opens, stats, directory listings, reads,
+  // count what the guest asks of one directory subtree -- opens, stats, directory listings, reads,
   // and how many of each land on a descriptor that came from there. off unless this is called.
   // the reasoning, and why the counts matter beyond curiosity, is at FileProbe in linux_syscalls.cpp.
   void SetFileProbeRoot(const char* Root);
@@ -68,7 +68,7 @@ public:
 
 private:
   ///< the syscall table proper. HandleSyscall is a wrapper around it that turns the return into a
-  ///< delivery point for asynchronous signals — see guest_threads.h.
+  ///< delivery point for asynchronous signals -- see guest_threads.h.
   uint64_t Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArguments* Args);
 
   uint64_t HandleBrk(uint64_t NewBreak);
@@ -78,7 +78,7 @@ private:
   bool Trace {};
 
   // the break is process-wide and every guest thread's malloc can move it. glibc serialises brk
-  // behind its own arena lock, so this is belt and braces — but the arena lock is the guest's, and
+  // behind its own arena lock, so this is belt and braces -- but the arena lock is the guest's, and
   // a host layer that assumes the guest is well-behaved about its own locking is one bug away from
   // handing two threads the same pages.
   std::mutex BrkLock;

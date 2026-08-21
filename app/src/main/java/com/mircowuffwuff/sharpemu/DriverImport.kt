@@ -12,18 +12,18 @@ import java.io.InputStream
 import java.util.zip.ZipInputStream
 
 /**
- * Taking a driver package the user picked and turning it into a directory the loader can be pointed
+ * taking a driver package the user picked and turning it into a directory the loader can be pointed
  * at.
  *
- * **The mirror of [BuildImport], and it inherits that file's two lessons rather than rediscovering
- * them.** The zip is read twice — a first pass that validates and writes nothing, a second that
- * extracts — because the alternative leaves a half-written directory to clean up on every refusal,
- * and a cleanup is the step that gets skipped on the path nobody tests. And **what a file is gets
+ * **the mirror of [BuildImport], and it inherits that file's two lessons rather than rediscovering
+ * them.** the zip is read twice -- a first pass that validates and writes nothing, a second that
+ * extracts -- because the alternative leaves a half-written directory to clean up on every refusal,
+ * and a cleanup is the step that gets skipped on the path nobody tests. and **what a file is gets
  * decided by what is inside it**: a size check separates a driver from a build perfectly well and
  * separates them by the wrong property, so a size here only ever chooses a sentence.
  *
- * **What this refuses matters more than what it accepts.** A package for a platform older than this
- * one, or one whose `.so` is missing, fails inside the loader — where the report is a black screen
+ * **what this refuses matters more than what it accepts.** a package for a platform older than this
+ * one, or one whose `.so` is missing, fails inside the loader -- where the report is a black screen
  * with nothing in it naming a driver.
  */
 object DriverImport {
@@ -31,29 +31,29 @@ object DriverImport {
     private const val TAG = "sharpemu"
 
     /**
-     * Above this, a zip with no identity is called too large rather than called unidentifiable.
+     * above this, a zip with no identity is called too large rather than called unidentifiable.
      *
-     * A driver package is a few megabytes and a SharpEmu build is tens, so this is the wording for
-     * somebody who picked a build zip that has no `meta.json` to say so with. It decides a sentence
+     * a driver package is a few megabytes and a SharpEmu build is tens, so this is the wording for
+     * somebody who picked a build zip that has no `meta.json` to say so with. it decides a sentence
      * and never an outcome.
      */
     private const val MAXIMUM_BYTES = 64L * 1024 * 1024
 
-    /** What happened, in the words the toast will use. */
+    /** what happened, in the words the toast will use. */
     sealed class Result {
         /** Imported and selected. */
         data class Imported(val driver: GpuDriver) : Result()
 
-        /** Refused, with the reason already resolved to a string. */
+        /** refused, with the reason already resolved to a string. */
         data class Refused(val reason: String) : Result()
     }
 
     /**
-     * Validates and imports, or refuses and writes nothing.
+     * validates and imports, or refuses and writes nothing.
      *
-     * Off the main thread: it reads and writes megabytes through a content provider.
+     * off the main thread: it reads and writes megabytes through a content provider.
      *
-     * @param internal `getFilesDir()/gpu-drivers` — where a package is loaded from, because the
+     * @param internal `getFilesDir()/gpu-drivers` -- where a package is loaded from, because the
      *   linker will not `dlopen` a library from anywhere else.
      */
     fun import(context: Context, zip: Uri, internal: File): Result {
@@ -62,8 +62,8 @@ object DriverImport {
             ?: return refuse(name, context.getString(R.string.driver_import_unreadable))
 
         // **a SharpEmu build also has a meta.json at its root**, which is why a meta file settles
-        // nothing on its own. The fields are what tell the two apart, and this is the same test
-        // BuildImport applies from the other side — a build names a `hostContract` and a payload.
+        // nothing on its own. the fields are what tell the two apart, and this is the same test
+        // BuildImport applies from the other side -- a build names a `hostContract` and a payload.
         if (found.looksLikeBuild) {
             return refuse(name, context.getString(R.string.driver_import_is_a_build))
         }
@@ -104,8 +104,8 @@ object DriverImport {
         val version = json.optString("driverVersion", "").ifEmpty { json.optString("packageVersion", "") }
 
         val folder = GpuDriver.folderName(driverName, version)
-        // **the reserved word, refused rather than allowed to shadow the pinned row.** No derived
-        // name reaches it — [GpuDriver.folderName] always leaves a `-` in — so this is a guard
+        // **the reserved word, refused rather than allowed to shadow the pinned row.** no derived
+        // name reaches it -- [GpuDriver.folderName] always leaves a `-` in -- so this is a guard
         // against the derivation changing rather than against a package that exists.
         if (GpuDriver.isSystem(folder)) {
             return refuse(name, context.getString(R.string.driver_import_reserved, folder))
@@ -121,11 +121,11 @@ object DriverImport {
     }
 
     /**
-     * **The file is named in the log and not in the toast.**
+     * **the file is named in the log and not in the toast.**
      *
-     * A toast is two lines and truncates without warning, and driver packages are distributed under
-     * names like `turnip_mrpurple_T29-toasted.adpkg.zip` — long enough that a message opening with
-     * one loses the half that says what the file actually is, which is the half worth having. The
+     * a toast is two lines and truncates without warning, and driver packages are distributed under
+     * names like `turnip_mrpurple_T29-toasted.adpkg.zip` -- long enough that a message opening with
+     * one loses the half that says what the file actually is, which is the half worth having. the
      * person reading it picked the file a second ago; the log is what somebody reads later.
      */
     private fun refuse(file: String, reason: String): Result {
@@ -134,14 +134,14 @@ object DriverImport {
     }
 
     /**
-     * A zip entry's path, with separators made the ones the format actually uses.
+     * a zip entry's path, with separators made the ones the format actually uses.
      *
-     * PowerShell's `Compress-Archive` writes backslashes, which most tools quietly tolerate — and
+     * PowerShell's `Compress-Archive` writes backslashes, which most tools quietly tolerate -- and
      * which would make a repackaged driver look like it was missing the library it names.
      */
     private fun normalise(name: String): String = name.replace('\\', '/')
 
-    /** What the first pass learned, without having written anything. */
+    /** what the first pass learned, without having written anything. */
     private class Scan(
         val meta: JSONObject?,
         val files: Set<String>,
@@ -149,9 +149,9 @@ object DriverImport {
     )
 
     /**
-     * Reads the zip's entry names and its root `meta.json`, and writes nothing.
+     * reads the zip's entry names and its root `meta.json`, and writes nothing.
      *
-     * `meta.json` has to be at the **zip root**, which is where every adrenotools package puts it. A
+     * `meta.json` has to be at the **zip root**, which is where every adrenotools package puts it. a
      * wrapper directory is refused as "no meta file" rather than searched for: guessing which of two
      * candidate roots was meant is how a package gets extracted half-flattened, and a driver whose
      * `.so` ends up one level down is one the loader cannot find.
@@ -184,10 +184,10 @@ object DriverImport {
     }
 
     /**
-     * The second pass: writes the tree, beside its target and then renamed.
+     * the second pass: writes the tree, beside its target and then renamed.
      *
      * **`.partial` then rename**, the shape both other extractors in this app use, so a package
-     * interrupted by the process dying leaves nothing the list or a launch would find. A
+     * interrupted by the process dying leaves nothing the list or a launch would find. a
      * half-extracted driver that looks complete is the worst outcome available here: it has a
      * `meta.json`, so it would be listed and selectable, and it would fail inside the loader.
      */
@@ -253,7 +253,7 @@ object DriverImport {
     private fun open(context: Context, zip: Uri): InputStream =
         context.contentResolver.openInputStream(zip) ?: throw java.io.IOException("no stream for $zip")
 
-    /** The provider's own size, or -1 when it does not offer one. */
+    /** the provider's own size, or -1 when it does not offer one. */
     private fun sizeOf(context: Context, zip: Uri): Long =
         context.contentResolver.query(zip, arrayOf(OpenableColumns.SIZE), null, null, null)
             ?.use { cursor ->
@@ -265,7 +265,7 @@ object DriverImport {
                 }
             } ?: -1L
 
-    /** What to call the file in a message. The provider's display name, or the last path segment. */
+    /** what to call the file in a message. the provider's display name, or the last path segment. */
     private fun displayName(context: Context, zip: Uri): String =
         context.contentResolver.query(zip, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
             ?.use { cursor ->

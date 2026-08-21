@@ -1,39 +1,39 @@
 package com.mircowuffwuff.sharpemu
 
 /**
- * One row in a settings section.
+ * one row in a settings section.
  *
- * **Typed rows in a list rather than a `PreferenceScreen`, which is the yuzu lineage's shape** — see
- * Eden's `SettingsAdapter` and the item classes beside it. It is why their settings screens look the
+ * **typed rows in a list rather than a `PreferenceScreen`, which is the yuzu lineage's shape** -- see
+ * Eden's `SettingsAdapter` and the item classes beside it. it is why their settings screens look the
  * way they do, and following it is the whole reason this app took the AndroidX dependency graph:
  * being able to read one of Eden's screens and carry the pattern across is worth more than being
  * able to build offline.
  *
- * **A row knows its key, and the key is what makes "unset" reachable.** [Settings.isSet] answers
+ * **a row knows its key, and the key is what makes "unset" reachable.** [Settings.isSet] answers
  * whether the user has ever touched this row, which decides whether a long press offers *Use
- * default* at all. A row with no key — an action, a header, a permission this app does not own — is
+ * default* at all. a row with no key -- an action, a header, a permission this app does not own -- is
  * never in either state.
  *
- * **Nothing on screen distinguishes a set row from an untouched one**, and that is a trade rather
+ * **nothing on screen distinguishes a set row from an untouched one**, and that is a trade rather
  * than an omission: a mark saying so has to hold its width on every row, which indents the whole
- * list to annotate one of them. The distinction is real — only a set row reaches a launch — and the
- * cost of not drawing it is that the long press is undiscoverable. The per-game scene needs a
+ * list to annotate one of them. the distinction is real -- only a set row reaches a launch -- and the
+ * cost of not drawing it is that the long press is undiscoverable. the per-game scene needs a
  * visible affordance for exactly this, and that is the place to reconsider it.
  */
 sealed class SettingRow {
 
-    /** The key this row reads and writes, or null for a row that is not a stored value. */
+    /** the key this row reads and writes, or null for a row that is not a stored value. */
     open val key: String? = null
 
     /**
-     * A divider with a label, for a subsection inside a section.
+     * a divider with a label, for a subsection inside a section.
      *
-     * **A label above a run of rows, never another button press.** A subsection is a grouping and
+     * **a label above a run of rows, never another button press.** a subsection is a grouping and
      * not a destination, so hiding one behind a tap adds a screen without adding a choice.
      */
     data class Header(val title: Int) : SettingRow()
 
-    /** A boolean, drawn as a Material switch. */
+    /** a boolean, drawn as a Material switch. */
     data class Switch(
         override val key: String,
         val title: Int,
@@ -42,10 +42,10 @@ sealed class SettingRow {
     ) : SettingRow()
 
     /**
-     * A choice from a fixed list, drawn as a row that opens a single-choice dialog.
+     * a choice from a fixed list, drawn as a row that opens a single-choice dialog.
      *
-     * [values] is what is stored and [entries] is what is shown, one to one. They are separate
-     * because what the payload parses — `0.75` — is not what a person should have to read.
+     * [values] is what is stored and [entries] is what is shown, one to one. they are separate
+     * because what the payload parses -- `0.75` -- is not what a person should have to read.
      */
     data class Dropdown(
         override val key: String,
@@ -63,20 +63,20 @@ sealed class SettingRow {
     }
 
     /**
-     * A choice from an **ordered** list, drawn as a row that opens a dialog holding a slider.
+     * a choice from an **ordered** list, drawn as a row that opens a dialog holding a slider.
      *
-     * The same shape as [Dropdown] and a different claim about the values: a dropdown's entries are
-     * alternatives, and these are a ladder, where one end trades away what the other end keeps. A
+     * the same shape as [Dropdown] and a different claim about the values: a dropdown's entries are
+     * alternatives, and these are a ladder, where one end trades away what the other end keeps. a
      * slider says that in the control itself, and it makes "the middle" a place a user can aim for
      * rather than a position they have to count out.
      *
      * [entries] is what is shown at each detent and [values] is what is stored, one to one. [detail]
      * is a line per position describing what that rung costs or buys, shown under the slider as it
-     * moves — a name alone does not tell anyone what Extreme is extreme about.
+     * moves -- a name alone does not tell anyone what Extreme is extreme about.
      *
-     * **[low] and [high] name the axis, not the rungs at either end of it.** The chosen rung is
+     * **[low] and [high] name the axis, not the rungs at either end of it.** the chosen rung is
      * already named above the slider, so ends labelled with their own entries showed one of those
-     * names twice over as soon as the slider reached them. What a scale has to say that the name
+     * names twice over as soon as the slider reached them. what a scale has to say that the name
      * cannot is which direction is which and what is given up going that way.
      */
     data class Slider(
@@ -96,17 +96,17 @@ sealed class SettingRow {
     }
 
     /**
-     * A row that opens a screen of its own, showing what is currently chosen underneath it.
+     * a row that opens a screen of its own, showing what is currently chosen underneath it.
      *
      * **[value] is a string rather than a resource**, which is the difference between this and
-     * [Dropdown]: what it shows is the name of something on the device — a build — rather than one
+     * [Dropdown]: what it shows is the name of something on the device -- a build -- rather than one
      * of a fixed set of labels this app shipped.
      *
-     * **There is no `enabled` flag**, because nothing here greys a row out: exactly one build ships
-     * per APK, so there is no recommendation to follow and no toggle to govern the build row. A flag
+     * **there is no `enabled` flag**, because nothing here greys a row out: exactly one build ships
+     * per APK, so there is no recommendation to follow and no toggle to govern the build row. a flag
      * with no caller is a flag that is wrong by the time something wants it.
      *
-     * **[key] is null for a screen that stores nothing.** The build and driver rows each name a stored
+     * **[key] is null for a screen that stores nothing.** the build and driver rows each name a stored
      * choice, and the long press puts it back; the folder manager is a place to go rather than a value
      * that was picked, so there is no default for it to go back to and no gesture on it.
      */
@@ -116,10 +116,10 @@ sealed class SettingRow {
         val summary: Int,
         val value: String,
         /**
-         * Whether [value] names something, or reports that there is nothing.
+         * whether [value] names something, or reports that there is nothing.
          *
-         * The value line is drawn in the accent, which is what marks it as the answer to the row.
-         * "None" is not an answer of that kind — it is the absence of one — so it is drawn in the
+         * the value line is drawn in the accent, which is what marks it as the answer to the row.
+         * "None" is not an answer of that kind -- it is the absence of one -- so it is drawn in the
          * body colour instead, and reads as a state rather than as a choice somebody made.
          */
         val chosen: Boolean = true,
@@ -127,9 +127,9 @@ sealed class SettingRow {
     ) : SettingRow()
 
     /**
-     * A colour, drawn as a swatch and picked in a dialog.
+     * a colour, drawn as a swatch and picked in a dialog.
      *
-     * **It appears under the Theme row only while a Custom theme is chosen**, which is why it is a
+     * **it appears under the Theme row only while a Custom theme is chosen**, which is why it is a
      * row type rather than a section of its own: a colour with no scheme to seed would be a control
      * that does nothing, and a scheme with no colour would be a theme nobody can change.
      */
@@ -142,16 +142,16 @@ sealed class SettingRow {
     ) : SettingRow()
 
     /**
-     * A switch showing state this app does not own — today, the all-files permission.
+     * a switch showing state this app does not own -- today, the all-files permission.
      *
-     * **It shows rather than sets, and the difference is the platform's rather than a design
+     * **it shows rather than sets, and the difference is the platform's rather than a design
      * choice.** `MANAGE_EXTERNAL_STORAGE` is granted in android's own settings and nowhere else, so
      * the switch cannot be flipped from here: tapping the row opens that screen, and the state is
-     * read back when the user comes back. It is drawn as a switch because a switch is what the thing
+     * read back when the user comes back. it is drawn as a switch because a switch is what the thing
      * *is*, and a row whose description had to begin with "Off." was saying in a sentence what a
      * widget says at a glance.
      *
-     * It carries no key. There is nothing stored, so there is no default to go back to and no long
+     * it carries no key. there is nothing stored, so there is no default to go back to and no long
      * press.
      */
     data class External(

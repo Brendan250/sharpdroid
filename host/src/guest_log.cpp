@@ -22,8 +22,8 @@ std::atomic<bool> On {};
 //
 // this exists because keying on the descriptor *number* does not work, which cost a round of
 // debugging to discover: **.NET does not write its console output to fd 1.** it duplicates the
-// standard descriptors during startup — 51 fcntl calls in a `--help` trace, and the first
-// `[DEBUG] SharpEmu starting` line comes out of a write to fd 35 — so a stamper watching fd 1 sees
+// standard descriptors during startup -- 51 fcntl calls in a `--help` trace, and the first
+// `[DEBUG] SharpEmu starting` line comes out of a write to fd 35 -- so a stamper watching fd 1 sees
 // the host layer's own output and none of the guest's. matching on the file identity behind the
 // descriptor catches every route to the same stream at once: dup, dup2, fcntl(F_DUPFD),
 // /dev/stdout, /proc/self/fd/1.
@@ -40,7 +40,7 @@ StreamIdentity Console[2] {};
 // threads' output behind a mutex to prevent it.
 std::atomic<bool> AtLineStart[2] {true, true};
 
-// `[+   3.502] ` — wide enough for a run of nearly three hours before it grows.
+// `[+   3.502] ` -- wide enough for a run of nearly three hours before it grows.
 constexpr size_t StampLength = 12;
 
 // anything longer goes out unstamped rather than allocating on a path the guest calls thousands of
@@ -70,7 +70,7 @@ size_t FormatStamp(char* Out) {
  * @brief Which console stream this descriptor writes to, or -1 for anything else.
  *
  * fds 1 and 2 answer without a syscall; everything else costs one fstat. that is deliberately not
- * cached — a cache would have to be invalidated on close and on dup2, and fd numbers get reused,
+ * cached -- a cache would have to be invalidated on close and on dup2, and fd numbers get reused,
  * so a stale entry would stamp the middle of a save file. one fstat per guest write is a couple of
  * microseconds against a run measured in minutes, and this mode is off unless someone is measuring.
  */
@@ -101,8 +101,8 @@ int ConsoleSlot(int FD) {
  * @brief Push a whole buffer out in as few writes as the kernel allows.
  *
  * one write is the intent, and on a regular file or a pipe with a buffer to spare that is what
- * happens. the loop is for the cases where it is not — a signal cutting the call short, or a pipe
- * filling up — because a stamped buffer that went out half-written would leave the descriptor's
+ * happens. the loop is for the cases where it is not -- a signal cutting the call short, or a pipe
+ * filling up -- because a stamped buffer that went out half-written would leave the descriptor's
  * line-start bookkeeping describing something that never reached the file.
  */
 bool WriteAll(int FD, const char* Data, size_t Length) {
@@ -141,7 +141,7 @@ size_t Stamp(int Slot, const char* Data, size_t Length, char* Out, size_t OutSiz
       return 0;
     }
     Out[Used++] = Data[i];
-    // the newline itself belongs to the line it ends, so the next stamp waits for the next byte —
+    // the newline itself belongs to the line it ends, so the next stamp waits for the next byte --
     // which is also what stops a trailing newline from emitting a stamp with nothing behind it.
     LineStart = Data[i] == '\n';
   }
@@ -155,7 +155,7 @@ size_t Stamp(int Slot, const char* Data, size_t Length, char* Out, size_t OutSiz
 void Start() {
   ::clock_gettime(CLOCK_MONOTONIC, &Origin);
 
-  // taken before the guest exists, so these describe where *our* stdout and stderr go — which is
+  // taken before the guest exists, so these describe where *our* stdout and stderr go -- which is
   // what every duplicate the guest later makes will point at too.
   for (int i = 0; i < 2; ++i) {
     struct stat Stat {};
@@ -216,7 +216,7 @@ ssize_t Writev(int FD, const struct iovec* IOV, int Count) {
     if (!Added && IOV[i].iov_len) {
       // out of room part way through. the line-start flag has already moved for the vectors that
       // did fit, so this cannot fall back to a plain writev of the whole thing without printing
-      // them twice — push what we have and send the rest unstamped.
+      // them twice -- push what we have and send the rest unstamped.
       if (Used && !WriteAll(FD, Buffer, Used)) {
         return -1;
       }

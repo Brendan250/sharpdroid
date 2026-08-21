@@ -1,24 +1,24 @@
 package com.mircowuffwuff.sharpemu
 
 /**
- * The FEXCore JIT presets, as a named ladder from most correct to fastest.
+ * the FEXCore JIT presets, as a named ladder from most correct to fastest.
  *
- * **The knobs are FEX's, the ladder is GameNative's, and the route is this project's own.**
+ * **the knobs are FEX's, the ladder is GameNative's, and the route is this project's own.**
  * GameNative reaches FEX's options by exporting `FEX_TSOENABLED` and friends into the environment
- * of a FEX process it launches. That route does not exist here and cannot be made to: those
+ * of a FEX process it launches. that route does not exist here and cannot be made to: those
  * variables are read by `EnvLoader` in FEX's frontend, and a process that hosts FEXCore as a
- * library does not build the frontend. So a variable by that name reaches nothing, silently, which
- * is exactly the shape of a setting that looks like it works. The host layer takes
+ * library does not build the frontend. so a variable by that name reaches nothing, silently, which
+ * is exactly the shape of a setting that looks like it works. the host layer takes
  * `--fex Name=Value` instead and sets the option directly, refusing a name FEXCore does not have.
  *
- * **The names below are FEXCore's json spellings**, which is what `--fex` resolves against. They
+ * **the names below are FEXCore's json spellings**, which is what `--fex` resolves against. they
  * are not the environment spellings with the prefix removed, even where the two happen to look
  * alike.
  *
- * **A preset is a host-layer argument and never a guest environment variable.** It is deliberately
+ * **a preset is a host-layer argument and never a guest environment variable.** it is deliberately
  * absent from [Settings.guestEnvironment], because that map merges a build's own `env` underneath
- * the user's choices — and a JIT knob is a property of the host layer's correctness rather than a
- * preference a payload may express, the same rule `--smc` and `--asyncsig` already follow. A build
+ * the user's choices -- and a JIT knob is a property of the host layer's correctness rather than a
+ * preference a payload may express, the same rule `--smc` and `--asyncsig` already follow. a build
  * able to ask for [PERFORMANCE] would be a build able to break every launch of itself.
  */
 object FexPreset {
@@ -29,45 +29,45 @@ object FexPreset {
     const val PERFORMANCE = "performance"
     const val EXTREME = "extreme"
 
-    /** The order the slider runs in, and the values the store holds. */
+    /** the order the slider runs in, and the values the store holds. */
     val ALL = arrayOf(STABILITY, COMPATIBILITY, INTERMEDIATE, PERFORMANCE, EXTREME)
 
     /**
-     * What the row shows before it has been touched — and, uniquely, a rung that produces exactly
+     * what the row shows before it has been touched -- and, uniquely, a rung that produces exactly
      * what an untouched row produces.
      *
-     * **[INTERMEDIATE] is FEXCore's own defaults, and it sets nothing to get there.** That is what
+     * **[INTERMEDIATE] is FEXCore's own defaults, and it sets nothing to get there.** that is what
      * makes this row honest rather than merely plausible: choosing the middle of the ladder and
      * never opening the screen at all are the same translation, so the row cannot name one thing
-     * while the launch does another. It is also the only way a user can ask for FEXCore's defaults
+     * while the launch does another. it is also the only way a user can ask for FEXCore's defaults
      * from the control itself: this row is a slider, and every position the thumb can land on is a
-     * rung — none of them means *unset*, which is reachable only by the long press that clears a row.
+     * rung -- none of them means *unset*, which is reachable only by the long press that clears a row.
      *
      * **Compatibility would have been the obvious choice and is the wrong one.** `VectorTSOEnabled`
      * and `MemcpySetTSOEnabled` both default to off and Compatibility turns both on, asking for
      * atomic vector loadstores and atomic `REP MOVS`/`REP STOS` that a default run does not emit.
-     * Measured on `Dreaming Sarah`, interleaved: 38.8 fps against 51.4. The name reads like the safe
+     * measured on `Dreaming Sarah`, interleaved: 38.8 fps against 51.4. the name reads like the safe
      * middle and is the second most expensive rung on the ladder.
      */
     const val DEFAULT = INTERMEDIATE
 
     /**
      * Denuvo is not among them. GameNative carries a sixth preset by that name, tuned for a Windows
-     * DRM that pairs self-modifying code with hypervisor detection — `SMCChecks=full` and
-     * `HideHypervisorBit`. Neither has anything to answer on a PS5 title, and `SMCChecks` in
+     * DRM that pairs self-modifying code with hypervisor detection -- `SMCChecks=full` and
+     * `HideHypervisorBit`. neither has anything to answer on a PS5 title, and `SMCChecks` in
      * particular is not this ladder's to set: the host layer's VMA tracker has to agree with it, so
      * it belongs to `--smc` and is refused here.
      */
     private val REFUSED = setOf("SMCChecks", "IS64BIT_MODE", "GDBSERVER")
 
     /**
-     * Knobs that are absent from every rung because nothing here reads them.
+     * knobs that are absent from every rung because nothing here reads them.
      *
-     * **A FEXCore option being declared is not the same as it being consumed.** `--fex` resolves a
+     * **a FEXCore option being declared is not the same as it being consumed.** `--fex` resolves a
      * name against the generated option table and refuses one FEXCore does not declare, which
      * catches a typo but not this: several options in that table are read only by FEX's own
-     * frontend — `LinuxEmulation`, `FEXInterpreter`, the Windows sources — and a process that hosts
-     * FEXCore as a library builds none of it. So they would be accepted, logged, and reach nothing,
+     * frontend -- `LinuxEmulation`, `FEXInterpreter`, the Windows sources -- and a process that hosts
+     * FEXCore as a library builds none of it. so they would be accepted, logged, and reach nothing,
      * which is the same failure as the `FEX_` environment spelling above and harder to see.
      *
      * `VolatileMetadata` reads volatile metadata out of PE files, and is consumed in the Windows
@@ -84,42 +84,42 @@ object FexPreset {
                                     "KernelUnalignedAtomicBackpatching", "HostFeatures")
 
     /**
-     * What a preset sets, as FEXCore option names.
+     * what a preset sets, as FEXCore option names.
      *
-     * **Every rung names every knob**, rather than expressing itself as a change from the rung below
-     * it. A preset that inherited would describe the ladder instead of the translation, and the
-     * question a reader has here is what one setting does — not what it does differently.
+     * **every rung names every knob**, rather than expressing itself as a change from the rung below
+     * it. a preset that inherited would describe the ladder instead of the translation, and the
+     * question a reader has here is what one setting does -- not what it does differently.
      * [INTERMEDIATE] is the exception and names none of them, because FEXCore's defaults are what it
      * is: writing them out would be six values to keep in step with an upstream that owns them.
      *
-     * **Intermediate is one knob away from GameNative's**, deliberately. Theirs sets
-     * `X87ReducedPrecision`, emulating x87 at 64-bit rather than 80-bit precision — FEX's own text on
-     * it warns of rendering bugs. Dropping it is what makes this rung equal to the defaults, and it
+     * **Intermediate is one knob away from GameNative's**, deliberately. theirs sets
+     * `X87ReducedPrecision`, emulating x87 at 64-bit rather than 80-bit precision -- FEX's own text on
+     * it warns of rendering bugs. dropping it is what makes this rung equal to the defaults, and it
      * costs nothing measurable: with the knob set, four runs interleaved against a launch naming no
-     * preset came back 51.45 against 51.41 fps on `Dreaming Sarah`. That title saturates nothing and
+     * preset came back 51.45 against 51.41 fps on `Dreaming Sarah`. that title saturates nothing and
      * may barely reach x87 at all, so the figure bounds this rung rather than the knob.
      *
      * **Extreme is the only rung that changes how an unaligned access is repaired**, and that is the
      * whole of what separates it from [PERFORMANCE]. x86 permits an unaligned access anywhere,
      * including on the atomics FEX compiles guest memory accesses into, and arm64's atomics require
-     * natural alignment — so the JIT emits the aligned form and the host layer backpatches the first
+     * natural alignment -- so the JIT emits the aligned form and the host layer backpatches the first
      * time one faults. `HalfBarrierTSOEnabled` chooses what it is backpatched *to*: a half-barrier
      * atomic, which keeps the ordering the guest expects, or a plain load or store, which does not.
      *
      * **Extreme is the plain one, and it is the only rung on this ladder that can corrupt data
-     * rather than merely run slowly.** A torn read needs another thread to be touching the same
-     * misaligned address at the same moment, so it is a race and not a certainty — which is exactly
+     * rather than merely run slowly.** a torn read needs another thread to be touching the same
+     * misaligned address at the same moment, so it is a race and not a certainty -- which is exactly
      * why it belongs on the rung named for it rather than one below.
      *
-     * **[PERFORMANCE] therefore asks for the half-barrier, though it turns TSO off.** A rung that
+     * **[PERFORMANCE] therefore asks for the half-barrier, though it turns TSO off.** a rung that
      * quietly dropped atomicity while advertising only a TSO change would be a rung nobody chose the
      * risk of.
      *
-     * **And the knob is subordinate to TSO, which bounds what Extreme buys.** FEX's own text opens
+     * **and the knob is subordinate to TSO, which bounds what Extreme buys.** FEX's own text opens
      * "when TSO emulation is enabled" for a reason: with TSO off the JIT emits far fewer atomic
-     * sequences, so far fewer faults reach the repair at all. Measured on this workload the repair
-     * fires at [COMPATIBILITY] and does not fire once at [PERFORMANCE] — so on a title that behaves
-     * like these two, Extreme's setting of it is honoured and never reached. It is set because the
+     * sequences, so far fewer faults reach the repair at all. measured on this workload the repair
+     * fires at [COMPATIBILITY] and does not fire once at [PERFORMANCE] -- so on a title that behaves
+     * like these two, Extreme's setting of it is honoured and never reached. it is set because the
      * rung that is allowed to be dangerous should be, and because a title using a locked unaligned
      * access would reach it; it is not what makes Extreme faster.
      */
@@ -152,10 +152,10 @@ object FexPreset {
     }
 
     /**
-     * The four TSO knobs, which are the ladder's real axis.
+     * the four TSO knobs, which are the ladder's real axis.
      *
-     * **`on` is stated rather than derived from the other three.** With it off the other three are
-     * moot — FEX only consults them while it is emulating x86's memory ordering at all — and reading
+     * **`on` is stated rather than derived from the other three.** with it off the other three are
+     * moot -- FEX only consults them while it is emulating x86's memory ordering at all -- and reading
      * "all three off" as "TSO off" would be right for every rung here and wrong for the first one
      * added that wants x86 ordering with none of the three refinements.
      */
@@ -170,9 +170,9 @@ object FexPreset {
     private fun bit(on: Boolean) = if (on) "1" else "0"
 
     /**
-     * The preset as the host layer's own flags, ready to append to an argument vector.
+     * the preset as the host layer's own flags, ready to append to an argument vector.
      *
-     * An id this build does not know contributes nothing, so a store written by a later version
+     * an id this build does not know contributes nothing, so a store written by a later version
      * launches on FEXCore's defaults rather than refusing to launch at all.
      */
     @JvmStatic
@@ -188,12 +188,12 @@ object FexPreset {
     }
 
     /**
-     * The stored spelling of an id, or null for one this build does not know.
+     * the stored spelling of an id, or null for one this build does not know.
      *
-     * **Case-insensitive, and that is not politeness.** These ids are typed by hand into `am start`
-     * and into a script's own argument, and what reaches the app is whatever was typed — so
-     * `Intermediate` arrives capitalised. Matching exactly would drop it, fall back to the stored
-     * setting, and produce a run that silently was not the one asked for. Every rung is lowercase ASCII, so the root locale is the right one and the
+     * **case-insensitive, and that is not politeness.** these ids are typed by hand into `am start`
+     * and into a script's own argument, and what reaches the app is whatever was typed -- so
+     * `Intermediate` arrives capitalised. matching exactly would drop it, fall back to the stored
+     * setting, and produce a run that silently was not the one asked for. every rung is lowercase ASCII, so the root locale is the right one and the
      * turkish dotless i cannot reach this.
      */
     @JvmStatic

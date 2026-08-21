@@ -8,19 +8,19 @@ import android.provider.DocumentsContract
 import androidx.annotation.Keep
 
 /**
- * The java side of the guest file layer: a game directory the user granted us, answered file by file.
+ * the java side of the guest file layer: a game directory the user granted us, answered file by file.
  *
- * A game reached this way is not a path. Android grants an app a *tree*, and everything behind it is
- * a document reached through a content provider — so the host layer hands the guest an invented path
+ * a game reached this way is not a path. Android grants an app a *tree*, and everything behind it is
+ * a document reached through a content provider -- so the host layer hands the guest an invented path
  * under [MOUNT] and calls back into here for every lookup the guest makes. `host/src/guest_files.cpp`
  * is the other half and `docs/guest-files.md` describes both, including what each call costs.
  *
- * **The three native entry points are the whole interface, and they are called from guest threads.**
- * They take a path relative to the mounted directory, they never throw, and they answer with the
- * errno the syscall underneath should return. Everything else here is called from the app before a
+ * **the three native entry points are the whole interface, and they are called from guest threads.**
+ * they take a path relative to the mounted directory, they never throw, and they answer with the
+ * errno the syscall underneath should return. everything else here is called from the app before a
  * guest exists.
  *
- * **A document id is built by concatenation, not by walking**, which is [TreeDocument]'s rule and the
+ * **a document id is built by concatenation, not by walking**, which is [TreeDocument]'s rule and the
  * only reason this is fast enough to exist.
  */
 @Keep
@@ -29,16 +29,16 @@ object GuestFiles {
     private const val TAG = "sharpemu"
 
     /**
-     * Where the guest sees its own game directory.
+     * where the guest sees its own game directory.
      *
-     * Invented, and nothing is there: the prefix test in the host layer is then unambiguous, and no
-     * real path has to be made to appear to work. It is passed down as `--saf-mount`, so both halves
+     * invented, and nothing is there: the prefix test in the host layer is then unambiguous, and no
+     * real path has to be made to appear to work. it is passed down as `--saf-mount`, so both halves
      * name it from here.
      */
     const val MOUNT = "/game"
 
     // errno, because the caller is a syscall. bionic's values, which are linux's, which are the
-    // guest's too — the numbers agree across both architectures.
+    // guest's too -- the numbers agree across both architectures.
     private const val ENOENT = -2
     private const val EIO = -5
 
@@ -48,14 +48,14 @@ object GuestFiles {
     @Volatile
     private var tree: Uri? = null
 
-    /** The document id of the mounted directory itself. Every path below is this plus a suffix. */
+    /** the document id of the mounted directory itself. every path below is this plus a suffix. */
     @Volatile
     private var rootId: String? = null
 
     /**
-     * Points the layer at one game directory inside a granted tree, and says whether it is there.
+     * points the layer at one game directory inside a granted tree, and says whether it is there.
      *
-     * The check is not ceremony: a game named by an extra that does not resolve would otherwise
+     * the check is not ceremony: a game named by an extra that does not resolve would otherwise
      * become a guest whose every file is missing, which reads as a corrupt dump rather than as a
      * name that was wrong.
      */
@@ -70,7 +70,7 @@ object GuestFiles {
 
         val probe = statOne("eboot.bin")
         if (probe == null) {
-            AppLog.e(TAG, "[app] no eboot.bin under $id — is that the name of a game directory in the grant?")
+            AppLog.e(TAG, "[app] no eboot.bin under $id -- is that the name of a game directory in the grant?")
             unmount()
             return false
         }
@@ -92,13 +92,13 @@ object GuestFiles {
     }
 
     /**
-     * A cursor, or null for every reason there is — including the ordinary one.
+     * a cursor, or null for every reason there is -- including the ordinary one.
      *
-     * **A query for a document that is not there throws, and that is the common case rather than the
-     * exceptional one.** A fifth of this guest's opens are of files it is only checking for, so a line
-     * per failure would be a hundred lines of alarm per boot describing a working run. The first one
+     * **a query for a document that is not there throws, and that is the common case rather than the
+     * exceptional one.** a fifth of this guest's opens are of files it is only checking for, so a line
+     * per failure would be a hundred lines of alarm per boot describing a working run. the first one
      * is reported, once, with what it was; after that they are counted and the count is what says
-     * whether something is actually wrong — a revoked grant fails *every* lookup, and a total equal
+     * whether something is actually wrong -- a revoked grant fails *every* lookup, and a total equal
      * to the number of lookups is what that looks like.
      */
     private fun query(uri: Uri, columns: Array<String>): Cursor? =
@@ -110,31 +110,31 @@ object GuestFiles {
                 // deliberately not called normal, though it usually is: a file the guest is only
                 // checking for and a grant that has been revoked produce exactly this line, and the
                 // count is the only thing that tells them apart.
-                AppLog.i(TAG, "[app] a lookup came back empty: $uri. said once — this is what a file the" +
+                AppLog.i(TAG, "[app] a lookup came back empty: $uri. said once -- this is what a file the" +
                     " guest is only checking for looks like, and it is also what a revoked grant looks" +
                     " like; use --ez tracefiles true to count them", e)
             }
             null
         }
 
-    /** Every lookup that came back with nothing, of any cause. See [query]. */
+    /** every lookup that came back with nothing, of any cause. see [query]. */
     private val misses = java.util.concurrent.atomic.AtomicLong()
 
-    /** What [misses] has reached, for a caller that wants to report it. */
+    /** what [misses] has reached, for a caller that wants to report it. */
     @JvmStatic
     fun missCount(): Long = misses.get()
 
     /**
-     * The mounted game's `param.json`, for the launcher rather than for the guest.
+     * the mounted game's `param.json`, for the launcher rather than for the guest.
      *
-     * **Not [openFd], and the difference is who owns the result.** That hands a detached descriptor
+     * **not [openFd], and the difference is who owns the result.** that hands a detached descriptor
      * to a guest thread and answers in errno because a syscall is waiting on it; this is called from
      * the app before a guest exists, by the code that has to name a per-title directory before the
-     * emulator starts. A stream is what that caller can read and close.
+     * emulator starts. a stream is what that caller can read and close.
      *
-     * The mount is the whole reason this belongs here: a granted game has no path, so the only way
-     * to reach a file of it is the tree and document id this object is already holding. It answers
-     * [GameSource.openParam]'s contract for the one kind of game that has no [GameSource] — the
+     * the mount is the whole reason this belongs here: a granted game has no path, so the only way
+     * to reach a file of it is the tree and document id this object is already holding. it answers
+     * [GameSource.openParam]'s contract for the one kind of game that has no [GameSource] -- the
      * search order is that contract's, and is spelled here for the same reason `Granted` spells it.
      */
     @JvmStatic
@@ -151,10 +151,10 @@ object GuestFiles {
     }
 
     /**
-     * An open file descriptor, already ours, or a negative errno.
+     * an open file descriptor, already ours, or a negative errno.
      *
      * `detachFd` rather than `use`: the descriptor is handed to the guest and outlives every object
-     * here, so ownership has to leave with it. Closing the wrapper afterwards would close the fd the
+     * here, so ownership has to leave with it. closing the wrapper afterwards would close the fd the
      * guest is about to read from.
      */
     @Keep
@@ -165,16 +165,16 @@ object GuestFiles {
             val descriptor = resolver?.openFileDescriptor(uri, "r") ?: return ENOENT
             descriptor.detachFd()
         } catch (e: Exception) {
-            // absent is the common case and is not worth a stack trace per miss — a fifth of the
+            // absent is the common case and is not worth a stack trace per miss -- a fifth of the
             // guest's opens are of files it is only checking for.
             ENOENT
         }
     }
 
     /**
-     * Size, kind and modification time in one query, or null when there is no such document.
+     * size, kind and modification time in one query, or null when there is no such document.
      *
-     * Three values in an array rather than bit-packed into one long. Dolphin packs size and
+     * three values in an array rather than bit-packed into one long. Dolphin packs size and
      * is-a-directory together so that one binder call does the work of two, and that reasoning does
      * not apply here: the cursor below already returns all three columns in a single round trip, so
      * packing would buy nothing and cost legibility.
@@ -203,10 +203,10 @@ object GuestFiles {
     }
 
     /**
-     * The children of one directory, each as its kind then its name — `dsce_sys`, `feboot.bin`.
+     * the children of one directory, each as its kind then its name -- `dsce_sys`, `feboot.bin`.
      *
-     * One array to walk and one local reference to release per entry, rather than a names array and
-     * a kinds array that have to be kept in step. The guest enumerates exactly one directory per
+     * one array to walk and one local reference to release per entry, rather than a names array and
+     * a kinds array that have to be kept in step. the guest enumerates exactly one directory per
      * boot, so this is about correctness rather than speed.
      */
     @Keep

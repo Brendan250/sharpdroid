@@ -112,12 +112,11 @@
         android:paddingTop="10dp">
 
         <!--
-          **a button rather than a card, which is what it used to be.** it was the settings scene's
-          section button with one line taken out, and sharing that component made it look like a row
-          somebody might open - where this is the one way out of a run and the only thing on the panel
-          that changes what the device is doing. the filled style is the accent's, and the accent is
-          named by every scheme here where the tonal and outlined styles reach for roles two of them
-          leave to Material's baseline.
+          **a button rather than a card.** the settings scene's section button with one line taken
+          out looks like a row somebody might open, where this is the one way out of a run and the
+          only thing on the panel that changes what the device is doing. the filled style is the
+          accent's, and the accent is named by every scheme here where the tonal and outlined styles
+          reach for roles two of them leave to Material's baseline.
         -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/exit"

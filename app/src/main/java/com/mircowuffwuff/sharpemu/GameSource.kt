@@ -6,58 +6,58 @@ import java.io.File
 import java.io.InputStream
 
 /**
- * Where a game's files are, and the two ways that can be answered.
+ * where a game's files are, and the two ways that can be answered.
  *
- * **[Game] was built on `java.io.File` and a game inside a granted tree has none.** A directory the
- * user granted is not a path — it is a tree, and everything under it is a document reached through a
- * content provider — so the identity a row shows has to come from `DocumentsContract` instead of
- * from the filesystem. This is that difference, and it is the only place in the app that knows about
+ * **[Game] was built on `java.io.File` and a game inside a granted tree has none.** a directory the
+ * user granted is not a path -- it is a tree, and everything under it is a document reached through a
+ * content provider -- so the identity a row shows has to come from `DocumentsContract` instead of
+ * from the filesystem. this is that difference, and it is the only place in the app that knows about
  * it: one scan, one adapter, one row.
  *
- * It is deliberately narrow. A source answers **what the directory is called**, **what to hand coil
+ * it is deliberately narrow. a source answers **what the directory is called**, **what to hand coil
  * for the artwork**, **how to open `param.json`** and **where it sits on a volume**, and nothing else
- * — the guest never reads a file through here. A granted game's files reach the guest through [GuestFiles], on the other side of the
+ * -- the guest never reads a file through here. a granted game's files reach the guest through [GuestFiles], on the other side of the
  * JNI boundary, and `docs/guest-files.md` describes that path.
  *
  * @see GameLibrary for where both kinds are enumerated.
  */
 sealed class GameSource {
 
-    /** The directory's own name, e.g. `Dreaming Sarah [PPSA02929]`. What the launch intent carries. */
+    /** the directory's own name, e.g. `Dreaming Sarah [PPSA02929]`. what the launch intent carries. */
     abstract val folder: String
 
     /**
-     * What coil is handed for `sce_sys/icon0.png` — a [File], a `content://` [Uri], or null.
+     * what coil is handed for `sce_sys/icon0.png` -- a [File], a `content://` [Uri], or null.
      *
      * Coil loads either kind natively, so a granted dump's artwork needs no decoding of ours and no
-     * copy. It is resolved when the game is scanned rather than when a row binds, because a staged
+     * copy. it is resolved when the game is scanned rather than when a row binds, because a staged
      * source stats the file to answer and a bind happens on the main thread.
      */
     abstract val icon: Any?
 
     /**
-     * `param.json`, or null when there is none. The caller closes it.
+     * `param.json`, or null when there is none. the caller closes it.
      *
-     * **Under `sce_sys/` first and then beside the eboot**, which is the emulator's own search order
-     * — it looks in both, so a dump laid out the second way boots with an identity that a scan
+     * **under `sce_sys/` first and then beside the eboot**, which is the emulator's own search order
+     * -- it looks in both, so a dump laid out the second way boots with an identity that a scan
      * looking only in the first would report as missing.
      */
     abstract fun openParam(): InputStream?
 
     /**
-     * Where this game's `eboot.bin` is, for a screen to show.
+     * where this game's `eboot.bin` is, for a screen to show.
      *
-     * **It is where the file is, not how this app reaches it**, and for a granted game those are
+     * **it is where the file is, not how this app reaches it**, and for a granted game those are
      * different answers: the guest reads that one through a content provider and never opens a path
-     * at all. What a person wants from a screen naming a location is the place they could go looking.
+     * at all. what a person wants from a screen naming a location is the place they could go looking.
      *
-     * **Always an answer, and a volume path wherever there is one to give.** Where there is not, it
-     * is the provider's own — which names the same file in the only terms that provider has, and is
+     * **always an answer, and a volume path wherever there is one to give.** where there is not, it
+     * is the provider's own -- which names the same file in the only terms that provider has, and is
      * a good deal more use than an absent row.
      */
     abstract val ebootPath: String
 
-    /** A game staged into the app's own external files by `scripts/stage.py`. */
+    /** a game staged into the app's own external files by `scripts/stage.py`. */
     class Staged(val directory: File) : GameSource() {
 
         override val folder: String get() = directory.name
@@ -73,18 +73,18 @@ sealed class GameSource {
     }
 
     /**
-     * A game inside a tree the user granted, addressed as a document.
+     * a game inside a tree the user granted, addressed as a document.
      *
      * [tree] travels with it because the app can hold more than one grant, and the launch intent has
-     * to name which one. A launch that names none takes whichever persisted permission comes first,
+     * to name which one. a launch that names none takes whichever persisted permission comes first,
      * which is exact with one granted library and a coin toss with two.
      *
-     * The resolver is the application's, so a source outliving the screen that produced it is not a
+     * the resolver is the application's, so a source outliving the screen that produced it is not a
      * leaked activity.
      */
     class Granted(
         val tree: Uri,
-        /** The game directory's document id, from the cursor that listed it — never guessed. */
+        /** the game directory's document id, from the cursor that listed it -- never guessed. */
         val documentId: String,
         override val folder: String,
         private val resolver: ContentResolver,
@@ -99,18 +99,18 @@ sealed class GameSource {
             open(Game.PARAM) ?: open(Game.PARAM_BESIDE_EBOOT)
 
         /**
-         * **Derived from the document id, which already carries the path.** The platform's storage
+         * **derived from the document id, which already carries the path.** the platform's storage
          * provider issues ids of `<volume>:<path from the volume root>`, and a child's is its
-         * parent's plus `/name` — so the id of a game inside a granted tree spells out where it is,
-         * wherever the user keeps it. Nothing is looked up and nothing needs a permission.
+         * parent's plus `/name` -- so the id of a game inside a granted tree spells out where it is,
+         * wherever the user keeps it. nothing is looked up and nothing needs a permission.
          *
-         * **Only that provider's ids mean that, though.** Another one's mean whatever it decided, and
+         * **only that provider's ids mean that, though.** another one's mean whatever it decided, and
          * enough of them contain a colon that reading one this way would produce a path that looks
-         * right and is not. A caller that goes on to open what it derived would find out; a screen
+         * right and is not. a caller that goes on to open what it derived would find out; a screen
          * that prints it would not.
          *
-         * **So the fallback is the provider's own path**, which is what the document uri says with
-         * its encoding taken off — `/tree/<the granted directory>/document/<this file>`. It is not a
+         * **so the fallback is the provider's own path**, which is what the document uri says with
+         * its encoding taken off -- `/tree/<the granted directory>/document/<this file>`. it is not a
          * place on a volume and does not pretend to be one, and it still names the file exactly.
          */
         override val ebootPath: String
@@ -129,7 +129,7 @@ sealed class GameSource {
                     TreeDocument.uri(tree, TreeDocument.childId(documentId, relative))
                 )
             } catch (e: Exception) {
-                // absent is ordinary — a dump with no sce_sys/ is a game that boots perfectly well —
+                // absent is ordinary -- a dump with no sce_sys/ is a game that boots perfectly well --
                 // and the provider answers that by throwing. Game.read logs what it could not read.
                 null
             }

@@ -32,7 +32,7 @@ enum CommandId : uint32_t {
   CommandCount
 };
 
-// the signatures, generated rather than taken from the header's own declarations — see
+// the signatures, generated rather than taken from the header's own declarations -- see
 // scripts/gen-thunks.py for why (availability attributes, and eleven entry points that are not
 // in the API 28 stub library at all).
 #include "aaudio_protos.inc"
@@ -338,13 +338,13 @@ bool ParseFutexWait(const char* Syscall, uint64_t& Address, uint64_t& Operation,
 }
 
 // **passive by default, and that is the whole design.** a loop that calls
-// getState/getFramesRead/getXRunCount every second makes the stall stop happening — which is not a
+// getState/getFramesRead/getXRunCount every second makes the stall stop happening -- which is not a
 // fix, it is an observer effect: AAudio's client drains the service's up-message queue inside its
 // own calls, so a chatty watchdog does the draining the guest has stopped doing. an instrument that
 // cures the disease cannot measure it.
 //
 // so the loop reads nothing but our own two counters, and only once the gap is real does it ask
-// the stream a single round of questions — by which point perturbing it no longer matters.
+// the stream a single round of questions -- by which point perturbing it no longer matters.
 void WatchdogLoop() {
   bool Reported = false;
   double QuietAtReport = 0.0;
@@ -369,8 +369,8 @@ void WatchdogLoop() {
 
     if (Quiet < 2.0) {
       // **a recovery is reported as loudly as the stall was**, and that is not politeness: without
-      // it a game that legitimately goes quiet — a menu, a silent scene, a stream it keeps open and
-      // stops feeding — leaves one STALL line in the log and nothing after it, which reads exactly
+      // it a game that legitimately goes quiet -- a menu, a silent scene, a stream it keeps open and
+      // stops feeding -- leaves one STALL line in the log and nothing after it, which reads exactly
       // like audio that never came back. one line each way makes a gap self-describing.
       if (Reported) {
         std::printf("[audio-wd] recovered: the guest is submitting again after %.2f s\n", QuietAtReport);
@@ -382,7 +382,7 @@ void WatchdogLoop() {
       continue;
     }
 
-    // the gap is real. say so once, with everything the stream will tell us — which of the three
+    // the gap is real. say so once, with everything the stream will tell us -- which of the three
     // possible bugs this is turns entirely on `state` and on whether `read` is still advancing.
     if (Reported) {
       continue;
@@ -563,7 +563,7 @@ void ForgetStream(void* Stream) {
 //
 // the host layer delivers asynchronous signals at syscall exits only, and CoreCLR suspends every thread with
 // SIGRTMIN to collect. a guest thread parked indefinitely inside AAudioStream_write is a thread
-// that cannot acknowledge a GC suspension, and the collector waits for all of them — a way to
+// that cannot acknowledge a GC suspension, and the collector waits for all of them -- a way to
 // stall the whole managed runtime from a place nothing would think to look.
 //
 // so the guest's timeout is clamped rather than trusted. a short write is a legal AAudio result
@@ -676,7 +676,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
   }
 
   // the guest's own timeout, clamped. rewritten in the argument array rather than in the reader,
-  // because the reader is shared with the vulkan thunk and this is not an ABI question — it is a
+  // because the reader is shared with the vulkan thunk and this is not an ABI question -- it is a
   // policy about how long a guest thread may be unreachable. same shape as the swapchain
   // preTransform override in vulkan_thunk.cpp, and for a comparable reason.
   if (Id == Id_AAudioStream_write || Id == Id_AAudioStream_read) {

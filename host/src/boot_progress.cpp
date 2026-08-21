@@ -12,8 +12,8 @@ namespace {
 // the table, in the order a boot reaches it.
 //
 // **the patterns are the structural fragment of a line and never the whole sentence.** the emulator
-// prints counts in most of these — how many type initializers were warmed, how many modules are
-// being loaded — and matching a sentence with a number in it would be a pattern that stops matching
+// prints counts in most of these -- how many type initializers were warmed, how many modules are
+// being loaded -- and matching a sentence with a number in it would be a pattern that stops matching
 // the first time the number changes, which is every run on a different title.
 //
 // what each one is worth knowing for is that the boot divides in two at `title`. everything above

@@ -12,51 +12,51 @@ import java.util.Locale
 import java.util.zip.ZipInputStream
 
 /**
- * Taking a build zip the user picked and turning it into a build directory.
+ * taking a build zip the user picked and turning it into a build directory.
  *
- * **This is the one place in the frontend where a wrong answer is expensive**, and the failure it
+ * **this is the one place in the frontend where a wrong answer is expensive**, and the failure it
  * exists to refuse is named in `docs/build-format.md`: a payload that ignores `SHARPEMU_HOST_AUDIO`
- * renders perfectly, makes no sound, and reports no error anywhere — which arrives as "the emulator
- * has no audio" and names the wrong component entirely. Everything below is arranged so that a zip
+ * renders perfectly, makes no sound, and reports no error anywhere -- which arrives as "the emulator
+ * has no audio" and names the wrong component entirely. everything below is arranged so that a zip
  * which is not a runnable build is refused *by name* before a byte of it is written.
  *
- * **The zip is read twice and that is deliberate.** A first pass validates without creating
- * anything; a second extracts. The alternative — extract, then judge — leaves a half-written
+ * **the zip is read twice and that is deliberate.** a first pass validates without creating
+ * anything; a second extracts. the alternative -- extract, then judge -- leaves a half-written
  * directory to clean up on every refusal, and a cleanup is the step that gets skipped on the path
  * nobody tests.
  *
- * `docs/build-format.md` owns the format. Nothing here restates it beyond what it has to check.
+ * `docs/build-format.md` owns the format. nothing here restates it beyond what it has to check.
  */
 object BuildImport {
 
     private const val TAG = "sharpemu"
 
     /**
-     * Below this, a zip with no identity is called too small rather than called unidentifiable.
+     * below this, a zip with no identity is called too small rather than called unidentifiable.
      *
-     * **It decides a sentence and never an outcome.** A size check is the obvious thing to reach
+     * **it decides a sentence and never an outcome.** a size check is the obvious thing to reach
      * for, and a size is the least informative thing a zip has: a real build is tens of megabytes
-     * and an adrenotools driver package is a few, so a floor does separate them — but it separates
+     * and an adrenotools driver package is a few, so a floor does separate them -- but it separates
      * them by the wrong property, and a driver refused for being small is a true statement that
-     * sends somebody looking in the wrong place. What a file is gets decided by what is inside it.
+     * sends somebody looking in the wrong place. what a file is gets decided by what is inside it.
      */
     private const val MINIMUM_BYTES = 4L * 1024 * 1024
 
-    /** What happened, in the words the toast will use. */
+    /** what happened, in the words the toast will use. */
     sealed class Result {
         /** Imported and selected. */
         data class Imported(val build: SharpEmuBuild) : Result()
 
-        /** Refused, with the reason already resolved to a string. */
+        /** refused, with the reason already resolved to a string. */
         data class Refused(val reason: String) : Result()
     }
 
     /**
-     * Validates and imports, or refuses and writes nothing.
+     * validates and imports, or refuses and writes nothing.
      *
-     * Off the main thread: it reads and writes tens of megabytes through a content provider.
+     * off the main thread: it reads and writes tens of megabytes through a content provider.
      *
-     * @param internal `getFilesDir()/builds` — where builds are run from.
+     * @param internal `getFilesDir()/builds` -- where builds are run from.
      */
     fun import(context: Context, zip: Uri, internal: File): Result {
         val name = displayName(context, zip)
@@ -73,7 +73,7 @@ object BuildImport {
         val json = found.meta ?: run {
             // **the size is a wording and not a gate, and it was a gate for exactly one build.** as
             // a gate it ran first and refused the driver package on the grounds of being small,
-            // naming a cause that was true and useless — on the one screen where a wrong diagnosis
+            // naming a cause that was true and useless -- on the one screen where a wrong diagnosis
             // is expensive. so the contents decide, and the size only chooses which sentence a file
             // with no identity gets.
             val size = sizeOf(context, zip)
@@ -104,7 +104,7 @@ object BuildImport {
             )
         }
         // the payload and its plugins, because a build is a directory and a payload staged alone is
-        // a payload with no audio and no video — SharpEmu resolves `plugins/` relative to its own
+        // a payload with no audio and no video -- SharpEmu resolves `plugins/` relative to its own
         // executable. a zip missing either is a build that would boot and then be wrong.
         if (payload !in found.files) {
             return refuse(context.getString(R.string.build_import_no_payload, payload))
@@ -131,10 +131,10 @@ object BuildImport {
     }
 
     /**
-     * The on-device folder name, derived from the identity and never from what the zip is called.
+     * the on-device folder name, derived from the identity and never from what the zip is called.
      *
      * `docs/build-format.md` fixes this, and both the packaging script and the staging script derive
-     * it the same way — so a zip renamed on somebody's disk imports to the same place it always
+     * it the same way -- so a zip renamed on somebody's disk imports to the same place it always
      * would, and two builds of one source coexist instead of overwriting each other.
      */
     private fun folderName(id: String, version: String, packagedAt: Long): String =
@@ -143,19 +143,19 @@ object BuildImport {
         }.joinToString("")
 
     /**
-     * A zip entry's path, with separators made the ones the format actually uses.
+     * a zip entry's path, with separators made the ones the format actually uses.
      *
      * **PowerShell's `Compress-Archive` writes backslashes**, which the zip specification does not
-     * allow and which most tools quietly tolerate. It matters here because it is the first thing a
+     * allow and which most tools quietly tolerate. it matters here because it is the first thing a
      * person on Windows reaches for when packaging a build by hand: without this, such a zip is
-     * refused for having no `plugins/` folder — a message naming a cause that is not the cause, on
+     * refused for having no `plugins/` folder -- a message naming a cause that is not the cause, on
      * the one screen where a wrong diagnosis is expensive.
      *
      * `scripts/package-build.py` produces conforming zips; this is for the ones it did not make.
      */
     private fun normalise(name: String): String = name.replace('\\', '/')
 
-    /** What the first pass learned, without having written anything. */
+    /** what the first pass learned, without having written anything. */
     private class Scan(
         val meta: JSONObject?,
         val files: Set<String>,
@@ -164,10 +164,10 @@ object BuildImport {
     )
 
     /**
-     * Reads the zip's entry names and its root `meta.json`, and writes nothing.
+     * reads the zip's entry names and its root `meta.json`, and writes nothing.
      *
      * `meta.json` has to be at the **zip root** rather than inside a wrapper directory, and that is
-     * the single thing most likely to differ between two hand-made packages — so a wrapper is
+     * the single thing most likely to differ between two hand-made packages -- so a wrapper is
      * refused as "no meta file" rather than being searched for, because guessing which of two
      * candidate roots was meant is how a build gets imported half-flattened.
      */
@@ -202,11 +202,11 @@ object BuildImport {
     }
 
     /**
-     * The second pass: writes the tree, beside its target and then renamed.
+     * the second pass: writes the tree, beside its target and then renamed.
      *
      * **`.partial` then rename, the same shape [BundledBuild] unpacks with**, so an import
-     * interrupted by the process dying leaves nothing that resolution or the list would find. A
-     * half-extracted build that looks complete is the worst outcome available here — it has a
+     * interrupted by the process dying leaves nothing that resolution or the list would find. a
+     * half-extracted build that looks complete is the worst outcome available here -- it has a
      * `meta.json`, so it would be listed, and it would fail somewhere inside SharpEmu.
      */
     private fun extract(context: Context, zip: Uri, internal: File, folder: String): SharpEmuBuild? {
@@ -272,7 +272,7 @@ object BuildImport {
     private fun open(context: Context, zip: Uri): InputStream =
         context.contentResolver.openInputStream(zip) ?: throw java.io.IOException("no stream for $zip")
 
-    /** The provider's own size, or -1 when it does not offer one. */
+    /** the provider's own size, or -1 when it does not offer one. */
     private fun sizeOf(context: Context, zip: Uri): Long =
         context.contentResolver.query(zip, arrayOf(OpenableColumns.SIZE), null, null, null)
             ?.use { cursor ->
@@ -284,7 +284,7 @@ object BuildImport {
                 }
             } ?: -1L
 
-    /** What to call the file in a message. The provider's display name, or the last path segment. */
+    /** what to call the file in a message. the provider's display name, or the last path segment. */
     private fun displayName(context: Context, zip: Uri): String =
         context.contentResolver.query(zip, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
             ?.use { cursor ->

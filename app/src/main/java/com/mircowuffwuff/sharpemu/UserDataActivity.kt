@@ -23,29 +23,29 @@ import java.util.Locale
 import java.util.concurrent.Executors
 
 /**
- * The User data screen: what the emulator has written that belongs to the person using it.
+ * the User data screen: what the emulator has written that belongs to the person using it.
  *
- * Reached from **Settings → User data**, whose card opens this directly rather than a list of rows
+ * reached from **Settings → User data**, whose card opens this directly rather than a list of rows
  * holding one row that opens it.
  *
- * **The manager screen again** — the same toolbar over the same grid, as the build, driver and folder
- * managers are. What is listed is not a package and none of the importing applies, but a grid of
+ * **the manager screen again** -- the same toolbar over the same grid, as the build, driver and folder
+ * managers are. what is listed is not a package and none of the importing applies, but a grid of
  * things with actions on each is the shape those three already are, and a fourth that looked
  * different would be a fourth thing to learn.
  *
- * **The whole of it is the first card rather than a pair of toolbar actions**, which is what makes the
- * most common thing anybody comes here for the most visible thing on the screen. It is also what lets
+ * **the whole of it is the first card rather than a pair of toolbar actions**, which is what makes the
+ * most common thing anybody comes here for the most visible thing on the screen. it is also what lets
  * it state a size: a toolbar action is a word, where a card carries the figure that says how much is
  * about to move.
  *
- * **Neither is the floating button the other managers carry.** That slot would sit on top of the last
- * card's own buttons — this screen's list is four cards that never scroll, so the space a manager's
+ * **neither is the floating button the other managers carry.** that slot would sit on top of the last
+ * card's own buttons -- this screen's list is four cards that never scroll, so the space a manager's
  * list reserves under itself is space this one does not have.
  *
- * **Every button that destroys something confirms first, and the two exports do not.** An export
+ * **every button that destroys something confirms first, and the two exports do not.** an export
  * writes one file into a place the user picked and touches nothing else; a confirmation there would
  * be a question with no stake in it, and a screen that asks about everything teaches people to stop
- * reading. Both imports confirm, because both replace something already on the device.
+ * reading. both imports confirm, because both replace something already on the device.
  */
 class UserDataActivity : AppCompatActivity() {
 
@@ -54,11 +54,11 @@ class UserDataActivity : AppCompatActivity() {
     private lateinit var drawnWith: String
     private val worker = Executors.newSingleThreadExecutor()
 
-    /** Which card's button opened the picker. Read when it answers, and only then. */
+    /** which card's button opened the picker. read when it answers, and only then. */
     private var pending: UserDataItem.Kind? = null
 
     /**
-     * The two pickers, registered at construction as the contract requires — this activity can be
+     * the two pickers, registered at construction as the contract requires -- this activity can be
      * recreated while a picker is in front of it, and a launcher registered later than `onCreate` has
      * nothing to deliver a result to.
      */
@@ -109,9 +109,9 @@ class UserDataActivity : AppCompatActivity() {
     }
 
     /**
-     * Measures on the worker and draws on the main thread.
+     * measures on the worker and draws on the main thread.
      *
-     * **The settings count is taken on the worker too**, beside the walk rather than before it: the
+     * **the settings count is taken on the worker too**, beside the walk rather than before it: the
      * app's own store is a handful of lookups against something the framework already holds in
      * memory, but a game's store is a file the framework has to find and parse the first time it is
      * asked for, and there is one per game that has ever been configured.
@@ -120,7 +120,7 @@ class UserDataActivity : AppCompatActivity() {
         val files = filesDir
         worker.execute {
             // **the app's own rows that differ, plus every row any game overrides.** the card is one
-            // figure over one Reset button, and that button clears both stores — so a number counting
+            // figure over one Reset button, and that button clears both stores -- so a number counting
             // only the first would report "nothing changed" over a button that is about to change
             // something. the two are added rather than shown apart because the card has one line.
             val changed = Settings.of(this).changedFromDefault() +
@@ -175,9 +175,9 @@ class UserDataActivity : AppCompatActivity() {
     // import
 
     /**
-     * Reads the archive's manifest, then asks.
+     * reads the archive's manifest, then asks.
      *
-     * **The manifest is what refuses a mismatch**, and the refusal names the archive rather than the
+     * **the manifest is what refuses a mismatch**, and the refusal names the archive rather than the
      * button: somebody who picked the wrong file wants to know what they picked.
      */
     private fun offerImport(kind: UserDataItem.Kind, zip: Uri) = busy {
@@ -290,12 +290,12 @@ class UserDataActivity : AppCompatActivity() {
     }
 
     /**
-     * The whole install, in two questions.
+     * the whole install, in two questions.
      *
-     * **Two dialogs doing different jobs, rather than the same one twice.** A repeated *Are you
+     * **two dialogs doing different jobs, rather than the same one twice.** a repeated *Are you
      * sure?* teaches the rhythm and gets clicked through; what earns a second tap is the second
-     * question saying something the first did not. The first names what goes, counted and measured
-     * from the card's own figure. The second names what it costs — that there is no undo, and that
+     * question saying something the first did not. the first names what goes, counted and measured
+     * from the card's own figure. the second names what it costs -- that there is no undo, and that
      * **the app closes the moment it is pressed**, which arrives as a crash if nobody said so.
      */
     private fun confirmWipe() {
@@ -314,21 +314,21 @@ class UserDataActivity : AppCompatActivity() {
     }
 
     /**
-     * Back to the just-installed state, by the platform's own route.
+     * back to the just-installed state, by the platform's own route.
      *
      * **`clearApplicationUserData` rather than a recursive delete of ours**, and the reason is the
      * `SharedPreferences` cache again: this app cannot remove a file the framework is still holding
-     * in memory and have the removal stick. The platform can, because it ends the process as part of
-     * the same call. That is also what makes it match the words — it is uninstall and reinstall,
+     * in memory and have the removal stick. the platform can, because it ends the process as part of
+     * the same call. that is also what makes it match the words -- it is uninstall and reinstall,
      * including the external files directory, so anything staged from a PC goes with it.
      *
-     * **The all-files permission is the one thing it does not take, which is measured rather than
+     * **the all-files permission is the one thing it does not take, which is measured rather than
      * assumed.** `MANAGE_EXTERNAL_STORAGE` is an app op rather than an ordinary runtime permission,
-     * and it is still granted after the data directory is gone. So it is an exception here exactly as
-     * it is to a settings reset — in both cases because this app never held it in the first place;
+     * and it is still granted after the data directory is gone. so it is an exception here exactly as
+     * it is to a settings reset -- in both cases because this app never held it in the first place;
      * [AllFiles] reads the platform live and stores nothing.
      *
-     * Nothing runs after this. There is no toast and no screen to return to.
+     * nothing runs after this. there is no toast and no screen to return to.
      */
     private fun wipeEverything() {
         // said before the call rather than after it, because there is no after: the platform ends
@@ -344,10 +344,10 @@ class UserDataActivity : AppCompatActivity() {
     }
 
     /**
-     * Runs [work] once the toast just posted is up.
+     * runs [work] once the toast just posted is up.
      *
-     * **A toast is enqueued rather than drawn**, so a process that ends in the same breath as posting
-     * one can go away before the system has shown it. This is the gap between the two, and it is the
+     * **a toast is enqueued rather than drawn**, so a process that ends in the same breath as posting
+     * one can go away before the system has shown it. this is the gap between the two, and it is the
      * only thing standing between a message and the process it describes the end of.
      */
     private fun after(work: () -> Unit) =
@@ -366,7 +366,7 @@ class UserDataActivity : AppCompatActivity() {
         // **and every game's own store with it**, which is what keeps this button's word good: a
         // per-game setting is a change to what a launch does, so a reset that left them in place
         // would report every row back at its default and still run one game differently. they are a
-        // file each, so this is not the call above with a wider reach — it is a second call.
+        // file each, so this is not the call above with a wider reach -- it is a second call.
         Settings.forgetEveryGame(this)
         // **and the grants are released rather than merely forgotten.** android caps how many
         // persisted uri permissions an app may hold, so a folder dropped from the list without
@@ -382,9 +382,9 @@ class UserDataActivity : AppCompatActivity() {
     // the plumbing
 
     /**
-     * Runs [work] on the worker with the toolbar's progress bar up.
+     * runs [work] on the worker with the toolbar's progress bar up.
      *
-     * The bar is the one in `activity_manager.xml`, drawn inside the toolbar band so that starting it
+     * the bar is the one in `activity_manager.xml`, drawn inside the toolbar band so that starting it
      * moves nothing: an import is megabytes through a content provider, which is seconds with this
      * screen in front.
      */
@@ -423,20 +423,20 @@ class UserDataActivity : AppCompatActivity() {
     )
 
     /**
-     * Ends this process and comes back to this screen, so that nothing cached outlives the import.
+     * ends this process and comes back to this screen, so that nothing cached outlives the import.
      *
-     * **The process has to go and where it comes back to is a free choice.** `SharedPreferences` is
+     * **the process has to go and where it comes back to is a free choice.** `SharedPreferences` is
      * cached per process and there is no way to make the framework re-read a file that changed
-     * underneath it, so the restart is what makes the imported store the one that is read — but
+     * underneath it, so the restart is what makes the imported store the one that is read -- but
      * nothing about that decides which screen is on top afterwards, and being dropped on the game
      * list reads as having been thrown out of what you were doing.
      *
-     * **A stack rather than one activity**, so the way back out is the way it would have been had the
-     * import not happened: this screen, then the settings scene, then the game list. Relaunching
+     * **a stack rather than one activity**, so the way back out is the way it would have been had the
+     * import not happened: this screen, then the settings scene, then the game list. relaunching
      * straight into this activity alone would be worse than the game list, because then back leaves
      * the app.
      *
-     * Landing here also redraws the figures, since measuring is what `onResume` does — so the sizes
+     * landing here also redraws the figures, since measuring is what `onResume` does -- so the sizes
      * on screen are the imported ones rather than the ones this screen was opened with.
      */
     private fun restart() {
@@ -452,7 +452,7 @@ class UserDataActivity : AppCompatActivity() {
     private companion object {
         const val ZIP = "application/zip"
 
-        /** Long enough for a posted toast to reach the screen, short enough not to read as a stall. */
+        /** long enough for a posted toast to reach the screen, short enough not to read as a stall. */
         const val TOAST_LEAD_MS = 400L
     }
 }

@@ -5,8 +5,8 @@
   Material Symbols' own, so it is the glyph every other app's play button is rather than a triangle
   of ours that is nearly it. the icons this app draws by hand are the ones with no such counterpart.
 
-  tinted from the theme, so it follows light and dark without a second copy — the same role the plus
-  on the managers' button takes, since it is the same button.
+  tinted from the theme, so it follows light and dark without a second copy. that is the role the plus
+  on the managers' button takes too, since it is the same button.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"

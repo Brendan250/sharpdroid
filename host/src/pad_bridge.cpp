@@ -90,7 +90,7 @@ void DeliveryThread() {
       } else if (Took) {
         // **counted on the platform's answer rather than on the call returning.** a void method
         // reported success for anything that did not crash, so a request refused for want of the
-        // VIBRATE permission counted as delivered — and that permission is not consulted by any of the
+        // VIBRATE permission counted as delivered -- and that permission is not consulted by any of the
         // capability checks, so nothing earlier would have contradicted it.
         if (Rumbles.fetch_add(1, std::memory_order_relaxed) == 0) {
           // said out loud, because the alternative evidence is the *absence* of the failure line
@@ -150,7 +150,7 @@ void OnLoad(JavaVM* Vm) {
   jclass Local = E->FindClass(HelperClass);
   if (!Local) {
     E->ExceptionClear();
-    std::printf("[pad] %s not found — rumble is dropped, and pad reads are unaffected\n", HelperClass);
+    std::printf("[pad] %s not found -- rumble is dropped, and pad reads are unaffected\n", HelperClass);
     std::fflush(stdout);
     return;
   }
@@ -163,7 +163,7 @@ void OnLoad(JavaVM* Vm) {
   if (!RumbleMethod) {
     E->ExceptionClear();
     Helper = nullptr;
-    std::printf("[pad] %s is missing rumble(II)Z — rumble is dropped\n", HelperClass);
+    std::printf("[pad] %s is missing rumble(II)Z -- rumble is dropped\n", HelperClass);
     std::fflush(stdout);
   }
 }
@@ -224,7 +224,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame*, FEXCore::HLE::SyscallArguments* A
     *Out = State;
 
     // **one line, on the first read, whether or not anything is being traced.** the run summary is
-    // the only other place a count appears and it prints when the guest *returns* — which a game
+    // the only other place a count appears and it prints when the guest *returns* -- which a game
     // never does, since a run ends by exit_group or by the app killing the process. so without this
     // there is no evidence anywhere that the guest ever asked, and "the pad does nothing" would look
     // identical to "the payload never polled".

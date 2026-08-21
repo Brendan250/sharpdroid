@@ -11,7 +11,7 @@
 //      block, guest state is scattered across host arm64 registers, and it has to be gathered up
 //      before a frame can be built.
 //   2. the target is parked in a blocking syscall. the interrupt brings the host call back with
-//      EINTR and delivery happens on the way out — and because the handler asks for SA_RESTART,
+//      EINTR and delivery happens on the way out -- and because the handler asks for SA_RESTART,
 //      the guest must never see that EINTR.
 //   3. the signal is blocked when it is raised. nothing may be delivered until the target unblocks
 //      it itself, and then it must be delivered immediately.
@@ -164,7 +164,7 @@ static volatile u32 SleeperFutexWord = 0;
 
 static volatile int BlockedHandlerRan = 0;
 ///< set just before the guest unblocks the signal, and read by the handler. if the handler ran
-///< early — that is, if the host layer delivered a blocked signal — this reads 0.
+///< early -- that is, if the host layer delivered a blocked signal -- this reads 0.
 static volatile int UnblockRequested = 0;
 static volatile int HandlerSawUnblockRequest = 0;
 
@@ -195,7 +195,7 @@ static void BlockedHandler(int Signal, void* InfoPtr, void* ContextPtr) {
 #define THREAD_STACK_SIZE (256 * 1024)
 
 // clone(2) with a function to run, done by hand. the child comes back from the syscall with rax
-// zero and rsp pointing at the stack we chose, and has no return address to use — so the entry
+// zero and rsp pointing at the stack we chose, and has no return address to use -- so the entry
 // point is parked on that stack for it to pop, and it exits rather than returning here.
 //
 // the 24 is the whole of the stack arithmetic and is not arbitrary: popping the parked pointer
@@ -333,7 +333,7 @@ __attribute__((used)) static void StartC(u64* Stack) {
   //
   // the interesting half is not that the handler runs, it is what the futex does afterwards.
   // SA_RESTART says an interrupted call is re-entered rather than failed, so the guest must see the
-  // thread still blocked — SleeperFinished stays 0 — and never an EINTR.
+  // thread still blocked -- SleeperFinished stays 0 -- and never an EINTR.
   Print("[guest] case 2: signalling a thread parked in futex\n");
   Install(SIG_SPIN, (void*)&SleeperHandler, SA_RESTART);
 

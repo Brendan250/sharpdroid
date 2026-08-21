@@ -1,7 +1,7 @@
 // what this CPU can do, in the shape FEXCore's code generator asks for.
 //
 // FEXCore::HostFeatures is "backend features that change how codegen is generated from IR", so a
-// field left false is a longer instruction sequence than this host needs — and a field set true on
+// field left false is a longer instruction sequence than this host needs -- and a field set true on
 // a CPU that lacks the extension is SIGILL wherever the emitter first uses it. the probe is
 // therefore built out of the CPU's own ID registers rather than out of a guess.
 #pragma once

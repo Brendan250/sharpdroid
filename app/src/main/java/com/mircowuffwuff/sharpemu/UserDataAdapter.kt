@@ -13,9 +13,9 @@ import com.google.android.material.R as MaterialR
 import com.mircowuffwuff.sharpemu.databinding.ItemUserDataCardBinding
 
 /**
- * Draws the User data cards.
+ * draws the User data cards.
  *
- * **What each card can do is decided here rather than carried on the item**, because it is a property
+ * **what each card can do is decided here rather than carried on the item**, because it is a property
  * of the kind and never of the measurement: the shader cache has no export on a device with 88 MB of
  * it for the same reason it has none on a device with nothing.
  *
@@ -27,10 +27,10 @@ class UserDataAdapter(
 ) : RecyclerView.Adapter<UserDataAdapter.Holder>() {
 
     /**
-     * What a button on a card does.
+     * what a button on a card does.
      *
-     * **[label] is not drawn.** The button is a glyph, so the word is what a screen reader reads out
-     * and what a long press shows as a tooltip — which is the only way to check an arrow whose
+     * **[label] is not drawn.** the button is a glyph, so the word is what a screen reader reads out
+     * and what a long press shows as a tooltip -- which is the only way to check an arrow whose
      * direction has to be decoded the first time.
      */
     enum class Action(val icon: Int, val label: Int) {
@@ -45,7 +45,7 @@ class UserDataAdapter(
         notifyDataSetChanged()
     }
 
-    /** What the Everything card measured, so the wipe confirmation can name a real figure. */
+    /** what the Everything card measured, so the wipe confirmation can name a real figure. */
     fun everythingSize(): Long =
         items.firstOrNull { it.kind == UserDataItem.Kind.EVERYTHING }?.bytes ?: 0L
 
@@ -98,9 +98,9 @@ class UserDataAdapter(
     }
 
     /**
-     * Whether this card has nothing to report — no bytes, or for the settings no row off its default.
+     * whether this card has nothing to report -- no bytes, or for the settings no row off its default.
      *
-     * It is what decides the figures line's colour, and it is deliberately the same question the line
+     * it is what decides the figures line's colour, and it is deliberately the same question the line
      * itself answers in words: the two cannot disagree.
      */
     private fun absent(item: UserDataItem): Boolean = when (item.kind) {
@@ -109,9 +109,9 @@ class UserDataAdapter(
     }
 
     /**
-     * The card's second line: a size, and what it is a size *of* where the kind can count something.
+     * the card's second line: a size, and what it is a size *of* where the kind can count something.
      *
-     * **Empty says so in words.** "0 B" reads as a measurement that went wrong, where "Nothing saved
+     * **empty says so in words.** "0 B" reads as a measurement that went wrong, where "Nothing saved
      * yet" reads as the state it is.
      */
     private fun figures(holder: Holder, item: UserDataItem): String {
@@ -135,7 +135,7 @@ class UserDataAdapter(
         }
         val size = Formatter.formatShortFileSize(context, item.bytes)
         // **titles on both cards, not games on one of them.** a save directory and a cache directory
-        // are both keyed by title id, so the two counts are the same kind of thing counted twice —
+        // are both keyed by title id, so the two counts are the same kind of thing counted twice --
         // and two words for it would read as a difference that is not there.
         val count = item.count ?: return size
         val counted = context.resources.getQuantityString(R.plurals.user_data_titles, count, count)
@@ -147,7 +147,7 @@ class UserDataAdapter(
         UserDataItem.Kind.SAVE_DATA -> listOf(Action.EXPORT, Action.IMPORT, Action.DELETE)
         // **no export or import.** the cache is compiled against one driver on one device and is
         // rebuilt by playing, so carrying one to another install is work with nothing at the end of
-        // it — the blob's own header is what the next driver validates and discards.
+        // it -- the blob's own header is what the next driver validates and discards.
         UserDataItem.Kind.SHADER_CACHE -> listOf(Action.DELETE)
         // **reset only.** a settings export travels inside the whole-of-it export above, and moving
         // one on its own is a separate piece of work rather than a button waiting for it.

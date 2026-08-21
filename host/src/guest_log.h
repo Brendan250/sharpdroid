@@ -1,4 +1,4 @@
-// sharpemu-android host layer — timestamping what the guest prints.
+// sharpemu-android host layer -- timestamping what the guest prints.
 //
 // the reason this exists is a comparison rather than a feature. the prebuilt Windows release logs
 // through a launcher that stamps every line of SharpEmu's stdout with a millisecond time of day,
@@ -9,7 +9,7 @@
 // unanswerable because of it.
 //
 // so: fd 1 and fd 2 detour through here when `--timestamps` is on, and every line the guest emits
-// gets an elapsed-since-start prefix. elapsed rather than time of day on purpose — every number
+// gets an elapsed-since-start prefix. elapsed rather than time of day on purpose -- every number
 // worth having is a delta from the first line, and a delta is what stays meaningful when the log
 // is read a week later or next to a run from a different day.
 //
@@ -47,7 +47,7 @@ bool Enabled();
  * that choice is that a short write cannot be reported back to the guest exactly; the loop below
  * finishes the buffer instead, and the guest is told its own length went out.
  *
- * @return the number of *guest* bytes written, or -1 with errno set. never the stamped length —
+ * @return the number of *guest* bytes written, or -1 with errno set. never the stamped length --
  * a guest that saw its own write return more than it asked for would be entitled to be confused.
  */
 ssize_t Write(int FD, const void* Data, size_t Length);

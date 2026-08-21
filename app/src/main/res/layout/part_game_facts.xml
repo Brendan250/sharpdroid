@@ -9,7 +9,7 @@
 
   **a label column at a fixed width and a value beside it.** sizing the labels to their own text would
   put the two values at two different distances from the edge, which is the one thing a table exists
-  to avoid. the width is this table's rather than the label style's — it belongs to the longest label
+  to avoid. the width is this table's rather than the label style's: it belongs to the longest label
   on this screen, and the About screen's is a different word.
 
   **the rows align on their baselines rather than by a padding**, which a horizontal row does by
@@ -17,7 +17,7 @@
   views and have to be met halfway by hand.
 
   **a row goes away whole when the dump does not carry its fact**, rather than leaving a label with
-  nothing beside it — a table that names a thing it cannot show is worse than a shorter table.
+  nothing beside it, and a table that names a thing it cannot show is worse than a shorter table.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -71,7 +71,7 @@
 
     <!-- **it sits between the version and the path, and it is the one row that arrives late.** the
          value is a walk of the whole dump rather than something the list already read, so the row is
-         drawn with its label and nothing beside it and filled in when the measurement lands — which
+         drawn with its label and nothing beside it and filled in when the measurement lands, which
          is what keeps the path below it from jumping down a line a moment after the screen opens. -->
     <LinearLayout
         android:id="@+id/sizeRow"
@@ -110,7 +110,7 @@
 
         <!-- **the one value that wraps.** the others are a word each and this is a sentence-length
              string in a column no wider than the artwork above it, so held to one line it loses its
-             middle and every game reads as `/storage/emu…/eboot.bin` — a field that names a location
+             middle and every game reads as `/storage/emu…/eboot.bin`, a field that names a location
              and shows none of it. the row is last, and the space under it is empty, so the lines it
              takes cost nothing that was being used. -->
         <TextView

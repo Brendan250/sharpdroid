@@ -6,24 +6,24 @@ import java.io.File
 import java.util.Locale
 
 /**
- * A GPU driver package: a directory holding a Vulkan `.so` and the `meta.json` that names it.
+ * a GPU driver package: a directory holding a Vulkan `.so` and the `meta.json` that names it.
  *
- * **The format is adrenotools', not ours.** It is what every turnip package on the internet already
+ * **the format is adrenotools', not ours.** it is what every turnip package on the internet already
  * ships and what `scripts/stage.py` unpacks, so a driver a user has for another emulator
- * imports here unchanged. Nothing in this app knows that turnip's library is called
- * `libvulkan_freedreno.so` — `libraryName` says, and two of the packages this project tests with
+ * imports here unchanged. nothing in this app knows that turnip's library is called
+ * `libvulkan_freedreno.so` -- `libraryName` says, and two of the packages this project tests with
  * call it something else entirely.
  *
- * **A driver's copy onto internal storage is a requirement and a build's is not**, which is the one
+ * **a driver's copy onto internal storage is a requirement and a build's is not**, which is the one
  * place these two managers genuinely differ. adrenotools stats the library and then `dlopen`s it, and
- * external storage is mounted `noexec` — so the library's executable segment cannot be mapped off it
+ * external storage is mounted `noexec` -- so the library's executable segment cannot be mapped off it
  * and the load fails with `EPERM`, while a build's payload is read into anonymous memory and never
- * mapped from the file at all. So an imported package is extracted straight onto internal storage and
+ * mapped from the file at all. so an imported package is extracted straight onto internal storage and
  * loaded where it lands, and a staged one has its library copied there at launch. [AppStorage] owns
  * both directories and says which is which.
  */
 class GpuDriver private constructor(
-    /** Where the package is. Its library is loaded from here when this is on internal storage. */
+    /** where the package is. its library is loaded from here when this is on internal storage. */
     val dir: File,
     val folder: String,
     json: JSONObject,
@@ -37,39 +37,39 @@ class GpuDriver private constructor(
     val packageVersion: String = json.optString("packageVersion", "")
 
     /**
-     * The lowest android version the package says it runs on.
+     * the lowest android version the package says it runs on.
      *
-     * **Checked rather than decorative.** The five packages this project has to hand declare 28, 29
-     * and 30 against a `minSdk` of 28, so a device this app supports can genuinely be below one —
+     * **checked rather than decorative.** the five packages this project has to hand declare 28, 29
+     * and 30 against a `minSdk` of 28, so a device this app supports can genuinely be below one --
      * and a driver loaded on a platform it was not built for fails inside the loader, where the
      * report is a black screen rather than a message.
      */
     val minApi: Int = json.optInt("minApi", 0)
 
-    /** The `.so` the loader is pointed at. The package names it; nothing here assumes it. */
+    /** the `.so` the loader is pointed at. the package names it; nothing here assumes it. */
     val libraryName: String = json.optString("libraryName", "")
 
     fun library(): File = File(dir, libraryName)
 
-    /** What the launch log says: enough to attribute a frame rate to an artefact. */
+    /** what the launch log says: enough to attribute a frame rate to an artefact. */
     fun identity(): String {
         val version = driverVersion.ifEmpty { packageVersion.ifEmpty { "unknown version" } }
         return "$name ($version)"
     }
 
-    /** Author and vendor, for the line under the name. Either may be missing. */
+    /** author and vendor, for the line under the name. either may be missing. */
     fun attribution(): String = listOf(author, vendor).filter { it.isNotEmpty() }.joinToString(" · ")
 
-    /** True once this package is in the app's own directory, which is where one is loaded from. */
+    /** true once this package is in the app's own directory, which is where one is loaded from. */
     fun isInstalled(internal: File): Boolean =
         dir.absolutePath.startsWith(internal.absolutePath + File.separator)
 
     /**
-     * Whether this package could be loaded at all: this platform is new enough for it, and the
+     * whether this package could be loaded at all: this platform is new enough for it, and the
      * library it names is present.
      *
-     * The manager draws a package that fails this rather than hiding it, for the same reason the
-     * build list draws an unrunnable build — somebody who imported it should find out why on the
+     * the manager draws a package that fails this rather than hiding it, for the same reason the
+     * build list draws an unrunnable build -- somebody who imported it should find out why on the
      * screen they imported it from.
      */
     fun usable(): Boolean = minApi <= Build.VERSION.SDK_INT && library().isFile
@@ -79,24 +79,24 @@ class GpuDriver private constructor(
         private const val TAG = "sharpemu"
 
         /**
-         * The platform's own driver, as the store spells it.
+         * the platform's own driver, as the store spells it.
          *
-         * **A reserved word rather than an absence**, so that selecting the pinned row is a write
+         * **a reserved word rather than an absence**, so that selecting the pinned row is a write
          * like any other and the radio marks a choice the user made rather than a store that happens
-         * to be empty. An absent setting means the same thing, which is what makes the system driver
+         * to be empty. an absent setting means the same thing, which is what makes the system driver
          * the default without a constant saying so.
          *
-         * It cannot collide with a package: [folderName] always produces a name with a `-` in it.
+         * it cannot collide with a package: [folderName] always produces a name with a `-` in it.
          */
         const val SYSTEM = "system"
 
         /**
-         * Every spelling that means the platform's own driver.
+         * every spelling that means the platform's own driver.
          *
          * `stock` and `none` are both the scripts' and [MainActivity]'s extra, `none` being what the
-         * whole script set uses for "name nothing" and what it documents for pinning stock. Missing
+         * whole script set uses for "name nothing" and what it documents for pinning stock. missing
          * one of these is not a small thing: the name then resolves to no package at all, and until
-         * a launch refused over that it simply fell through to the system driver — the right answer
+         * a launch refused over that it simply fell through to the system driver -- the right answer
          * reached by the wrong road, which is why nothing ever showed it.
          */
         @JvmStatic
@@ -104,9 +104,9 @@ class GpuDriver private constructor(
             folder == null || folder.isEmpty() || folder == SYSTEM || folder == "stock" || folder == "none"
 
         /**
-         * The on-device folder name, derived from the identity and never from what the zip is called.
+         * the on-device folder name, derived from the identity and never from what the zip is called.
          *
-         * The same rule the build format uses, for the same reason: a zip renamed on somebody's disk
+         * the same rule the build format uses, for the same reason: a zip renamed on somebody's disk
          * imports to the place it always would, and two versions of one driver coexist instead of
          * overwriting each other.
          */
@@ -115,7 +115,7 @@ class GpuDriver private constructor(
                 if (it.isDigit() || it in 'a'..'z' || it == '.' || it == '_' || it == '-') it else '-'
             }.joinToString("").trim('-').ifEmpty { "driver" }
 
-        /** A package directory's identity, or null if it has no readable `meta.json`. */
+        /** a package directory's identity, or null if it has no readable `meta.json`. */
         @JvmStatic
         fun read(dir: File): GpuDriver? {
             val meta = File(dir, "meta.json")
@@ -129,13 +129,13 @@ class GpuDriver private constructor(
         }
 
         /**
-         * Resolves what the store holds, or what `--es driver` named, to a package on the device.
+         * resolves what the store holds, or what `--es driver` named, to a package on the device.
          *
-         * **The app's own copy wins over a staged one of the same name**, which is the order the
+         * **the app's own copy wins over a staged one of the same name**, which is the order the
          * build list resolves in too: an imported package is the one this app is responsible for,
          * and a staged directory of the same name is a developer's, put there deliberately.
          *
-         * Null when it is gone — deleted from a PC, or the external volume wiped. The caller falls
+         * null when it is gone -- deleted from a PC, or the external volume wiped. the caller falls
          * back to the system driver and says so, which is a run that renders rather than one that
          * does not.
          */
@@ -147,9 +147,9 @@ class GpuDriver private constructor(
         }
 
         /**
-         * Every readable package on the device, the app's own and the staged ones, one per folder.
+         * every readable package on the device, the app's own and the staged ones, one per folder.
          *
-         * The system driver is not among them: it is not a package and there is nothing to read.
+         * the system driver is not among them: it is not a package and there is nothing to read.
          * [DriverLibrary] is what puts it at the top.
          */
         fun list(internal: File, staged: File): List<GpuDriver> {
@@ -169,7 +169,7 @@ class GpuDriver private constructor(
             }
         }
 
-        /** Removes a package outright. Nothing here is recoverable and nothing here is unique. */
+        /** removes a package outright. nothing here is recoverable and nothing here is unique. */
         fun delete(dir: File): Boolean {
             dir.deleteRecursively()
             val gone = !dir.exists()

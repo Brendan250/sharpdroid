@@ -7,27 +7,27 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.mircowuffwuff.sharpemu.databinding.ActivitySettingsBinding
 
 /**
- * The global settings scene: large section buttons, each with a line saying what is behind it, and
+ * the global settings scene: large section buttons, each with a line saying what is behind it, and
  * About in the toolbar's corner.
  *
- * The shape is Eden's settings menu — buttons with a brief explanation, and a scrolling list of rows
+ * the shape is Eden's settings menu -- buttons with a brief explanation, and a scrolling list of rows
  * behind each one.
  *
- * **About is a button and not a section, because nothing behind it is a setting.** It is the one
+ * **About is a button and not a section, because nothing behind it is a setting.** it is the one
  * thing reachable from here that does not change what a launch does, and a card for it in a grid of
- * cards that do is a card read past. The corner is where the game list's cog is, one press earlier,
+ * cards that do is a card read past. the corner is where the game list's cog is, one press earlier,
  * which is the position it was given deliberately rather than the position that was free.
  *
- * **Only the sections that have something in them are here.** Controls and Logging are sections this
+ * **only the sections that have something in them are here.** Controls and Logging are sections this
  * app will grow, and every row in both is a later piece of work; a button that opens an empty screen
  * is worse than a button that is not there yet, because the empty screen looks like a bug in the one
- * that is. A section arrives with its rows.
+ * that is. a section arrives with its rows.
  */
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
 
-    /** The theme this screen was drawn with, so a change made behind it is noticed on the way back. */
+    /** the theme this screen was drawn with, so a change made behind it is noticed on the way back. */
     private lateinit var drawnWith: String
 
     override fun onCreate(state: Bundle?) {
@@ -41,7 +41,7 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.toolbar.setNavigationOnClickListener { finish() }
         binding.about.setOnClickListener { startActivity(Intent(this, AboutActivity::class.java)) }
-        // **one column upright, two on a wide screen** — Eden's shape, and the reason is that a
+        // **one column upright, two on a wide screen** -- Eden's shape, and the reason is that a
         // section button is a title and one line, so a single column in landscape wastes two thirds
         // of the width. the count is a resource with a `-land` qualifier rather than a measurement:
         // android already resolves it, and an activity is recreated across a rotation, so it is
@@ -65,7 +65,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * **The theme is changed on the screen this one opens**, so coming back has to notice. Without
+     * **the theme is changed on the screen this one opens**, so coming back has to notice. without
      * it, backing out of a theme change lands here on the old palette, and only leaving the settings
      * scene entirely and re-entering produces the new one.
      */
@@ -77,32 +77,32 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * A section, its button's two lines, and what it is called on the way to the next screen.
+     * a section, its button's two lines, and what it is called on the way to the next screen.
      *
-     * The label and the summary are string resources, so what appears on screen is the app's own
+     * the label and the summary are string resources, so what appears on screen is the app's own
      * cased text rather than the enum's name.
      */
     enum class Section(
         val title: Int,
         val summary: Int,
         val icon: Int,
-        /** The screen this card opens, or null for the ordinary list of rows. */
+        /** the screen this card opens, or null for the ordinary list of rows. */
         val screen: Class<out AppCompatActivity>? = null,
         /**
-         * The screen this card opens on a game's scene, where that is a different screen.
+         * the screen this card opens on a game's scene, where that is a different screen.
          *
-         * **Null means the same one, which is the ordinary case and the whole design**: a section of
+         * **null means the same one, which is the ordinary case and the whole design**: a section of
          * rows is served by [SettingsSectionActivity] told which store to write, so a row added to
-         * Graphics is offered per game the day it is written. This field is for the section that
-         * cannot be — User data, where what the two screens *mean* differs rather than only what they
-         * act on. See [GameUserDataActivity].
+         * Graphics is offered per game the day it is written. this field is for the section that
+         * cannot be -- User data, where what the two screens *mean* differs rather than only what they
+         * act on. see [GameUserDataActivity].
          */
         val perGameScreen: Class<out AppCompatActivity>? = null,
         /**
-         * The line under this card's title on a game's scene, where it differs.
+         * the line under this card's title on a game's scene, where it differs.
          *
-         * **Null means the same line, which is most of them**: "rendering and presentation" describes
-         * Graphics whoever is being configured. It is User data that cannot share one, its app-wide
+         * **null means the same line, which is most of them**: "rendering and presentation" describes
+         * Graphics whoever is being configured. it is User data that cannot share one, its app-wide
          * summary claiming an install that a game's screen is deliberately not about.
          */
         val perGameSummary: Int? = null,
@@ -139,40 +139,40 @@ class SettingsActivity : AppCompatActivity() {
 
         companion object {
             /**
-             * The sections that have rows, in the order the grid draws them.
+             * the sections that have rows, in the order the grid draws them.
              *
-             * **The install's two lead, and [perGame]'s four follow in [perGame]'s own order.** App
+             * **the install's two lead, and [perGame]'s four follow in [perGame]'s own order.** App
              * and Game files are the pair that has nothing to say about one game, so putting them
-             * together makes the first row of this grid exactly what a game's scene does not carry —
+             * together makes the first row of this grid exactly what a game's scene does not carry --
              * and leaves everything under it as the block the two screens share, arranged the same
-             * way on both. Somebody who has learned where Controls is on one screen has learned it
+             * way on both. somebody who has learned where Controls is on one screen has learned it
              * on the other.
              *
-             * **What transfers is the arrangement rather than the position, and that is the whole of
-             * what could.** This grid is as wide as the panel and a game's is two columns inside the
+             * **what transfers is the arrangement rather than the position, and that is the whole of
+             * what could.** this grid is as wide as the panel and a game's is two columns inside the
              * right two thirds, so no card can land on the same pixel on both; the shape of the
-             * block is what an eye carries between them. That is also why the install's pair leads
+             * block is what an eye carries between them. that is also why the install's pair leads
              * rather than trails: putting it last would line the shared block up by row without
              * lining anything up by width, and would spend the first slot in the app's own settings
              * on neither of the sections the app is mostly opened for.
              *
-             * **Not called `entries`**, which is kotlin's own name for every constant of an enum
-             * since 1.9 — a member shadowing it compiles with a deprecation warning and then means
+             * **not called `entries`**, which is kotlin's own name for every constant of an enum
+             * since 1.9 -- a member shadowing it compiles with a deprecation warning and then means
              * something different from what it reads as.
              */
             val shown =
                 listOf(APP, GAME_FILES, EMULATION, GRAPHICS, CONTROLS, USER_DATA)
 
             /**
-             * The sections a single game answers for, in the order [GameSettingsActivity] draws them.
+             * the sections a single game answers for, in the order [GameSettingsActivity] draws them.
              *
              * **App and Game files are absent because they belong to the install rather than to a
-             * title** — a theme and a folder grant are set once and apply to everything. What is left
+             * title** -- a theme and a folder grant are set once and apply to everything. what is left
              * is the three that describe how one game is run, and User data, which is what one game
              * has left behind.
              *
-             * **User data is last, and it is the one card here that is not a setting.** Nothing
-             * behind it changes what a launch does — which is the argument that keeps About out of a
+             * **User data is last, and it is the one card here that is not a setting.** nothing
+             * behind it changes what a launch does -- which is the argument that keeps About out of a
              * card altogether, applied to a card that has a reason to stay: what one game has written
              * is a fact about that game, and this scene is the only place it is asked about.
              */

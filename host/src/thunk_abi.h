@@ -1,4 +1,4 @@
-// sharpemu-android host layer — reading a guest x86-64 call's arguments out of the spilled state.
+// sharpemu-android host layer -- reading a guest x86-64 call's arguments out of the spilled state.
 //
 // this is the piece both thunks stand on, and it is here rather than in either of them because
 // there is exactly one right answer and two copies of it would be two chances to be wrong.
@@ -31,7 +31,7 @@
 namespace HostLayer::ThunkABI {
 
 // which half of CPUState's XMM union the register file is in. FEX picks the 32-byte stride avx
-// layout only when SupportsAVX *and* SupportsSVE256 are set — Arm64Emitter::SpillStaticRegs and
+// layout only when SupportsAVX *and* SupportsSVE256 are set -- Arm64Emitter::SpillStaticRegs and
 // Arm64Emitter::FillStaticRegs are the two sites. with AVX alone, which is what the host-features
 // work turned on and what this device runs since the Oryon cores have no SVE256, spills go to the
 // 16-byte stride sse layout instead. reading the wrong one is
@@ -74,7 +74,7 @@ public:
   }
 
   // consume an integer-class argument and discard it. the callers are the places a thunk refuses
-  // to pass something through — a guest allocation callback, say — and they still have to advance
+  // to pass something through -- a guest allocation callback, say -- and they still have to advance
   // the reader or every argument after it belongs to the wrong parameter.
   void SkipInteger() { TakeInteger(); }
 
@@ -105,7 +105,7 @@ private:
 // signature, so the only thing that has to be generated is the *list*.
 //
 // Read is a customisation point rather than ArgReader::Next directly, so that a thunk can refuse
-// to forward a particular parameter type — vulkan's VkAllocationCallbacks* is the one case, and it
+// to forward a particular parameter type -- vulkan's VkAllocationCallbacks* is the one case, and it
 // is expressed as a type-level rule there rather than as ninety named commands here.
 //
 // the tuple is brace-initialised on purpose. plain function-argument evaluation order is

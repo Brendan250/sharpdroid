@@ -1,4 +1,4 @@
-// sharpemu-android host layer — delivering signals to the guest.
+// sharpemu-android host layer -- delivering signals to the guest.
 //
 // the ELF loader's fault handling caught guest faults and reported them. this is the other half:
 // building the x86-64 signal
@@ -44,7 +44,7 @@ struct GuestThread;
 namespace GuestABI {
 
 // every one of these is spelled with a Guest prefix because the host's <signal.h> defines the
-// unprefixed names as macros — a plain `constexpr uint64_t SA_SIGINFO` does not even parse.
+// unprefixed names as macros -- a plain `constexpr uint64_t SA_SIGINFO` does not even parse.
 constexpr uint64_t GuestSA_NOCLDSTOP = 0x00000001;
 constexpr uint64_t GuestSA_SIGINFO = 0x00000004;
 constexpr uint64_t GuestSA_RESTORER = 0x04000000;
@@ -60,7 +60,7 @@ constexpr int GuestSS_ONSTACK = 1;
 constexpr int GuestSS_DISABLE = 2;
 
 // x86-64 `struct sigaction` as the *kernel* sees it: handler, flags, restorer, mask. note that
-// `restorer` sits third, which is architecture-specific — arm64's kernel sigaction has no such
+// `restorer` sits third, which is architecture-specific -- arm64's kernel sigaction has no such
 // field at all.
 struct SigAction {
   uint64_t Handler;
@@ -153,7 +153,7 @@ constexpr uint64_t UC_STRICT_RESTORE_SS = 1ULL << 2;
 
 // --- the layer -------------------------------------------------------------------------------
 //
-// one instance, for the whole process — but only *some* of what it holds is process-wide. handler
+// one instance, for the whole process -- but only *some* of what it holds is process-wide. handler
 // dispositions are, because `sigaction` is a process-wide call on linux and a handler installed by
 // one thread is the handler every thread runs. the blocked mask and the alternate stack are not,
 // and live in GuestThread; every entry point that needs them therefore names a thread.
@@ -180,7 +180,7 @@ public:
   // a signal raised on a thread other than the one raising it cannot be delivered where it is
   // raised: the target's guest state is in the target's host registers, and only the target may
   // longjmp out of its own dispatch loop. so raising is just recording a bit, and delivery happens
-  // on the target thread at one of the two places it can safely be redirected — see
+  // on the target thread at one of the two places it can safely be redirected -- see
   // guest_threads.cpp.
 
   ///< record a signal as pending on a thread. safe to call from any thread.
@@ -192,7 +192,7 @@ public:
    * @brief Take the next pending signal this thread should act on.
    *
    * @return the signal number, or 0 if there is nothing to act on. the bit is cleared. signals
-   * the guest is blocking stay pending, because a blocked signal is not lost — it is waited for.
+   * the guest is blocking stay pending, because a blocked signal is not lost -- it is waited for.
    * signals the guest ignores are dropped here rather than at the raise, since a disposition can
    * become SIG_IGN after the signal was already queued and linux discards it in exactly that case.
    *
@@ -203,7 +203,7 @@ public:
   /**
    * @brief Pull guest state out of a host signal context and into CPUState.
    *
-   * guest registers are not in memory while JIT'd code runs — GPRs live in host arm64 registers
+   * guest registers are not in memory while JIT'd code runs -- GPRs live in host arm64 registers
    * and XMMs in host vector registers, per FEXCore's static register allocation. everything
    * downstream reads CPUState, so this has to happen first.
    */
@@ -218,7 +218,7 @@ public:
    * SSE4a emulation arrives on, since EXTRQ/INSERTQ are #UD.
    *
    * @return the guest signal number to deliver, or 0 if nothing is pending. guest state is
-   * already correct when this returns non-zero — the JIT spilled it and RIP already points at
+   * already correct when this returns non-zero -- the JIT spilled it and RIP already points at
    * the offending instruction, so ReconstructGuestState must *not* be called.
    */
   int TakeGeneratedFault(GuestThread& T);
@@ -226,7 +226,7 @@ public:
   /**
    * @brief Build the guest's signal frame and point guest execution at its handler.
    *
-   * expects guest state to be in CPUState already — either via ReconstructGuestState for a real
+   * expects guest state to be in CPUState already -- either via ReconstructGuestState for a real
    * host fault, or via TakeGeneratedFault for one the JIT raised. leaves CPUState ready to be
    * dispatched: RIP at the handler, RSP at the frame, and RDI/RSI/RDX carrying the signal
    * number, siginfo and ucontext.
@@ -252,7 +252,7 @@ private:
   ///< signals are 1..64; index 0 is unused and kept only so the numbering reads naturally.
   ///<
   ///< guarded because any thread may install a handler while any other is faulting. the lock is
-  ///< taken on the delivery path too, which is a signal handler — not async-signal-safe in general,
+  ///< taken on the delivery path too, which is a signal handler -- not async-signal-safe in general,
   ///< but every fault we deliver is synchronous, raised by the JIT'd code this same thread is
   ///< running, so it is an ordinary call context and not a reentrant one.
   mutable std::mutex ActionsLock;

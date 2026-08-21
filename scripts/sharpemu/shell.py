@@ -46,8 +46,9 @@ def run(argv, cwd=None, env=None, check=True, quiet=False):
     """run a program with an argument vector and no shell between us and it.
 
     the list form is the whole point. a game directory is `Title [PPSAxxxxx]`, an android device
-    path is full of slashes, and both used to need quoting rules that differ per tool -- here
-    neither is ever parsed by anything. what the callee receives is what was passed.
+    path is full of slashes, and a shell between us and the callee would give each of them quoting
+    rules that differ per tool -- here neither is ever parsed by anything. what the callee receives
+    is what was passed.
     """
     argv = [str(a) for a in argv]
     if not quiet:

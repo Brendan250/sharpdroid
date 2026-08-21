@@ -10,7 +10,7 @@ namespace HostLayer {
 
 void GuestProcFS::SetExe(const char* Path) {
   // realpath, because the guest is usually named relatively ("./SharpEmu") and /proc/self/exe is
-  // always absolute — and because whatever comes back gets opened, so a path relative to a working
+  // always absolute -- and because whatever comes back gets opened, so a path relative to a working
   // directory the guest may later change is a trap.
   if (::realpath(Path, Exe) == nullptr) {
     std::snprintf(Exe, sizeof(Exe), "%s", Path);

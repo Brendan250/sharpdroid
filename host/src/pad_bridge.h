@@ -1,4 +1,4 @@
-// sharpemu-android host layer — android gamepad state and rumble, across the guest boundary.
+// sharpemu-android host layer -- android gamepad state and rumble, across the guest boundary.
 //
 // this rides the same syscall boundary the vulkan and audio thunks do, in a magic range one along
 // again, and it is **not** a thunk in the sense either of those is: there is no NDK library at the
@@ -7,20 +7,20 @@
 // mechanism this project has for the guest to ask the host a question.
 //
 // **the direction is what makes this its own file rather than a third thunk.** pad state originates
-// in java — a KeyEvent and a MotionEvent delivered to the activity — and has to reach C# running as
+// in java -- a KeyEvent and a MotionEvent delivered to the activity -- and has to reach C# running as
 // guest x86-64. that is host to guest, which is the direction a thunk refuses. so it is inverted into
 // a pull: the app pushes state down into SetState below, the host holds the latest, and the guest
 // *asks* for it. no host thread ever enters guest code, which is the invariant the other two hold and
 // the reason neither of them accepts a guest callback.
 //
 // the alternative was a page of host memory whose address the guest is handed at startup, which is a
-// load rather than a trap. measured on the device, a trap here is 34.3 ns against a load's 0.79 —
+// load rather than a trap. measured on the device, a trap here is 34.3 ns against a load's 0.79 --
 // forty-three times, and both nothing: the pad is sampled at most once a millisecond per polling
 // guest thread, so the trap costs about 34 µs per second of one core, roughly two thousandths of one
 // frame per second at 60 fps. what the trap buys for that is three things the page cannot:
 //
 //   - **no structure layout shared between two repositories.** the wire format below is checked by
-//     the call itself — a version and a byte count go in, and a mismatch is refused and said out
+//     the call itself -- a version and a byte count go in, and a mismatch is refused and said out
 //     loud. a mirrored struct is checked by nobody and yields plausible wrong values.
 //   - **rumble.** that direction is guest to host, which is what this already is. a page needs a
 //     second mechanism invented for it, plus something polling the page to notice.
@@ -30,7 +30,7 @@
 // **rumble is not delivered on the guest's thread**, and that is the hardest constraint here rather
 // than an implementation detail. there is no NDK vibrator, so it is a JNI call into the app, and a
 // binder round trip to the system server takes long enough that making a guest thread wait for it is
-// the same mistake that stopped audio dead partway into runs — the host layer delivers asynchronous
+// the same mistake that stopped audio dead partway into runs -- the host layer delivers asynchronous
 // signals at syscall exits only, and CoreCLR suspends every thread with SIGRTMIN to collect, so a
 // guest thread parked in a platform call is one that cannot acknowledge a GC suspension. so the
 // guest's call records the request and returns, and one host thread of ours does the waiting.
@@ -101,7 +101,7 @@ void SetTrace(bool Enabled);
 // it exists because the two directions here fail independently and only one of them is exercised by
 // an ordinary run. a game that polls the pad proves the read path every frame; rumble is proven by
 // nothing at all unless the game happens to vibrate, and "it compiles" is not evidence. this fires
-// the real path — the guest's own trap is the only link it substitutes for, and that link is the same
+// the real path -- the guest's own trap is the only link it substitutes for, and that link is the same
 // call the proven read makes.
 //
 // off by default, and tied to the first read rather than to a timer: a fixed delay would fire during
@@ -111,7 +111,7 @@ void SetSelfTest(bool Enabled);
 // resolved once from JNI_OnLoad, with the app's class loader in scope. without it rumble has nowhere
 // to go and is dropped; reads are unaffected, since state comes from the app pushing rather than
 // from the host layer asking. the shell binary never calls this, so a guest run outside an app sees a
-// bridge that answers reads with "no pad" — which is honest rather than a failure.
+// bridge that answers reads with "no pad" -- which is honest rather than a failure.
 void OnLoad(JavaVM* VM);
 
 // the app's push, off a KeyEvent or a MotionEvent. the latest wins and nothing is queued: a poll

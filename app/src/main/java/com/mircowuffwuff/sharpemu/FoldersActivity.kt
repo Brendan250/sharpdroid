@@ -12,22 +12,22 @@ import com.mircowuffwuff.sharpemu.databinding.ActivityManagerBinding
 import java.util.concurrent.Executors
 
 /**
- * The game folder manager: which folders the user granted, how one arrives, and how one goes.
+ * the game folder manager: which folders the user granted, how one arrives, and how one goes.
  *
- * Reached from **Settings → Data → Game folders**, and from nowhere else — the game list's toolbar
+ * reached from **Settings → Data → Game folders**, and from nowhere else -- the game list's toolbar
  * carries only the cog, because adding a folder is done a handful of times and reading the list is
- * done every launch. Its empty state offers the picker directly rather than this screen: with no
+ * done every launch. its empty state offers the picker directly rather than this screen: with no
  * folders yet there is nothing here to manage.
  *
- * **The same screen the build and driver managers are**, down to the layout — a toolbar over a list
- * with the add button floating at the bottom right. A folder is not a package and none of the
+ * **the same screen the build and driver managers are**, down to the layout -- a toolbar over a list
+ * with the add button floating at the bottom right. a folder is not a package and none of the
  * importing applies, but a list of things with one destructive action each is the shape those two
  * already are, and a third one that looked different would be a third thing to learn.
  *
- * **A row is a granted folder rather than a game.** What is listed is what the user picked; how many
+ * **a row is a granted folder rather than a game.** what is listed is what the user picked; how many
  * games are inside one is the game list's question and it answers it by scanning.
  *
- * **Taking a grant queries a provider and so does dropping one**, so both are on the worker. The
+ * **taking a grant queries a provider and so does dropping one**, so both are on the worker. the
  * store behind them is [GameLibrary], which is also what the game list scans.
  */
 class FoldersActivity : AppCompatActivity() {
@@ -38,9 +38,9 @@ class FoldersActivity : AppCompatActivity() {
     private val worker = Executors.newSingleThreadExecutor()
 
     /**
-     * The directory picker.
+     * the directory picker.
      *
-     * Registered at construction, which the contract requires — the activity can be recreated while
+     * registered at construction, which the contract requires -- the activity can be recreated while
      * the picker is in front of it, and a launcher registered later than `onCreate` has nothing to
      * deliver the result to.
      *
@@ -90,9 +90,9 @@ class FoldersActivity : AppCompatActivity() {
     }
 
     /**
-     * Rereads the store and redraws.
+     * rereads the store and redraws.
      *
-     * On the worker because [GameLibrary.trees] cross-checks the stored list against the grants
+     * on the worker because [GameLibrary.trees] cross-checks the stored list against the grants
      * android says the app still holds, which is a binder round trip.
      */
     private fun refresh() {
@@ -112,9 +112,9 @@ class FoldersActivity : AppCompatActivity() {
     }
 
     /**
-     * Puts a picked folder in the library.
+     * puts a picked folder in the library.
      *
-     * What it says about each outcome is [GameLibrary.message]'s, since the game list's empty state
+     * what it says about each outcome is [GameLibrary.message]'s, since the game list's empty state
      * offers the same picker and the two may not word a refusal differently.
      */
     private fun add(tree: Uri) {
@@ -132,8 +132,8 @@ class FoldersActivity : AppCompatActivity() {
     }
 
     /**
-     * **The confirmation says the files are not touched**, because removing a folder from a library is
-     * the kind of thing that reads as deleting it. What actually goes is this app's access.
+     * **the confirmation says the files are not touched**, because removing a folder from a library is
+     * the kind of thing that reads as deleting it. what actually goes is this app's access.
      */
     private fun confirmRemove(item: FolderAdapter.Item) {
         MaterialAlertDialogBuilder(this)

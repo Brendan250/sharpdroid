@@ -6,19 +6,19 @@ import androidx.recyclerview.widget.RecyclerView
 import com.mircowuffwuff.sharpemu.databinding.ItemSettingsSectionBinding
 
 /**
- * The cards a settings scene is made of: an icon, a title, and one line saying what is behind it.
+ * the cards a settings scene is made of: an icon, a title, and one line saying what is behind it.
  *
- * **One adapter for the app's own scene and for a game's**, which is the same argument that keeps
- * [SettingsSectionActivity] serving both — the two scenes differ in which sections they offer and in
- * what a tap carries, and not at all in what a card is. A second copy would be a second place to
+ * **one adapter for the app's own scene and for a game's**, which is the same argument that keeps
+ * [SettingsSectionActivity] serving both -- the two scenes differ in which sections they offer and in
+ * what a tap carries, and not at all in what a card is. a second copy would be a second place to
  * notice the day a card grows anything.
  */
 class SectionAdapter(
     private val sections: List<SettingsActivity.Section>,
     /**
-     * Which scene is drawing, which decides a card's second line and nothing else.
+     * which scene is drawing, which decides a card's second line and nothing else.
      *
-     * **A flag rather than a summary handed in per card**, because what varies is one line of one
+     * **a flag rather than a summary handed in per card**, because what varies is one line of one
      * card: a caller assembling text would be a caller that has to be told the day a second section
      * needs a per-game wording.
      */

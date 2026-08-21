@@ -1,4 +1,4 @@
-// sharpemu-android host layer — guest x86-64 vulkan onto the host's arm64 vulkan, in-process.
+// sharpemu-android host layer -- guest x86-64 vulkan onto the host's arm64 vulkan, in-process.
 //
 // this is route B's central claim made concrete: the guest's vulkan calls do not cross a socket,
 // a process boundary or a protocol. they arrive here, and here calls the real driver on the same
@@ -75,7 +75,7 @@ void SetTrace(bool Enabled);
 // per-command wall time, dumped every 300 presented frames as a delta since the last dump.
 //
 // this is a different question from SetTrace's. a trace says which commands are *called*, which
-// cannot find a stall — 95 ms spread across 15 draws is not spread at all, it is one call waiting.
+// cannot find a stall -- 95 ms spread across 15 draws is not spread at all, it is one call waiting.
 // the profile sorts by time and the answer is usually the first line.
 //
 // deltas rather than totals, because a total is dominated by start-up forever: shader compilation
@@ -97,7 +97,7 @@ void SetLibraryPath(const char* Path);
 
 // custom driver injection, via libadrenotools. both must be set or neither is used, and with
 // neither set OpenLibrary() is byte-for-byte the dlopen every measurement up to here was taken
-// against — which is what keeps the stock-driver baseline reproducible.
+// against -- which is what keeps the stock-driver baseline reproducible.
 //
 //   Driver      absolute path to the driver .so, e.g. turnip's libvulkan_freedreno.so. it must
 //               live on **internal** storage: adrenotools stats it and then dlopens it, and the
@@ -107,7 +107,7 @@ void SetLibraryPath(const char* Path);
 //               merely contains copies of them is not the same thing.
 //
 // this only works inside an app process. adrenotools drives the bionic linker's namespace API,
-// which a shell binary has no classloader namespace to bypass — so the shell binary and the whole
+// which a shell binary has no classloader namespace to bypass -- so the shell binary and the whole
 // regression set stay on the platform loader whatever these are set to.
 void SetDriver(const char* Path);
 void SetHookLibDir(const char* Dir);
@@ -118,10 +118,10 @@ void SetHookLibDir(const char* Dir);
 // adrenotools hands back the platform loader opened in an isolated namespace with a hook in front of
 // the loader's own dlopen, and the hook decides later. one that cannot load the driver falls back to
 // the system driver and returns a perfectly good handle, so every vulkan call works and the picture
-// is right — a run on the driver somebody picked and a run on the driver they did not are the same
+// is right -- a run on the driver somebody picked and a run on the driver they did not are the same
 // run but for a line in a log. what settles it is whether the library is mapped into this process.
 //
-// **it opens the host loader, and is the same open the guest's first call would have done** — one
+// **it opens the host loader, and is the same open the guest's first call would have done** -- one
 // `std::call_once`, so calling this early moves when the driver loads and not how often. that is
 // what lets the app ask before it starts a guest, and refuse the launch rather than end one.
 //
@@ -142,7 +142,7 @@ void AddDriverEnv(const char* Assignment);
 //
 // **this is not a driver feature and does not care which driver is loaded.** it is
 // `IOCTL_KGSL_SETPROPERTY(KGSL_PROP_PWRCTRL)` straight to `/dev/kgsl-3d0`, so it works on the
-// stock adreno driver and on turnip alike — which is what makes it a fair lever to compare them
+// stock adreno driver and on turnip alike -- which is what makes it a fair lever to compare them
 // with, and what makes it reachable at all on builds whose mesa options are compiled out.
 //
 // re-asserted on a timer rather than set once, because that is what Eden does
@@ -181,14 +181,14 @@ uint64_t PresentedFrameCount();
 enum class WsiMode { Auto, Headless, Android };
 void SetWsiMode(WsiMode Mode);
 
-// the app's surface, or null when there is none — called from the SurfaceHolder callback, which
+// the app's surface, or null when there is none -- called from the SurfaceHolder callback, which
 // means it can arrive before the guest starts and vanish while it is running.
 //
 // a window changes two things and only two. it is **authoritative for the extent**, which is what
 // removes any need to hand-match a size: a surface that disagrees with the client's drawable makes
 // the presenter recreate its swapchain forever without ever erroring, so the size has to come from
 // one place, and the only place that actually knows is here. and it gives Present() somewhere to
-// put the frame — with no window, a presented image is counted and dropped.
+// put the frame -- with no window, a presented image is counted and dropped.
 void SetAndroidWindow(::ANativeWindow* Window);
 
 // where to write presented frames as PPMs, as "<prefix>-NNNNN.ppm". off unless asked for: it

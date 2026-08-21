@@ -20,38 +20,38 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 
 /**
- * The panel the back button opens over a running game.
+ * the panel the back button opens over a running game.
  *
- * **It is the only thing the back button does during a run, and that is the point.** A guest run has
+ * **it is the only thing the back button does during a run, and that is the point.** a guest run has
  * no state that survives being left, so a back press that finished the activity would end a game
- * silently, at the depth of one accidental gesture. Here back opens this, back again closes it, and
- * leaving is a labelled button inside it — two deliberate acts, of which the second says what it
+ * silently, at the depth of one accidental gesture. here back opens this, back again closes it, and
+ * leaving is a labelled button inside it -- two deliberate acts, of which the second says what it
  * does.
  *
- * **Most of it is the log**, which is what the panel is for now: everything this process has printed,
- * in the order it printed it — the emulator's own logger, its raw console writes, the host layer's
- * lines and the app's. Those first three share one pipe already and the fourth is put beside them by
- * [AppLog]. **It does not name the running game**: the cover that started it and the screen it booted
+ * **most of it is the log**, which is what the panel is for now: everything this process has printed,
+ * in the order it printed it -- the emulator's own logger, its raw console writes, the host layer's
+ * lines and the app's. those first three share one pipe already and the fourth is put beside them by
+ * [AppLog]. **it does not name the running game**: the cover that started it and the screen it booted
  * behind both say which game this is, and a third statement of it would cost the width this panel has
  * to spend.
  *
- * **It wears the scheme the settings scene names, and that arrives as a [Context].** [MainActivity]
- * keeps the framework fullscreen theme, because its window is a surface a guest renders into — so
+ * **it wears the scheme the settings scene names, and that arrives as a [Context].** [MainActivity]
+ * keeps the framework fullscreen theme, because its window is a surface a guest renders into -- so
  * everything here is built from [Theme.overlayContext] instead, which resolves the same colour roles
- * the app's own screens do. What is drawn over a game and what is drawn on the game list are one
- * palette; the window under them is not involved. **That is also what makes the panel a layout rather
+ * the app's own screens do. what is drawn over a game and what is drawn on the game list are one
+ * palette; the window under them is not involved. **that is also what makes the panel a layout rather
  * than views assembled in code**: a themed context has the Material attributes an inflation asks for.
  *
- * **The panel is 44% of the width and it is a weight rather than a measurement.** Dividing the
+ * **the panel is 44% of the width and it is a weight rather than a measurement.** dividing the
  * screen in pixels would be the same answer on this device and a wrong one on a panel of another
  * shape, and the layout already has a mechanism for a proportion.
  */
 class GuestOverlay(private val context: Context, private val onExit: Runnable) {
 
     /**
-     * The whole-screen dim, which is also what swallows a touch aimed past the panel.
+     * the whole-screen dim, which is also what swallows a touch aimed past the panel.
      *
-     * An [OverGuestSurface] rather than a plain layout, and **that class is the one thing here worth
+     * an [OverGuestSurface] rather than a plain layout, and **that class is the one thing here worth
      * reading before changing anything**: it is `INVISIBLE` rather than `GONE` while closed, so the
      * panel has a width to slide in from on the first open of a run, and the price of `INVISIBLE` is
      * that becoming visible has to ask for a layout or it never reaches the display.
@@ -62,7 +62,7 @@ class GuestOverlay(private val context: Context, private val onExit: Runnable) {
     }
 
     /**
-     * Inflated against [root] without attaching, which is what keeps its own `layout_` attributes;
+     * inflated against [root] without attaching, which is what keeps its own `layout_` attributes;
      * the weight below is set here because it is this class that decides how wide the panel is.
      */
     private val panel: View =
@@ -72,14 +72,14 @@ class GuestOverlay(private val context: Context, private val onExit: Runnable) {
     private val empty: TextView = panel.findViewById(R.id.empty)
     private val lines = LogAdapter(context)
 
-    /** Whether a back press closes this or opens it. Flipped before the animation, not after it. */
+    /** whether a back press closes this or opens it. flipped before the animation, not after it. */
     var isOpen: Boolean = false
         private set
 
     /**
-     * The sequence after the last line taken from the host layer's ring.
+     * the sequence after the last line taken from the host layer's ring.
      *
-     * Reset on every open rather than kept across one, because the panel drops what it holds when it
+     * reset on every open rather than kept across one, because the panel drops what it holds when it
      * closes: a run being played holds nothing of its own log, and a panel being opened reads the
      * window from wherever it now begins.
      */
@@ -88,16 +88,16 @@ class GuestOverlay(private val context: Context, private val onExit: Runnable) {
     private val ticker = Handler(Looper.getMainLooper())
 
     /**
-     * The panel's own padding, in pixels, since the weight is applied to the panel rather than to
+     * the panel's own padding, in pixels, since the weight is applied to the panel rather than to
      * anything inside it.
      *
-     * **It is the settings list's padding**, which is the number every list in the app is inset by,
+     * **it is the settings list's padding**, which is the number every list in the app is inset by,
      * and the layout inside the panel spaces itself against it.
      */
     private val pad = (PAD * context.resources.displayMetrics.density).toInt()
 
     /**
-     * **Only while the panel is open.** The cost of the ring is paid by the log pump whatever happens;
+     * **only while the panel is open.** the cost of the ring is paid by the log pump whatever happens;
      * the cost of reading it is paid only by a person looking at it, which is what keeps an ordinary
      * run exactly the run it was.
      */
@@ -189,14 +189,14 @@ class GuestOverlay(private val context: Context, private val onExit: Runnable) {
     }
 
     /**
-     * Takes whatever arrived since the last look.
+     * takes whatever arrived since the last look.
      *
-     * **The end is read before the range is asked for, and never after**, so a line printed between
+     * **the end is read before the range is asked for, and never after**, so a line printed between
      * the two calls is simply next time's rather than a line skipped: the range asked for is one this
      * side has already decided the width of.
      *
-     * A range the ring has passed by is clamped to what it still holds, so what is shown may begin
-     * later than what was asked for. That is the same silent dropping the desktop viewer does at its
+     * a range the ring has passed by is clamped to what it still holds, so what is shown may begin
+     * later than what was asked for. that is the same silent dropping the desktop viewer does at its
      * own cap, and it is why the panel says how far back it goes by starting where the ring starts.
      */
     private fun pump() {
@@ -223,10 +223,10 @@ class GuestOverlay(private val context: Context, private val onExit: Runnable) {
     }
 
     /**
-     * Puts the tail of the log on the clipboard.
+     * puts the tail of the log on the clipboard.
      *
-     * **A budget rather than everything**, because the clipboard crosses a Binder transaction and a
-     * transaction that is too large is an exception rather than a truncation. The newest lines are the
+     * **a budget rather than everything**, because the clipboard crosses a Binder transaction and a
+     * transaction that is too large is an exception rather than a truncation. the newest lines are the
      * ones worth keeping when something has to be dropped, which is why the tail is what is taken.
      */
     private fun copy() {
@@ -246,47 +246,47 @@ class GuestOverlay(private val context: Context, private val onExit: Runnable) {
 
     private companion object {
         /**
-         * The dim over the game, and **the one colour here that is not the scheme's**.
+         * the dim over the game, and **the one colour here that is not the scheme's**.
          *
-         * It is a shade cast on somebody else's picture rather than a surface of ours, so it is black
+         * it is a shade cast on somebody else's picture rather than a surface of ours, so it is black
          * in every scheme: a light scheme's own surface used as a dim would wash the game out and
          * leave the panel with nothing to stand against, which is the opposite of what the dim is
-         * for. The panel over it is the scheme's, at whatever lightness the scheme is.
+         * for. the panel over it is the scheme's, at whatever lightness the scheme is.
          */
         const val SCRIM = 0x99000000.toInt()
 
         /**
-         * 44 against 56, **and the pair is what says it rather than either number**. A log line
+         * 44 against 56, **and the pair is what says it rather than either number**. a log line
          * carries a level, a category and a source position before its message begins, so the panel
-         * that used to be a third of the screen is now the width of the thing on it — while the game
+         * is the width of the thing on it rather than a third of the screen -- while the game
          * behind stays the larger share, since the dim is what makes this legible and it is cast over
          * somebody's picture.
          *
-         * They are written as the percentage rather than reduced to 11 against 14, because what is
+         * they are written as the percentage rather than reduced to 11 against 14, because what is
          * being chosen here is how much of the screen the panel takes and the reduced pair does not
          * say that to anybody reading it.
          */
         const val PANEL = 44f
         const val BESIDE = 56f
 
-        /** The settings list's own padding, which is what the panel is inset by. */
+        /** the settings list's own padding, which is what the panel is inset by. */
         const val PAD = 10
         const val SLIDE = 160L
 
         /**
-         * How often the ring is asked for what is new.
+         * how often the ring is asked for what is new.
          *
-         * **Slower than a frame, deliberately.** A log is read rather than watched, four updates a
+         * **slower than a frame, deliberately.** a log is read rather than watched, four updates a
          * second is faster than anybody scrolls, and each one is a lock the log pump could be waiting
-         * on — so the interval is chosen against what the guest is doing rather than against what
+         * on -- so the interval is chosen against what the guest is doing rather than against what
          * looks smooth.
          */
         const val POLL = 250L
 
         /**
-         * How much of the log a copy takes, in characters.
+         * how much of the log a copy takes, in characters.
          *
-         * A Binder transaction fails somewhere around a megabyte and the failure is an exception on
+         * a Binder transaction fails somewhere around a megabyte and the failure is an exception on
          * the way to the clipboard, so this is well under it: enough to carry a boot and the minutes
          * around whatever went wrong, and not enough to reach the ceiling.
          */

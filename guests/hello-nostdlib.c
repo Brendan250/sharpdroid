@@ -3,7 +3,7 @@
 // this is the first thing the loader should be asked to run. it touches exactly two syscalls,
 // write and exit_group, so anything that goes wrong is the loader's fault and not a libc's.
 //
-// it also prints back what it found on its own stack — argc, argv, envp and a few auxv keys.
+// it also prints back what it found on its own stack -- argc, argv, envp and a few auxv keys.
 // that is the point: the mapping half of the loader announces itself loudly by working or
 // crashing, but a subtly wrong initial stack produces a guest that runs and then misbehaves
 // hundreds of instructions later, so the guest is made to report what it was handed.

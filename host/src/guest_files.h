@@ -1,15 +1,15 @@
-// sharpemu-android host layer — a game directory the guest reaches by path, on a volume android
+// sharpemu-android host layer -- a game directory the guest reaches by path, on a volume android
 // will not open by path.
 //
 // android hands an app a *grant* on a directory the user picked, never a path to it. everything
 // behind that grant is reached through a content provider, across binder, by document id. the guest
 // is x86-64 .NET: File.Open becomes guest libc, becomes openat, becomes a syscall on an ordinary
-// string — so there is no call site of ours to put a branch in. every emulator that solves this
+// string -- so there is no call site of ours to put a branch in. every emulator that solves this
 // problem solves it by owning its own file class and branching inside it, and none of them is
 // running a multi-file game directory in place underneath a binary issuing raw syscalls.
 //
 // so the branch goes where we do own one: the syscall layer. the guest is handed an invented
-// absolute path — /game/eboot.bin — and the calls that take a path are answered here, out of the
+// absolute path -- /game/eboot.bin -- and the calls that take a path are answered here, out of the
 // provider, instead of being forwarded to bionic. guest_procfs.cpp already does exactly this in
 // miniature for /proc/self, with Substitute and OpenSynthetic; this is the same idea one level up,
 // with a real directory behind it rather than one invented file.
@@ -17,7 +17,7 @@
 // **what is deliberately not intercepted is the whole design.** a descriptor the provider hands back
 // is a real kernel descriptor on a real file, so read, pread, lseek, mmap and fstat on one are left
 // alone and cost exactly what they cost on a staged path. only the calls that take a *path* become
-// lookups — and the guest's path-taking is over by the end of boot, measured on two titles, after
+// lookups -- and the guest's path-taking is over by the end of boot, measured on two titles, after
 // which this layer is not on any path at all. docs/guest-files.md has the counts and the prices.
 //
 // the layer is read-only, which was measured rather than assumed: neither title writes into its own
@@ -49,7 +49,7 @@ bool Enabled();
 bool OwnsAt(int DirFD, const char* Path);
 
 // each of these answers one syscall in full, and returns what that syscall returns: a descriptor,
-// or 0, or a negative errno. none of them can fall through to bionic — a path inside the mount does
+// or 0, or a negative errno. none of them can fall through to bionic -- a path inside the mount does
 // not exist as far as the kernel is concerned, so an answer here is the only answer there is.
 int64_t Open(int DirFD, const char* Path, uint64_t GuestFlags);
 int64_t Stat(int DirFD, const char* Path, int AtFlags, struct stat* Out);
@@ -58,7 +58,7 @@ int64_t ReadLink(int DirFD, const char* Path);
 
 // the descriptor side, which is only ever a *directory*: a file's descriptor is a real one and
 // nothing here has to know it exists. a directory has no descriptor the provider can hand back at
-// all, so one is invented — see the implementation for what it is made of.
+// all, so one is invented -- see the implementation for what it is made of.
 bool OwnsFD(int FD);
 int64_t FStat(int FD, struct stat* Out);
 int64_t GetDents(int FD, void* Buffer, size_t Size);

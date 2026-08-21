@@ -1,4 +1,4 @@
-// the host layer as a library — the JNI surface the app calls, and nothing else.
+// the host layer as a library -- the JNI surface the app calls, and nothing else.
 //
 // deliberately thin. everything the app can ask for is expressed as the argument vector RunMain
 // already took, so the app passes the same flags a shell would and no measurement stops being
@@ -30,8 +30,8 @@ constexpr const char* LogTag = "sharpemu";
 ANativeWindow* Window {};
 
 // everything the host layer and the guest print goes to stdout and stderr, and in an app both are
-// /dev/null. rather than convert a few thousand printf calls — several of which are load-bearing
-// milestone evidence quoted verbatim in the docs — put a pipe under the two descriptors and pump
+// /dev/null. rather than convert a few thousand printf calls -- several of which are load-bearing
+// milestone evidence quoted verbatim in the docs -- put a pipe under the two descriptors and pump
 // it into logcat. a run in the app then produces exactly the log a run in a shell does, which is
 // the only reason `adb logcat` output can be compared against every earlier milestone's.
 int LogPipe[2] {-1, -1};
@@ -61,7 +61,7 @@ void* LogPump(void*) {
       } else {
         Line.push_back(Buffer[i]);
         // logcat drops a message past ~4000 bytes. the guest can produce a line longer than that
-        // — a .NET stack trace does — and losing it silently is exactly the sort of thing that
+        // -- a .NET stack trace does -- and losing it silently is exactly the sort of thing that
         // costs a debugging round, so break it up rather than let it vanish.
         if (Line.size() >= 3800) {
           // the piece is kept as a line of its own, so a stack trace reaches a reader in the shape
@@ -79,7 +79,7 @@ void* LogPump(void*) {
 // **the redirection happens on the caller's thread and only the draining is the pump's**, which is
 // the whole reason it is not simply the first thing the pump does. anything printed between
 // pthread_create and a new thread reaching dup2 goes to the original stdout, and in an app that is
-// /dev/null — a window a caller printing seconds later never notices, and a total loss for one that
+// /dev/null -- a window a caller printing seconds later never notices, and a total loss for one that
 // asks the host layer a question and ends the process on the answer.
 void StartLogPump() {
   static bool Started = false;
@@ -104,7 +104,7 @@ extern "C" {
 
 // the one place a class can be looked up by name, and the reason this function exists at all.
 //
-// the host layer has always been one-way — the app calls down and nothing calls back, because a
+// the host layer has always been one-way -- the app calls down and nothing calls back, because a
 // window is an ANativeWindow* and audio is pure NDK. the guest file layer is the first thing that
 // has to ask java a question, and a guest thread cannot ask it: FindClass on a thread this process
 // attached itself searches the *system* class loader, which has never heard of anything in the APK.
@@ -115,11 +115,11 @@ extern "C" {
 // microseconds once, and a mount that discovered here that it had nothing to talk to would have
 // discovered it far too late.
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* VM, void*) {
-  // **first, because the two bridges below can fail and say so on stdout.** the redirection used to
-  // be a run's business, which meant everything printed before a run started went to the original
-  // stdout — /dev/null in an app. what is printed here is precisely a bridge that could not resolve
-  // its java side, so the lines that vanished were the ones explaining a capability that is now
-  // missing for the rest of the process. redirecting at library load costs a pipe and a thread once
+  // **first, because the two bridges below can fail and say so on stdout.** a redirection that is a run's
+  // business leaves everything printed before a run starts going to the original stdout -- /dev/null
+  // in an app. what is printed here is precisely a bridge that could not resolve its java side, so
+  // the lines lost that way are the ones explaining a capability the rest of the process no longer
+  // has. redirecting at library load costs a pipe and a thread once
   // and gives every later caller a stdout that goes somewhere.
   StartLogPump();
   HostLayer::SafBridge::OnLoad(VM);
@@ -172,7 +172,7 @@ JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetPadSta
 //
 // **this opens the driver, and that is the point rather than a side effect.** it is the same
 // `std::call_once` the guest's first vulkan call would have run, so the load happens once and simply
-// happens earlier — what is checked is the load that the run will use, not a rehearsal of it in some
+// happens earlier -- what is checked is the load that the run will use, not a rehearsal of it in some
 // other process or namespace. see vulkan_thunk.h for why the answer cannot be had any other way.
 //
 // the two strings outlive the call because the thunk keeps the pointers rather than copying them, and
@@ -275,7 +275,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeL
 
 // one line of the app's own, kept where it arrived among the emulator's.
 //
-// **it is not written to logcat here**, because the caller has already written it there — this puts
+// **it is not written to logcat here**, because the caller has already written it there -- this puts
 // it in the one place it would otherwise be missing from. the app's lines never touch the pipe under
 // fds 1 and 2: java logging is the platform's own channel and does not pass through stdout.
 JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogLine(
@@ -291,7 +291,7 @@ JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogLine(
 }
 
 // blocks for the whole run, so the app must call it off the UI thread. a guest that calls
-// exit_group never returns from here — it calls _exit, which is what the syscall means and the only
+// exit_group never returns from here -- it calls _exit, which is what the syscall means and the only
 // safe answer once the other guest threads are inside translated code. that is the process this
 // library was loaded into, so a caller that has anything to lose runs a guest in a process it is
 // willing to lose; the app gives one to each run.

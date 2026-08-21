@@ -7,18 +7,18 @@ import android.os.Vibrator
 import android.os.VibratorManager
 
 /**
- * The guest's rumble, on whatever this device can vibrate with.
+ * the guest's rumble, on whatever this device can vibrate with.
  *
- * **This is the only thing the host layer calls up into besides the guest file layer.** Everything else
- * about a run goes downward: the surface is handed over as a native window and audio is pure NDK. There
+ * **this is the only thing the host layer calls up into besides the guest file layer.** everything else
+ * about a run goes downward: the surface is handed over as a native window and audio is pure NDK. there
  * is no NDK vibrator API at all, so rumble has to come back through JNI, and the class and its method
- * are resolved once at library load for the reason the file layer's bridge spells out — a thread the
+ * are resolved once at library load for the reason the file layer's bridge spells out -- a thread the
  * host layer attached itself searches the system class loader, which has never heard of anything in
  * this APK.
  *
- * **The host layer does not call this on a guest thread**, and that is a constraint rather than a
- * convenience. A vibrate is a binder round trip to the system server, and a guest thread waiting on one
- * is a guest thread that cannot acknowledge a garbage-collection suspension. So the native side records
+ * **the host layer does not call this on a guest thread**, and that is a constraint rather than a
+ * convenience. a vibrate is a binder round trip to the system server, and a guest thread waiting on one
+ * is a guest thread that cannot acknowledge a garbage-collection suspension. so the native side records
  * the request and delivers it from a thread of its own; what arrives here is already off the guest's
  * critical path, and is also **not** the UI thread.
  */
@@ -27,20 +27,20 @@ object PadRumble {
     private const val TAG = "sharpemu"
 
     /**
-     * How long one request buzzes for.
+     * how long one request buzzes for.
      *
-     * The guest's seam sets a rumble level and leaves it set; it does not say how long. A vibrator
-     * takes a duration and stops on its own. So each request is a short pulse and a game holding a
-     * rumble on sends more of them — which is what every android emulator does with this seam, and it
+     * the guest's seam sets a rumble level and leaves it set; it does not say how long. a vibrator
+     * takes a duration and stops on its own. so each request is a short pulse and a game holding a
+     * rumble on sends more of them -- which is what every android emulator does with this seam, and it
      * is why the number is small enough that two in a row read as continuous.
      */
     private const val PULSE_MILLIS = 80L
 
     /**
-     * The weakest amplitude worth sending.
+     * the weakest amplitude worth sending.
      *
-     * Below about this the actuator does not move and the request is only a wakeup for the vibrator
-     * service. Zero means stop, and is handled before this.
+     * below about this the actuator does not move and the request is only a wakeup for the vibrator
+     * service. zero means stop, and is handled before this.
      */
     private const val FLOOR = 8
 
@@ -51,23 +51,23 @@ object PadRumble {
     private var amplitudeControl = false
 
     /**
-     * Whether a game may drive the motor — Settings, Controls, the vibrate switch.
+     * whether a game may drive the motor -- Settings, Controls, the vibrate switch.
      *
-     * **Gated here rather than in the host layer, and that is deliberate.** The guest's request still
-     * crosses the boundary and is still counted as asked for; what stops is the platform call. So a
+     * **gated here rather than in the host layer, and that is deliberate.** the guest's request still
+     * crosses the boundary and is still counted as asked for; what stops is the platform call. so a
      * run with this off stays distinguishable in the log from a run where the game never asked, which
      * is the distinction the two counters exist to preserve.
      *
-     * Volatile because the host layer's delivery thread reads it and the UI thread writes it.
+     * volatile because the host layer's delivery thread reads it and the UI thread writes it.
      */
     @Volatile
     @JvmStatic
     var enabled: Boolean = true
 
     /**
-     * Called by the activity that owns a run, before the guest starts.
+     * called by the activity that owns a run, before the guest starts.
      *
-     * The application context is held rather than the activity, because this outlives any one screen
+     * the application context is held rather than the activity, because this outlives any one screen
      * and holding an activity here would keep it from being collected.
      */
     @JvmStatic
@@ -98,10 +98,10 @@ object PadRumble {
     }
 
     /**
-     * Detaches, so a run that has ended cannot buzz.
+     * detaches, so a run that has ended cannot buzz.
      *
-     * The native delivery thread is not stopped by this and does not need to be — it waits forever by
-     * design and the process ends with the run. What this prevents is a request already in flight
+     * the native delivery thread is not stopped by this and does not need to be -- it waits forever by
+     * design and the process ends with the run. what this prevents is a request already in flight
      * arriving after the guest is gone.
      */
     @JvmStatic
@@ -111,15 +111,15 @@ object PadRumble {
     }
 
     /**
-     * The host layer's entry point. Resolved as `rumble(II)Z` at library load, so **the name and
+     * the host layer's entry point. resolved as `rumble(II)Z` at library load, so **the name and
      * signature are part of an interface** and cannot be changed on this side alone.
      *
-     * **It returns whether the platform took the request, and the host counts only the trues.** A
+     * **it returns whether the platform took the request, and the host counts only the trues.** a
      * void version reported success for anything that did not crash, so a rumble refused for want of
-     * the `VIBRATE` permission — which throws here rather than at any earlier check — was counted as
-     * delivered. A counter that cannot distinguish those is worse than none.
+     * the `VIBRATE` permission -- which throws here rather than at any earlier check -- was counted as
+     * delivered. a counter that cannot distinguish those is worse than none.
      *
-     * @param large the strong motor, 0..255. A single-actuator device is driven by this.
+     * @param large the strong motor, 0..255. a single-actuator device is driven by this.
      * @param small the weak motor, 0..255, used only when there is nothing stronger asked for.
      * @return true when the platform accepted it; false when there is no vibrator, nothing was asked
      *   for, or the request was refused.
@@ -151,7 +151,7 @@ object PadRumble {
             return true
         } catch (e: Exception) {
             // the vibrator service can go away, and a throw crossing back into JNI would be delivered
-            // at the delivery thread's next call — a different request entirely. this is not worth
+            // at the delivery thread's next call -- a different request entirely. this is not worth
             // ending a run over.
             AppLog.w(TAG, "[pad] a rumble request failed", e)
             return false

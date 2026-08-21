@@ -16,17 +16,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A SharpEmu build: a directory holding a payload, its {@code plugins/}, and a {@code meta.json}
+ * a SharpEmu build: a directory holding a payload, its {@code plugins/}, and a {@code meta.json}
  * that gives it an identity.
  *
- * <p><b>A build is a directory, not a file.</b> SharpEmu resolves {@code plugins/} relative to its
- * own executable — {@code AppContext.BaseDirectory/plugins} for managed plugins and
- * {@code ffmpeg.RootPath} for the Bink decoder — so a payload staged on its own is a payload with
- * no audio and no video. The host layer needs no part of this: {@code GuestProcFS::SetExe} is
+ * <p><b>a build is a directory, not a file.</b> SharpEmu resolves {@code plugins/} relative to its
+ * own executable -- {@code AppContext.BaseDirectory/plugins} for managed plugins and
+ * {@code ffmpeg.RootPath} for the Bink decoder -- so a payload staged on its own is a payload with
+ * no audio and no video. the host layer needs no part of this: {@code GuestProcFS::SetExe} is
  * {@code realpath} of the payload path it is handed, so {@code AppContext.BaseDirectory} follows
  * the build directory by itself.
  *
- * <p>Everything here is the launcher's job on purpose. The host layer keeps taking a payload path
+ * <p>everything here is the launcher's job on purpose. the host layer keeps taking a payload path
  * and stays a thing that runs an ELF; name resolution, {@code meta.json} and the contract check
  * live where the frontend's own build list will need them anyway, because two implementations of
  * one contract is one too many.
@@ -39,74 +39,74 @@ public final class SharpEmuBuild {
     private static final String TAG = "sharpemu";
 
     /**
-     * The launcher-to-payload interface generation this app speaks: which environment variables the
+     * the launcher-to-payload interface generation this app speaks: which environment variables the
      * payload is expected to understand and which host window it must implement.
      *
-     * <p>A <b>range</b> rather than a single number, so bumping it does not silently invalidate
-     * every build a user has already imported. Outside the range the launch is refused and both
-     * numbers are named — because the failure this replaces is a pristine upstream build ignoring
+     * <p>a <b>range</b> rather than a single number, so bumping it does not silently invalidate
+     * every build a user has already imported. outside the range the launch is refused and both
+     * numbers are named -- because the failure this replaces is a pristine upstream build ignoring
      * {@code SHARPEMU_HOST_WINDOW=android}, constructing an {@code SdlHostWindow} and dying six
      * seconds later on "No available video device", which names the wrong component entirely.
      *
-     * <p>It is a courtesy and not a guarantee: a build that declares 1 and lies still dies inside
-     * SDL. The real guarantee is knowing where a build came from, which is what the launch log is
+     * <p>it is a courtesy and not a guarantee: a build that declares 1 and lies still dies inside
+     * SDL. the real guarantee is knowing where a build came from, which is what the launch log is
      * for.
      */
     /**
-     * <p><b>2 means the payload understands the audio flag.</b> The bump is the first real
+     * <p><b>2 means the payload understands the audio flag.</b> the bump is the first real
      * exercise of this mechanism, and it is
-     * also the first time the range does not include every generation before it. The reason is
+     * also the first time the range does not include every generation before it. the reason is
      * what a contract-1 build now does: it does not know {@code SHARPEMU_HOST_AUDIO}, so it asks
      * SDL for a device, SDL names four backends Android does not have, and the port degrades to
-     * {@code backend=silent}. The game renders perfectly and makes no sound, and nothing anywhere
-     * reports an error — which is precisely the class of failure this check exists to turn into a
-     * refusal. "The emulator has no audio" is exactly the report a mismatched build generates.
+     * {@code backend=silent}. the game renders perfectly and makes no sound, and nothing anywhere
+     * reports an error -- which is precisely the class of failure this check exists to turn into a
+     * refusal. "the emulator has no audio" is exactly the report a mismatched build generates.
      *
      * <p><b>3 means the payload registers a host input source, and the range includes 2 rather than
-     * excluding it.</b> A contract-2 payload does not know {@code SHARPEMU_HOST_INPUT}, so it registers
+     * excluding it.</b> a contract-2 payload does not know {@code SHARPEMU_HOST_INPUT}, so it registers
      * nothing and its pad exports report a controller that is permanently connected and permanently
-     * neutral — a game that ignores every button with nothing returning an error. That reads as
+     * neutral -- a game that ignores every button with nothing returning an error. that reads as
      * identical to a contract-2 build in every other respect, which is the argument for refusing it.
      */
     static final int CONTRACT_MIN = 1;
     static final int CONTRACT_MAX = 3;
 
     /**
-     * The one build that ships inside the APK, by the folder it extracts to.
+     * the one build that ships inside the APK, by the folder it extracts to.
      *
-     * <p><b>It is not a build with an id among others, and that is the whole point of this name.</b>
-     * Exactly one build ships per APK, so there is never a question of which of ours is the default
-     * — it is this one, structurally and forever, which is what removed a per-release recommendation
-     * constant, a toggle and a badge. The list pins it at the top with no delete button, the way
+     * <p><b>it is not a build with an id among others, and that is the whole point of this name.</b>
+     * exactly one build ships per APK, so there is never a question of which of ours is the default
+     * -- it is this one, structurally and forever, which is what removed a per-release recommendation
+     * constant, a toggle and a badge. the list pins it at the top with no delete button, the way
      * Eden pins the system GPU driver.
      *
-     * <p><b>A plain word rather than a derived name, and that is what makes it collision-proof.</b>
-     * Every other folder here is {@code <id>-<sharpemuVersion>-<packagedAt>}, so no import can
+     * <p><b>a plain word rather than a derived name, and that is what makes it collision-proof.</b>
+     * every other folder here is {@code <id>-<sharpemuVersion>-<packagedAt>}, so no import can
      * ever land on it and no sentinel is needed in the store: the setting holds this string like any
      * other folder name, and per-game selection later stores it the same way.
      *
-     * <p><b>Absent is a normal state.</b> The debug app does not bundle a build — the dev loop keeps
-     * its small APK and its staged builds — so this directory simply does not exist there, and
+     * <p><b>absent is a normal state.</b> the debug app does not bundle a build -- the dev loop keeps
+     * its small APK and its staged builds -- so this directory simply does not exist there, and
      * {@link #mostRecent} is what a launch naming nothing falls back to.
      */
     static final String BUNDLED = "bundled";
 
-    /** Where the build will be run from — wherever it already is, since nothing is copied. */
+    /** where the build will be run from -- wherever it already is, since nothing is copied. */
     final File dir;
     final String folder;
     final String id;
     final String name;
     final String sharpemuVersion;
     /**
-     * When this build was packaged, {@code yyyyMMddHHmmss} as a number — and the key everything is
+     * when this build was packaged, {@code yyyyMMddHHmmss} as a number -- and the key everything is
      * ordered by, since higher is later is newer.
      *
-     * <p><b>A time rather than a counter, and the field is named for what it is.</b> A counter has to
+     * <p><b>a time rather than a counter, and the field is named for what it is.</b> a counter has to
      * be bumped by whoever packages, which makes it wrong exactly when it matters: two packages of
-     * one source both claiming to be the first. A packaging time assigns itself, cannot be forgotten,
+     * one source both claiming to be the first. a packaging time assigns itself, cannot be forgotten,
      * and answers "which of these two is newer" without a repository to consult.
      *
-     * <p><b>A long, because {@code 20260808013800} does not fit in 32 bits.</b> It is deliberately a
+     * <p><b>a long, because {@code 20260808013800} does not fit in 32 bits.</b> it is deliberately a
      * sortable integer rather than an ISO string or an epoch second: a person reading a directory
      * listing can date it at a glance, and a machine can compare it without parsing.
      */
@@ -115,42 +115,42 @@ public final class SharpEmuBuild {
     final String payload;
     final String notes;
     /**
-     * The fork commit this payload was built from, or empty.
+     * the fork commit this payload was built from, or empty.
      *
-     * <p><b>This is the field that tells two builds of one version apart.</b> {@code sharpemuVersion}
+     * <p><b>this is the field that tells two builds of one version apart.</b> {@code sharpemuVersion}
      * is upstream's tag and our fork moves faster than upstream does, so two builds of one tag are
-     * routine and are indistinguishable by every other field a person sees. The commit is what tells
-     * them apart, which makes it the version of the build that ships — whose {@code packagedAt}
+     * routine and are indistinguishable by every other field a person sees. the commit is what tells
+     * them apart, which makes it the version of the build that ships -- whose {@code packagedAt}
      * is deliberately absent, because exactly one of it exists and there is nothing to order.
      */
     final String commit;
     /**
-     * Who produced this build, or empty.
+     * who produced this build, or empty.
      *
-     * <p><b>Not who wrote the emulator.</b> {@code sharpemuVersion} and {@link #commit} already say
+     * <p><b>not who wrote the emulator.</b> {@code sharpemuVersion} and {@link #commit} already say
      * what the code is; this answers the question somebody holding two zips of one version has,
      * which is whose zip each one is.
      *
-     * <p><b>It is a claim and not a fact, unlike {@link #commit}.</b> A commit names something that
-     * can be checked against a repository; this is a string in a zip anybody can edit. So it is
-     * drawn and nothing else — no import rule reads it, and nothing is trusted because of it.
+     * <p><b>it is a claim and not a fact, unlike {@link #commit}.</b> a commit names something that
+     * can be checked against a repository; this is a string in a zip anybody can edit. so it is
+     * drawn and nothing else -- no import rule reads it, and nothing is trusted because of it.
      *
-     * <p>Empty on the build that ships inside the APK, which is the app's own and says so by being
+     * <p>empty on the build that ships inside the APK, which is the app's own and says so by being
      * bundled, and on any build packaged before the field existed.
      */
     final String author;
-    /** Guest environment this build wants defaulted on. The lowest-precedence source there is. */
+    /** guest environment this build wants defaulted on. the lowest-precedence source there is. */
     final Map<String, String> env;
     /**
-     * True for the build that is still inside the APK: identified, and not yet a directory.
+     * true for the build that is still inside the APK: identified, and not yet a directory.
      *
-     * <p><b>It exists so that one screen can be honest before one launch has happened.</b> The
+     * <p><b>it exists so that one screen can be honest before one launch has happened.</b> the
      * bundled build is pinned and selected the first time the build manager is opened, and at that
-     * moment nothing has extracted it — so {@link #runnable} asking whether its payload is a file
+     * moment nothing has extracted it -- so {@link #runnable} asking whether its payload is a file
      * would answer no, and the row would be drawn in red naming a contract that is perfectly fine.
-     * The payload is in the APK, where {@code scripts/build-apk.py} checked it was before packaging.
+     * the payload is in the APK, where {@code scripts/build-apk.py} checked it was before packaging.
      *
-     * <p>Everything read back <i>after</i> extraction is an ordinary directory again, so this is
+     * <p>everything read back <i>after</i> extraction is an ordinary directory again, so this is
      * false for every build a launch actually runs.
      */
     final boolean inApk;
@@ -182,25 +182,25 @@ public final class SharpEmuBuild {
         return new File(dir, payload);
     }
 
-    /** id, version, build number and contract — what the launch log has to say. */
+    /** id, version, build number and contract -- what the launch log has to say. */
     String identity() {
         return name + " (" + id + " " + sharpemuVersion
                 + (commit.isEmpty() ? " " + packagedAt : " " + shortCommit())
                 + ", contract " + hostContract + ")";
     }
 
-    /** The commit, cut to what a person quotes in a bug report. Empty when there is none. */
+    /** the commit, cut to what a person quotes in a bug report. empty when there is none. */
     String shortCommit() {
         return commit.length() > 7 ? commit.substring(0, 7) : commit;
     }
 
     /**
-     * The most recently staged build, or the most recently installed one if nothing is staged.
-     * Returns null and says why if there is nothing at all.
+     * the most recently staged build, or the most recently installed one if nothing is staged.
+     * returns null and says why if there is nothing at all.
      *
-     * <p><b>This is what "no {@code --es sharpemu}" means</b>, and it is the same rule the scripts
-     * follow when you omit the flag: whatever the device already has. In a deploy loop "the one I
-     * last put there" is what is meant, and the alternative — the newest {@code packagedAt} — is
+     * <p><b>this is what "no {@code --es sharpemu}" means</b>, and it is the same rule the scripts
+     * follow when you omit the flag: whatever the device already has. in a deploy loop "the one I
+     * last put there" is what is meant, and the alternative -- the newest {@code packagedAt} -- is
      * exactly the footgun that answering by id carries, since a freshly staged build loses to a
      * later-stamped one that is still lying around.
      *
@@ -208,7 +208,7 @@ public final class SharpEmuBuild {
      * directory, so it is the one that moves; an installed copy's timestamp says when it was copied
      * and not when its bytes were chosen.
      *
-     * <p>It logs the directory it picked and how many it picked from. A run attributed to the wrong
+     * <p>it logs the directory it picked and how many it picked from. a run attributed to the wrong
      * artefact is this project's oldest failure, and the cure has always been saying which.
      */
     static SharpEmuBuild mostRecent(File staged, File internal) {
@@ -220,7 +220,7 @@ public final class SharpEmuBuild {
         }
         if (best == null) {
             AppLog.e(TAG, "[app] no build in " + staged + " or " + internal
-                    + " — stage one with scripts/stage.py, or name one with --es sharpemu <path>");
+                    + ": stage one with scripts/stage.py, or name one with --es sharpemu <path>");
             return null;
         }
         AppLog.i(TAG, "[app] no build named, so the most recently " + where + " one: " + best.dir);
@@ -251,22 +251,22 @@ public final class SharpEmuBuild {
     }
 
     /**
-     * Resolves the folder name the build manager stored, and runs it where it is.
+     * resolves the folder name the build manager stored, and runs it where it is.
      *
-     * <p><b>A folder name is the concrete identity, and that is why the setting holds one.</b> It is
-     * derived from {@code meta.json} — {@code <id>-<sharpemuVersion>-<packagedAt>} — so it names
+     * <p><b>a folder name is the concrete identity, and that is why the setting holds one.</b> it is
+     * derived from {@code meta.json} -- {@code <id>-<sharpemuVersion>-<packagedAt>} -- so it names
      * one build and not a family. {@link #BUNDLED} is the one folder that is not derived from
      * anything, and it needs no sentinel beside it precisely because no derived name can collide
      * with a plain word.
      *
-     * <p><b>Nothing is copied.</b> A build runs where it is: a staged one from external storage,
+     * <p><b>nothing is copied.</b> a build runs where it is: a staged one from external storage,
      * where adb put it, and an imported or bundled one from the app's own directory, because that is
-     * where they had to land. Copying one onto internal storage would buy durability against
-     * re-staging, which is a thing only a developer can do and exactly the thing they mean to do —
+     * where they had to land. copying one onto internal storage would buy durability against
+     * re-staging, which is a thing only a developer can do and exactly the thing they mean to do --
      * and {@code docs/build-format.md} records that the volume costs nothing measurable:
-     * 874–902 ms from external FUSE against 879–907 ms from internal.
+     * 874-902 ms from external FUSE against 879-907 ms from internal.
      *
-     * <p>Null when it is gone — deleted from outside the app, or wiped with the external volume.
+     * <p>null when it is gone -- deleted from outside the app, or wiped with the external volume.
      */
     static SharpEmuBuild resolveFolder(String folder, File internal, File staged) {
         File inInternal = new File(internal, folder);
@@ -283,22 +283,22 @@ public final class SharpEmuBuild {
     }
 
     /**
-     * Runs a build directory where it lies, checking its contract and its payload first.
+     * runs a build directory where it lies, checking its contract and its payload first.
      *
-     * <p><b>This is what everything reaches now.</b> {@code --es sharpemu} hands it a path, the
+     * <p><b>this is what everything reaches now.</b> {@code --es sharpemu} hands it a path, the
      * settings store hands it a folder resolved to one, and the bundled build is a directory like any
-     * other. Nothing is copied on the way: a build runs where it is.
+     * other. nothing is copied on the way: a build runs where it is.
      */
     static SharpEmuBuild resolvePath(File dir) {
         if (!dir.isDirectory()) {
             AppLog.e(TAG, "[app] no build directory at " + dir
-                    + " — stage one with scripts/stage.py");
+                    + " -- stage one with scripts/stage.py");
             return null;
         }
         SharpEmuBuild build = read(dir);
         if (build == null) {
             AppLog.e(TAG, "[app] " + dir + " has no readable meta.json, so it has no identity"
-                    + " — package it with scripts/package-build.py");
+                    + " -- package it with scripts/package-build.py");
             return null;
         }
         if (!accept(build)) {
@@ -307,7 +307,7 @@ public final class SharpEmuBuild {
         return build;
     }
 
-    /** The build that shipped inside this APK, or null — which is the normal state in a debug app. */
+    /** the build that shipped inside this APK, or null -- which is the normal state in a debug app. */
     static SharpEmuBuild bundled(File internal) {
         File dir = new File(internal, BUNDLED);
         if (!dir.isDirectory()) {
@@ -317,9 +317,9 @@ public final class SharpEmuBuild {
     }
 
     /**
-     * True for a directory this list must not draw, which today is only the bundled one.
+     * true for a directory this list must not draw, which today is only the bundled one.
      *
-     * <p>It is pinned above the list rather than in it, so without this it would appear twice — and
+     * <p>it is pinned above the list rather than in it, so without this it would appear twice -- and
      * {@link #mostRecent} would be able to answer with it, which would make "no build was named" mean
      * something different the moment an APK started shipping one.
      */
@@ -328,19 +328,19 @@ public final class SharpEmuBuild {
     }
 
     /**
-     * Every readable build on the device except the bundled one, one entry per identity.
+     * every readable build on the device except the bundled one, one entry per identity.
      *
-     * <p><b>A build in both places is one entry and the app's own copy is the one returned.</b> Which
+     * <p><b>a build in both places is one entry and the app's own copy is the one returned.</b> which
      * volume it came from is not a property of the build, and a list showing the same identity twice
      * would be asking the user to choose between two spellings of one thing.
      *
-     * <p>Ordering, badges and grouping are {@code BuildLibrary}'s: this answers what is there.
+     * <p>ordering, badges and grouping are {@code BuildLibrary}'s: this answers what is there.
      */
     static List<SharpEmuBuild> list(File internal, File staged) {
         Map<String, SharpEmuBuild> byFolder = new LinkedHashMap<>();
         collect(staged, byFolder);
         // installed second, so it replaces the staged copy of the same folder rather than losing to
-        // it. same identity either way — the folder name is derived from meta.json.
+        // it. same identity either way -- the folder name is derived from meta.json.
         collect(internal, byFolder);
         return new ArrayList<>(byFolder.values());
     }
@@ -352,8 +352,8 @@ public final class SharpEmuBuild {
         }
         for (File entry : entries) {
             // **{@link #isReserved} and not just {@code .partial}**, or the bundled build is drawn
-            // twice the moment it has been unpacked — once pinned above the list and once in the
-            // group its id and version put it in. It was invisible until something bundled a build,
+            // twice the moment it has been unpacked -- once pinned above the list and once in the
+            // group its id and version put it in. it was invisible until something bundled a build,
             // because until then the directory it names does not exist.
             if (!entry.isDirectory() || isReserved(entry)) {
                 continue;
@@ -365,14 +365,14 @@ public final class SharpEmuBuild {
         }
     }
 
-    /** True once this build is on internal storage, which is where a selected build is run from. */
+    /** true once this build is on internal storage, which is where a selected build is run from. */
     boolean isInstalled(File internal) {
         return dir.getAbsolutePath().startsWith(internal.getAbsolutePath() + File.separator);
     }
 
     /**
-     * Whether this build could be launched at all: a contract this app speaks, and its payload
-     * present. The build manager draws an entry that fails this rather than hiding it, because a
+     * whether this build could be launched at all: a contract this app speaks, and its payload
+     * present. the build manager draws an entry that fails this rather than hiding it, because a
      * build somebody imported and cannot run should say why on the screen it was imported from.
      */
     boolean runnable() {
@@ -380,7 +380,7 @@ public final class SharpEmuBuild {
                 && (inApk || payloadFile().isFile());
     }
 
-    /** Removes a build directory outright. Nothing here is recoverable and nothing here is unique. */
+    /** removes a build directory outright. nothing here is recoverable and nothing here is unique. */
     static boolean delete(File dir) {
         deleteTree(dir);
         boolean gone = !dir.exists();
@@ -388,12 +388,12 @@ public final class SharpEmuBuild {
         return gone;
     }
 
-    /** The two things that make a build runnable: a contract this app speaks, and its payload. */
+    /** the two things that make a build runnable: a contract this app speaks, and its payload. */
     private static boolean accept(SharpEmuBuild build) {
         if (build.hostContract < CONTRACT_MIN || build.hostContract > CONTRACT_MAX) {
             AppLog.e(TAG, "[app] " + build.identity() + " declares host contract " + build.hostContract
                     + " and this app speaks " + CONTRACT_MIN + ".." + CONTRACT_MAX
-                    + " — refusing to launch it");
+                    + " -- refusing to launch it");
             return false;
         }
         if (!build.payloadFile().isFile()) {
@@ -405,7 +405,7 @@ public final class SharpEmuBuild {
     }
 
     /**
-     * The identity of a build that is still inside the APK, named by where it will extract to.
+     * the identity of a build that is still inside the APK, named by where it will extract to.
      *
      * <p>{@code BundledBuild} reads the asset's {@code meta.json} and calls this; nothing else has
      * any business constructing a build whose directory does not exist yet.
@@ -414,7 +414,7 @@ public final class SharpEmuBuild {
         return new SharpEmuBuild(target, target.getName(), json, true);
     }
 
-    /** A build directory's identity, or null if it has no readable {@code meta.json}. */
+    /** a build directory's identity, or null if it has no readable {@code meta.json}. */
     static SharpEmuBuild read(File dir) {
         File meta = new File(dir, "meta.json");
         if (!meta.isFile()) {
@@ -440,7 +440,7 @@ public final class SharpEmuBuild {
         }
     }
 
-    /** Orders two builds: their SharpEmu versions first, then the build number within one. */
+    /** orders two builds: their SharpEmu versions first, then the build number within one. */
     static int compare(SharpEmuBuild a, SharpEmuBuild b) {
         int v = compareVersions(a.sharpemuVersion, b.sharpemuVersion);
         if (v != 0) {
@@ -450,9 +450,9 @@ public final class SharpEmuBuild {
     }
 
     /**
-     * Orders two {@code sharpemuVersion} strings.
+     * orders two {@code sharpemuVersion} strings.
      *
-     * <p>The rule is {@link Versions}, which is a file of its own because it is not semver and reads
+     * <p>the rule is {@link Versions}, which is a file of its own because it is not semver and reads
      * like a mistake to anybody who expects it to be.
      */
     static int compareVersions(String a, String b) {

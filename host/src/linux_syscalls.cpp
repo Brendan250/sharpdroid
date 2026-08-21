@@ -196,8 +196,8 @@ uint64_t FromHost(long Result) {
   return Result == -1 ? static_cast<uint64_t>(-errno) : static_cast<uint64_t>(Result);
 }
 
-// x86-64's struct stat. it is not the arm64 one — the field order diverges after st_ino and
-// the padding differs — so every stat-shaped syscall has to write this layout by hand.
+// x86-64's struct stat. it is not the arm64 one -- the field order diverges after st_ino and
+// the padding differs -- so every stat-shaped syscall has to write this layout by hand.
 struct GuestStat {
   uint64_t st_dev;
   uint64_t st_ino;
@@ -244,7 +244,7 @@ void TranslateStat(const struct stat& Host, GuestStat* Guest) {
 }
 
 // **`struct statx` is the one stat-shaped structure that needs no guest layout of its own.** it is
-// fixed-width and identical on every architecture — that is what it was added for — so the guest's
+// fixed-width and identical on every architecture -- that is what it was added for -- so the guest's
 // and the host's are the same 256 bytes, and `<linux/stat.h>` is where it comes from: a kernel UAPI
 // header the NDK ships whatever the API level, unguarded, and which `<sys/stat.h>` includes
 // unconditionally. only the `statx()` *function* is `__INTRODUCED_IN(30)`, and nothing here calls it.
@@ -299,7 +299,7 @@ int TranslateOpenFlags(uint64_t GuestFlags) {
   return static_cast<int>(Flags);
 }
 
-// PROT_EXEC never reaches the host kernel — see VMA::HostProt, which is where the rule lives now.
+// PROT_EXEC never reaches the host kernel -- see VMA::HostProt, which is where the rule lives now.
 //
 // the guest cannot tell. it never reads back its own protections, mprotect reports success, and
 // the VMA tracker remembers what was really asked for, so FEXCore is not fooled either.
@@ -308,8 +308,8 @@ int TranslateProt(uint64_t GuestProt) {
 }
 
 // MAP_32BIT and MAP_ABOVE4G are x86-only placement hints; those two bits mean nothing on the
-// asm-generic arm64 flag set and would be rejected as unknown. everything else — down to
-// MAP_FIXED_NOREPLACE at 0x100000 — holds the same value on both architectures.
+// asm-generic arm64 flag set and would be rejected as unknown. everything else -- down to
+// MAP_FIXED_NOREPLACE at 0x100000 -- holds the same value on both architectures.
 int TranslateMapFlags(uint64_t GuestFlags) {
   constexpr uint64_t GuestMAP_32BIT = 0x40;
   constexpr uint64_t GuestMAP_ABOVE4G = 0x80;
@@ -332,19 +332,19 @@ uint64_t AlignUp(uint64_t Value, uint64_t Alignment) {
 // off unless --trace-files names a prefix, and the reason it exists is that a directory is not
 // always reached by a path. when a game comes from a storage access framework grant rather than
 // from a real path, every call counted here is one the host layer has to answer itself, out of a
-// provider, across binder — so these counts are what that costs, and the only way to compare the
+// provider, across binder -- so these counts are what that costs, and the only way to compare the
 // two ways of reaching the same game is to count both.
 //
 // the split is the point rather than the total. a descriptor the framework hands back is a real fd
 // on a real file, so read, pread, lseek, mmap and fstat on one cost nothing extra and stay
 // pass-throughs; it is the path-taking calls that become lookups, and a *directory*, which has no
-// descriptor to hand back at all. hence the fd table — it is the only way to tell a getdents on the
+// descriptor to hand back at all. hence the fd table -- it is the only way to tell a getdents on the
 // game from a getdents on anything else, since the dispatcher otherwise never learns where an fd
 // came from.
 namespace FileProbe {
 
 // the gate, and it is an atomic rather than the string below because every guest read, close and
-// lseek passes it. one relaxed load and a branch that predicts perfectly — the same cost the
+// lseek passes it. one relaxed load and a branch that predicts perfectly -- the same cost the
 // dispatcher already pays for `if (Trace)` on every syscall, and the same reason it is acceptable.
 // written once before any guest thread exists, read from all of them.
 std::atomic<bool> Active {false};
@@ -364,7 +364,7 @@ struct {
 
 // every entry point below takes one of these, after the gate and before anything that can fail.
 // the probe prints, printf is allowed to set errno, and the caller's next statement is FromHost,
-// which reads it — so a probe that did not restore errno would turn a successful syscall into a
+// which reads it -- so a probe that did not restore errno would turn a successful syscall into a
 // random failure, and it would look like a host-layer bug rather than like the probe.
 struct KeepErrno {
   int Saved {errno};
@@ -501,7 +501,7 @@ void LinuxSyscallHandler::SetBrkBase(uint64_t Base) {
   if (Arena != MAP_FAILED && reinterpret_cast<uint64_t>(Arena) == Base) {
     BrkArenaEnd = Base + BrkArenaSize;
     // the whole reservation, PROT_NONE. brk hands pages out of it by mprotect, and each of those
-    // re-records the range it touched — so the tracker always describes the heap as the guest
+    // re-records the range it touched -- so the tracker always describes the heap as the guest
     // sees it, with the untouched tail correctly unreadable rather than quietly executable.
     VMA::Record(Base, BrkArenaSize, PROT_NONE);
   } else if (Arena != MAP_FAILED) {
@@ -514,7 +514,7 @@ void LinuxSyscallHandler::SetBrkBase(uint64_t Base) {
 uint64_t LinuxSyscallHandler::HandleBrk(uint64_t NewBreak) {
   std::lock_guard Lock {BrkLock};
   // brk(0) is the idiomatic "where is the break?" query, and brk always returns the resulting
-  // break rather than an error — a failed request is reported by the break not having moved.
+  // break rather than an error -- a failed request is reported by the break not having moved.
   if (NewBreak == 0 || NewBreak < BrkBase || NewBreak > BrkArenaEnd) {
     return BrkCurrent;
   }
@@ -551,7 +551,7 @@ void LinuxSyscallHandler::InvalidateGuestCodeRange(FEXCore::Core::InternalThread
   // FEXCore calls this from more places than the name suggests, and one of them is load-bearing
   // for SMCChecks=full: the byte-comparison guard emitted into every block calls
   // `_ThreadRemoveCodeEntry`, which lands here. leaving it as the base class's empty default does
-  // not merely lose an optimisation — the guard detects the change, invalidates nothing, returns
+  // not merely lose an optimisation -- the guard detects the change, invalidates nothing, returns
   // to the same entrypoint, finds the same stale block and spins forever.
   VMA::Invalidate(Thread, Start, Length);
 }
@@ -562,7 +562,7 @@ uint64_t LinuxSyscallHandler::HandleSyscall(FEXCore::Core::CpuStateFrame* Frame,
   // a syscall boundary is the host layer's one unconditionally safe delivery point: CPUState
   // describes the guest exactly, no host lock is held, and an interrupted host call is still close
   // enough to its start to be restarted. so every syscall ends by asking whether a signal was
-  // raised on this thread while it was somewhere it could not be redirected from — which includes
+  // raised on this thread while it was somewhere it could not be redirected from -- which includes
   // the very common case of a thread parked in futex or poll, brought back with EINTR for exactly
   // this reason.
   //
@@ -577,7 +577,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   const uint64_t Number = Args->Argument[0];
 
   // the vulkan thunk rides in on the syscall boundary rather than beside it, because the boundary
-  // is what guarantees the guest's registers are all in CPUState — which is where the thunk reads
+  // is what guarantees the guest's registers are all in CPUState -- which is where the thunk reads
   // its arguments from. the magic range is far above any real syscall number, so this test can
   // never shadow one. see vulkan_thunk.h.
   if (VulkanThunk::IsThunkCall(Number)) [[unlikely]] {
@@ -604,7 +604,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
 
   // the guest thread making this call, taken from the frame rather than from thread-local storage:
   // the frame is the syscall's own context and cannot describe anyone else. per-thread guest state
-  // — the signal mask, the alternate stack — hangs off this.
+  // -- the signal mask, the alternate stack -- hangs off this.
   auto* Self = static_cast<GuestThread*>(Frame->Thread->FrontendPtr);
 
   if (Trace) {
@@ -629,7 +629,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     default: break;
     }
     // the tid, because from here on there is more than one guest thread issuing syscalls and an
-    // interleaved trace without it is unreadable — two threads' library loads look like one
+    // interleaved trace without it is unreadable -- two threads' library loads look like one
     // thread doing something incoherent.
     const int TID = ::gettid();
     if (Path) {
@@ -680,7 +680,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   case SYS_x64_dup2: return FromHost(::dup2(static_cast<int>(Arg0), static_cast<int>(Arg1)));
   case SYS_x64_pipe2: return FromHost(::pipe2(reinterpret_cast<int*>(Arg0), static_cast<int>(Arg1)));
   // the F_* command numbers agree between the two architectures. what does not is the flag word
-  // F_GETFL returns, which comes back in host O_* values — a guest that inspects O_DIRECTORY or
+  // F_GETFL returns, which comes back in host O_* values -- a guest that inspects O_DIRECTORY or
   // O_NOFOLLOW in the result will read the wrong bit. left alone until something needs it.
   case SYS_x64_fcntl: return FromHost(::fcntl(static_cast<int>(Arg0), static_cast<int>(Arg1), Arg2));
   case SYS_x64_getcwd: {
@@ -777,7 +777,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     FileProbe::OnPath(reinterpret_cast<const char*>(Arg0), FileProbe::Count.Statfs);
     return FromHost(::statfs(reinterpret_cast<const char*>(Arg0), reinterpret_cast<struct statfs*>(Arg1)));
   case SYS_x64_fstatfs: return FromHost(::fstatfs(static_cast<int>(Arg0), reinterpret_cast<struct statfs*>(Arg1)));
-  // arm64 has no plain access/stat/lstat — asm-generic dropped them in favour of the *at forms —
+  // arm64 has no plain access/stat/lstat -- asm-generic dropped them in favour of the *at forms --
   // so on x86-64 these are the numbers glibc actually issues, and they have to be routed by hand.
   // ld.so probes /etc/ld.so.preload with access() before it does anything else.
   case SYS_x64_access:
@@ -786,8 +786,8 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     const int DirFD = Number == SYS_x64_access ? AT_FDCWD : static_cast<int>(Arg0);
     const char* Path = reinterpret_cast<const char*>(Number == SYS_x64_access ? Arg0 : Arg1);
     const uint64_t Mode = Number == SYS_x64_access ? Arg1 : Arg2;
-    // only faccessat2 takes flags. the faccessat *syscall* is three arguments — the fourth
-    // argument bionic's wrapper has is a libc-level invention — so reading Arg3 for it means
+    // only faccessat2 takes flags. the faccessat *syscall* is three arguments -- the fourth
+    // argument bionic's wrapper has is a libc-level invention -- so reading Arg3 for it means
     // reading whatever the guest happened to leave in R10, and bionic rejects unknown flags
     // with EINVAL.
     const uint64_t Flags = Number == SYS_x64_faccessat2 ? Arg3 : 0;
@@ -805,7 +805,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
                                 reinterpret_cast<const struct timespec*>(Arg2), static_cast<int>(Arg3)));
 #ifdef SYS_statx
   // struct statx is fixed-width and identical on every architecture, so it needs no translation
-  // — unlike struct stat, which is the one that does.
+  // -- unlike struct stat, which is the one that does.
   case SYS_x64_statx: {
     const char* Path = reinterpret_cast<const char*>(Arg1);
     FileProbe::OnPath(Path, FileProbe::Count.Stats);
@@ -835,8 +835,8 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
       return static_cast<uint64_t>(Synthetic);
     }
     // the game directory, when it came from a grant rather than from a path. what comes back for a
-    // file is a real descriptor on a real file, which is why nothing downstream of here — read,
-    // pread, lseek, mmap, fstat — had to learn anything about it.
+    // file is a real descriptor on a real file, which is why nothing downstream of here -- read,
+    // pread, lseek, mmap, fstat -- had to learn anything about it.
     if (GuestFiles::OwnsAt(DirFD, Path)) {
       const int64_t Result = GuestFiles::Open(DirFD, Path, Flags);
       // the probe counts these exactly as it counts an open of a staged path, which is the only
@@ -859,14 +859,14 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     const size_t Size = Number == SYS_x64_readlink ? Arg2 : Arg3;
 
     FileProbe::OnPath(Path, FileProbe::Count.Readlinks);
-    // nothing under the mount is a symlink, because a document provider has none — so this is
+    // nothing under the mount is a symlink, because a document provider has none -- so this is
     // EINVAL for a file that is there and ENOENT for one that is not, which is what the kernel
     // would have said about a real directory with no symlinks in it.
     if (GuestFiles::OwnsAt(DirFD, Path)) {
       return static_cast<uint64_t>(GuestFiles::ReadLink(DirFD, Path));
     }
     if (const char* Target = Proc.ReadLinkTarget(Path)) {
-      // readlink does not NUL-terminate and does not fail on truncation — it writes what fits and
+      // readlink does not NUL-terminate and does not fail on truncation -- it writes what fits and
       // returns that. matching that exactly matters: the caller sizes its buffer from the result.
       const size_t Length = std::strlen(Target);
       const size_t Written = Length < Size ? Length : Size;
@@ -934,7 +934,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
       return 0;
     }
     // lstat of /proc/self/exe would report the symlink itself, but the substitute is not a
-    // symlink — so an lstat of it answers about the guest binary. that is the more useful lie:
+    // symlink -- so an lstat of it answers about the guest binary. that is the more useful lie:
     // the only thing a caller learns from lstat'ing the link is its target's length, which it
     // gets from readlink anyway.
     if (const char* Substitute = Proc.Substitute(Path)) {
@@ -988,7 +988,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   }
   case SYS_x64_madvise: {
     const uint64_t Result = FromHost(::madvise(reinterpret_cast<void*>(Arg0), Arg1, static_cast<int>(Arg2)));
-    // MADV_DONTNEED does not unmap, so the mapping and its protection stand — but the *contents*
+    // MADV_DONTNEED does not unmap, so the mapping and its protection stand -- but the *contents*
     // are gone, and the next read of an anonymous page there gives zeroes. anything FEXCore
     // compiled out of those bytes is describing something that no longer exists.
     if (Result == 0 && static_cast<int>(Arg2) == MADV_DONTNEED) {
@@ -1002,7 +1002,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
 
   // CoreCLR's FlushProcessWriteBuffers wants a process-wide memory barrier. it asks membarrier
   // for one first and, if that is unavailable, falls back to touching a locked page's protection
-  // — which is why mlock sits next to it here rather than anywhere near the rest of the mm calls.
+  // -- which is why mlock sits next to it here rather than anywhere near the rest of the mm calls.
   // bionic declares neither membarrier nor its constants, hence the raw syscall.
   case SYS_x64_membarrier: return FromHost(::syscall(SYS_membarrier, Arg0, Arg1, Arg2));
   case SYS_x64_mlock: return FromHost(::mlock(reinterpret_cast<const void*>(Arg0), Arg1));
@@ -1014,7 +1014,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   // in 64-bit mode FEX keeps the FS and GS bases in CPUState rather than in a descriptor, and
   // reads them from there for every segment-prefixed access. writing them here is the whole of
   // arch_prctl. this works from inside a syscall because the JIT spills all statically
-  // allocated registers to CPUState before calling us and refills them after — so guest state
+  // allocated registers to CPUState before calling us and refills them after -- so guest state
   // is genuinely live in memory for the duration of this function.
   case SYS_x64_arch_prctl: {
     constexpr uint64_t ARCH_SET_GS = 0x1001, ARCH_SET_FS = 0x1002, ARCH_GET_FS = 0x1003, ARCH_GET_GS = 0x1004;
@@ -1069,7 +1069,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   case SYS_x64_getrusage: return FromHost(::getrusage(static_cast<int>(Arg0), reinterpret_cast<struct rusage*>(Arg1)));
   case SYS_x64_times: return FromHost(::times(reinterpret_cast<struct tms*>(Arg0)));
 
-  // PR_* option numbers are architecture-independent, including android's own PR_SET_VMA — and
+  // PR_* option numbers are architecture-independent, including android's own PR_SET_VMA -- and
   // since the host is android too, a guest naming its mappings gets exactly what it asked for.
   case SYS_x64_prctl: return FromHost(::prctl(static_cast<int>(Arg0), Arg1, Arg2, Arg3, Arg4));
 
@@ -1091,7 +1091,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   // sockets. bionic's logging talks to /dev/socket/logdw over AF_UNIX, and .NET's diagnostics
   // server listens on an AF_UNIX socket of its own in TMPDIR. sockaddr, msghdr and iovec all have
   // identical layouts on the two architectures and the SOL_*/SO_* numbers agree, so these forward
-  // rather than being stubbed — a guest that cannot open a socket usually just gives up quietly,
+  // rather than being stubbed -- a guest that cannot open a socket usually just gives up quietly,
   // which hides things.
   case SYS_x64_socket: return FromHost(::socket(static_cast<int>(Arg0), static_cast<int>(Arg1), static_cast<int>(Arg2)));
   case SYS_x64_socketpair:
@@ -1134,7 +1134,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
 
   case SYS_x64_uname: {
     // new_utsname is six 65-byte fields on both architectures; only the contents are ours to
-    // choose. the machine string is the one that matters — a guest that reads "aarch64" here
+    // choose. the machine string is the one that matters -- a guest that reads "aarch64" here
     // will make wrong decisions about the very code it is running.
     auto* Guest = reinterpret_cast<char(*)[65]>(Arg0);
     std::memset(Guest, 0, 65 * 6);
@@ -1188,8 +1188,8 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   // fd_set, epoll_event and struct timeval are identical on x86-64 and arm64.
   //
   // the *p* variants take a signal mask, and it is deliberately dropped rather than forwarded.
-  // guest signals are emulated entirely inside the host layer — no guest handler is ever installed
-  // on the host — so the guest's mask and the host's have no relationship at all. handing the
+  // guest signals are emulated entirely inside the host layer -- no guest handler is ever installed
+  // on the host -- so the guest's mask and the host's have no relationship at all. handing the
   // guest's mask to the kernel would not change what the guest sees; it would blindfold the host
   // layer's own SIGSEGV handler, which is the one thing that must never be blocked.
   case SYS_x64_poll:
@@ -1221,7 +1221,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
   case SYS_x64_clone:
     return Threads::Clone(Frame, Arg0, Arg1, reinterpret_cast<int32_t*>(Arg2), reinterpret_cast<int32_t*>(Arg3), Arg4);
   // deliberately not implemented. glibc probes clone3 first and falls back to clone on ENOSYS all
-  // by itself — the trace confirms it does — so implementing a second entry point into the same
+  // by itself -- the trace confirms it does -- so implementing a second entry point into the same
   // machinery would buy nothing but a second way to get the argument marshalling wrong.
   case SYS_x64_clone3: return static_cast<uint64_t>(-ENOSYS);
   case SYS_x64_set_tid_address: return Threads::SetTidAddress(reinterpret_cast<int32_t*>(Arg0));
@@ -1235,7 +1235,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
 
   // --- leaving --------------------------------------------------------------------------------
   // exit ends one guest thread; exit_group ends the process. before threads these were the same
-  // thing and it did not matter which was which — now the first is how every pthread finishes.
+  // thing and it did not matter which was which -- now the first is how every pthread finishes.
   case SYS_x64_exit: Threads::ExitCurrent(static_cast<int>(Arg0), false);
   case SYS_x64_exit_group: Threads::ExitCurrent(static_cast<int>(Arg0), true);
   // --- raising a signal -------------------------------------------------------------------------

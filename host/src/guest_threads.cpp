@@ -41,7 +41,7 @@ void (*SummaryCallback)() {};
 
 // the guest thread running on *this* host thread. one guest thread never migrates between host
 // threads and no host thread ever runs two, so this is the whole of the mapping. the host fault
-// handler has nothing else to go on — it is handed a ucontext and a signal number, and must decide
+// handler has nothing else to go on -- it is handed a ucontext and a signal number, and must decide
 // which thread's code buffers and which thread's signal mask apply.
 //
 // FEXCore's InternalThreadState::FrontendPtr is set to the same value, and exists for exactly this
@@ -77,8 +77,8 @@ uint64_t LiveThreads {};
 //
 // deliberately *not* ThreadLock. this list is walked from the SIGSEGV handler, where the VMA
 // tracker has to drop each thread's cached translations, and ThreadLock is held across condition
-// variable waits during the clone handshake. keeping the registry a leaf — held for the duration
-// of one insert, erase or walk, with nothing acquired inside it — is what makes that walk safe.
+// variable waits during the clone handshake. keeping the registry a leaf -- held for the duration
+// of one insert, erase or walk, with nothing acquired inside it -- is what makes that walk safe.
 //
 // a thread joins when its InternalThreadState exists and leaves before that state is destroyed,
 // which is narrower than the LiveThreads count either side of it.
@@ -99,7 +99,7 @@ bool ExitGroupRequested {};
 int ExitGroupStatus {};
 
 // the host signal that makes another guest thread look at its pending mask. it carries no meaning
-// of its own — *which* guest signal was raised is in the target's PendingSignals — so all it has to
+// of its own -- *which* guest signal was raised is in the target's PendingSignals -- so all it has to
 // be is a signal nothing else in this process wants. SIGRTMAX is the far end of the range bionic
 // reserves its own from, and is a function call rather than a constant, so this cannot be constexpr.
 const int HostInterruptSignal = SIGRTMAX;
@@ -118,11 +118,11 @@ AsyncSite AsyncDeliverySite {AsyncSite::SyscallOnly};
 // taking the page away turns "somewhere in this thread" into "the next guest instruction boundary
 // this thread reaches", which is the only place we can resume from.
 //
-// FEX uses the same page for something else — deferring signals out of its own critical sections —
+// FEX uses the same page for something else -- deferring signals out of its own critical sections --
 // and reads it back RW from its handler. we never enter those sections from here, but we honour
 // the same rule about DeferredSignalRefCount, because FEXCore's own code does take them.
 
-// bionic hands out *tagged* heap pointers — scudo puts a four-bit allocation tag in the top byte
+// bionic hands out *tagged* heap pointers -- scudo puts a four-bit allocation tag in the top byte
 // and the hardware ignores it (TBI). the kernel does not: `si_addr` comes back untagged, so the
 // address in a fault and the address of the object that faulted do not compare equal. everything
 // that matches one against the other has to strip the tag first, and this was a full debugging
@@ -206,14 +206,14 @@ void SetupGuest64BitSegments(GuestThread& T) {
   auto* CS = FEXCore::Core::CPUState::GetSegmentFromIndex(State, State.cs_idx);
   FEXCore::Core::CPUState::SetGDTBase(CS, 0);
   FEXCore::Core::CPUState::SetGDTLimit(CS, 0xF'FFFFU);
-  CS->L = 1; // long mode — this is the bit the decoder actually reads
+  CS->L = 1; // long mode -- this is the bit the decoder actually reads
   CS->D = 0; // reserved when L is set
   State.cs_cached = FEXCore::Core::CPUState::CalculateGDTBase(*CS);
 }
 
 // point a thread's CPUState at its own GDT. this has to happen after any CPUState copy, because
-// CreateThread's inherited state carries the *parent's* segment_arrays pointers —
-// ContextImpl::CreateThread memcpy's the whole CPUState — and a child left pointing at its
+// CreateThread's inherited state carries the *parent's* segment_arrays pointers --
+// ContextImpl::CreateThread memcpy's the whole CPUState -- and a child left pointing at its
 // parent's GDT would keep working right up until the parent exited and freed it.
 void AttachSegmentArrays(GuestThread& T) {
   auto& State = T.Thread->CurrentFrame->State;
@@ -269,7 +269,7 @@ void ClearChildTIDAndWake(GuestThread& T) {
 
 [[noreturn]] void EnterGuestHandler(GuestThread& T, int Signal) {
   // the siginfo linux writes for a signal one thread sent another. si_code is negative, which is
-  // how a guest tells a raised signal from a faulted one — and is why TrapNumberForSignal reports
+  // how a guest tells a raised signal from a faulted one -- and is why TrapNumberForSignal reports
   // no trap for these.
   siginfo_t Info {};
   Info.si_signo = Signal;
@@ -279,7 +279,7 @@ void ClearChildTIDAndWake(GuestThread& T) {
 
   // one signal has just been taken; the page follows whatever is left. delivering at a syscall
   // boundary is what usually leaves it armed with nothing behind it, and a page left armed costs a
-  // fault at the next block entry rather than being wrong — but there is no reason to pay it.
+  // fault at the next block entry rather than being wrong -- but there is no reason to pay it.
   if (AsyncDeliverySite == AsyncSite::SafePoint) {
     if (Signals->HasDeliverablePending(T)) {
       ArmInterruptPage(T);
@@ -295,7 +295,7 @@ void ClearChildTIDAndWake(GuestThread& T) {
 }
 
 // a signal the guest has no handler for. linux would terminate the process and the shell would
-// report 128 + the signal number, so that is what we do — SIG_IGN and the signals whose default is
+// report 128 + the signal number, so that is what we do -- SIG_IGN and the signals whose default is
 // to do nothing were already dropped by TakePending and never reach here.
 [[noreturn]] void DieOnUnhandledSignal(GuestThread& T, int Signal) {
   std::printf("[host-layer] thread %d took signal %d with no handler installed\n", T.TID, Signal);
@@ -325,11 +325,11 @@ void GuestInterruptHandler(int, siginfo_t*, void* UContext) {
   const uint64_t HostPC = Context->uc_mcontext.pc;
 
   // inside a translated block, guest state is recoverable from the host registers and the frames
-  // below belong to FEX's dispatcher, which we are entitled to abandon — that is exactly the
+  // below belong to FEX's dispatcher, which we are entitled to abandon -- that is exactly the
   // position a guest fault leaves us in, and it is handled the same way.
   //
   // the refcount is asked first because it is a plain load of thread-local memory, where
-  // IsAddressInCodeBuffer walks FEXCore's buffer lists — and a thread inside one of FEXCore's own
+  // IsAddressInCodeBuffer walks FEXCore's buffer lists -- and a thread inside one of FEXCore's own
   // signal-deferring sections is exactly the thread whose buffer lists may be mid-edit.
   //
   // under SafePoint this is never taken: the interrupt page armed at the raise is what brings the
@@ -339,7 +339,7 @@ void GuestInterruptHandler(int, siginfo_t*, void* UContext) {
                             T->Thread->CurrentFrame->State.DeferredSignalRefCount.Load() == 0 &&
                             CTX->IsAddressInCodeBuffer(T->Thread, HostPC);
   if (!Redirectable) {
-    // the thread is somewhere with host locks and host frames a longjmp would strand — inside one
+    // the thread is somewhere with host locks and host frames a longjmp would strand -- inside one
     // of our syscalls, inside FEXCore's compiler, in bionic. leave the bit set: a thread in a
     // syscall checks on the way out, and the host call it was parked in has just been interrupted
     // so that it gets there.
@@ -390,7 +390,7 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
     return;
   }
 
-  // the interrupt fault page, asked before anything else because it is not a fault at all — it is
+  // the interrupt fault page, asked before anything else because it is not a fault at all -- it is
   // this thread arriving at a guest instruction boundary with a signal waiting for it.
   if (AsyncDeliverySite == AsyncSite::SafePoint && Signal == SIGSEGV && Info->si_code == SEGV_ACCERR && T->Thread &&
       Untag(Info->si_addr) == Untag(&T->Thread->InterruptFaultPage)) {
@@ -398,7 +398,7 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
     // acted on. the page stays armed, so the thread simply faults again at the next one.
     //
     // the first is FEXCore's own code. `DeferredSignalRefCountGuard`'s destructor stores to this
-    // very page on the way out of every signal-deferring section — that is FEX's mechanism for
+    // very page on the way out of every signal-deferring section -- that is FEX's mechanism for
     // noticing a signal it queued, and FEX can act on it because it resumes the interrupted host
     // context exactly. we cannot: acting here would siglongjmp out of FEXCore's C++ frames with
     // its locks held. **this is what made the whole game die earlier and differently than before
@@ -440,18 +440,18 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
 
   // FEX's call-return shadow stack running off one of its own guard pages, which is **not an
   // error**: it is the predictor being asked to pop more than it was given, and FEX's own
-  // `SyscallHandler::HandleSegfault` treats it as routine — *"Reset REG_CALLRET_SP to the default
+  // `SyscallHandler::HandleSegfault` treats it as routine -- *"Reset REG_CALLRET_SP to the default
   // location to allow for underflows/overflows"*. resetting the pointer at signal delivery and at
-  // re-entry — where the *contents* stop describing live frames — is not enough on its own: neither
+  // re-entry -- where the *contents* stop describing live frames -- is not enough on its own: neither
   // catches the pointer walking out of the mapping, which is what this case is for.
   //
   // this workload makes that walk likely rather than theoretical. SharpEmu resumes a cooperatively
   // blocked guest thread by entering a trampoline that abandons the host stack and `ret`s into the
   // continuation, so every resume returns from a call whose push happened in a frame that no longer
-  // exists — an unmatched pop, hundreds of times a second, all in the same direction. there is
+  // exists -- an unmatched pop, hundreds of times a second, all in the same direction. there is
   // 3 MiB of room above the default and 1 MiB below, and the drift is one way.
   //
-  // x25 is `REG_CALLRET_SP` on arm64 — see `Arm64Emitter.h`, where x17 is the ARM64EC variant and is
+  // x25 is `REG_CALLRET_SP` on arm64 -- see `Arm64Emitter.h`, where x17 is the ARM64EC variant and is
   // not this build. the number is written out because that header is internal to FEXCore, which is
   // why FEX's own frontend spells it 25 in exactly this place too.
   if (Signal == SIGSEGV && T->CallRetAlloc) {
@@ -476,13 +476,13 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
 
   // deciding whether a fault belongs to the guest: a PC outside FEX's generated code is a genuine
   // host crash and must never be handed to a guest handler. the dispatcher range alone is not
-  // enough — it covers only FEX's trampoline, whereas faults from guest instructions happen inside
+  // enough -- it covers only FEX's trampoline, whereas faults from guest instructions happen inside
   // JIT'd blocks, which live elsewhere. both count, and the code buffers are asked about *this*
   // thread: another thread's buffers are not evidence about this PC.
   const bool InJitCode =
     (HostPC >= Config->DispatcherBegin && HostPC < Config->DispatcherEnd) || CTX->IsAddressInCodeBuffer(T->Thread, HostPC);
 
-  // a write to a page the VMA tracker sealed is not a fault either — it is the guest rewriting
+  // a write to a page the VMA tracker sealed is not a fault either -- it is the guest rewriting
   // code we have already translated, which is the entire mechanism behind SMCChecks=mtrack.
   //
   // this is asked *before* deciding whether the PC is in JIT'd code, and on purpose: the host
@@ -496,7 +496,7 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
     if (Result == VMA::WriteFault::SingleStep) {
       // the guest is rewriting code inside the block it is running. re-running the faulting
       // instruction would carry straight on into the translation just dropped, so spill guest
-      // state and re-enter the dispatcher asking for a one-instruction block instead —
+      // state and re-enter the dispatcher asking for a one-instruction block instead --
       // ENTRY_FILL_SRA_SINGLE_INST_REG is x1, and any non-zero value in it means "single step".
       Signals->ReconstructGuestState(*T, UContext);
       Context->uc_mcontext.pc = Config->AbsoluteLoopTopAddressFillSRA;
@@ -507,21 +507,21 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
 
   // a SIGBUS from JIT'd code is routine, not a crash. x86 permits unaligned access everywhere,
   // including on the atomic and TSO-ordered operations FEX compiles guest memory accesses into
-  // — and arm64's atomics require natural alignment. so the JIT emits the fast aligned form and
+  // -- and arm64's atomics require natural alignment. so the JIT emits the fast aligned form and
   // relies on being corrected the first time it is wrong: HandleUnalignedAccess decodes the
   // faulting instruction, backpatches the code buffer to a sequence that tolerates misalignment,
   // and reports how far to move the PC to re-run it.
   if (Signal == SIGBUS && Info->si_code == BUS_ADRALN && CTX->IsAddressInCodeBuffer(T->Thread, HostPC)) {
     const auto Fixup = FEXCore::ArchHelpers::Arm64::HandleUnalignedAccess(
       // bionic types mcontext regs as __u64 (unsigned long long) while FEXCore asks for
-      // uint64_t (unsigned long on LP64) — same width, distinct types.
+      // uint64_t (unsigned long on LP64) -- same width, distinct types.
       T->Thread, UnalignedHandler, HostPC,
       reinterpret_cast<uint64_t*>(&Context->uc_mcontext.regs[0]));
     if (Fixup.has_value()) {
       Context->uc_mcontext.pc = HostPC + Fixup.value();
       // **said once, because a run that is cut off never reaches the exit summary.** every
       // measurement here ends by killing the process at a fixed number of seconds, so the total
-      // below is unreadable on exactly the runs that matter — and without it a knob that changes
+      // below is unreadable on exactly the runs that matter -- and without it a knob that changes
       // how this backpatches cannot be told apart from one that never fires.
       if (UnalignedFixups.fetch_add(1, std::memory_order_relaxed) == 0) {
         std::printf("[host-layer] unaligned access backpatched, to a %s sequence\n",
@@ -543,7 +543,7 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
   if (InJitCode) {
     const siginfo_t* DeliverInfo = Info;
 
-    // two quite different things arrive here. a *real* fault — the guest touched a bad address —
+    // two quite different things arrive here. a *real* fault -- the guest touched a bad address --
     // leaves guest state scattered across host registers, and has to be gathered up. a fault the
     // JIT *generated*, like an invalid opcode, arrives from a dispatcher trampoline that already
     // spilled guest state and recorded what to raise, so gathering would overwrite good state
@@ -562,7 +562,7 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
     }
 
     // hand it to the guest if the guest asked for it. a signal the guest has blocked, or has no
-    // handler for, is fatal here exactly as it would be on linux — with the difference that
+    // handler for, is fatal here exactly as it would be on linux -- with the difference that
     // linux would dump core and we print the state instead.
     if (Signals->HasHandler(Signal) && !Signals->IsBlocked(*T, Signal)) {
       Signals->DeliverToGuest(*T, Signal, DeliverInfo);
@@ -580,8 +580,8 @@ void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
 // --- starting a cloned thread --------------------------------------------------------------
 
 // the child's side of a two-step handshake with the cloning thread. the child has to publish its
-// tid before clone can return — glibc reads it back out of the TCB immediately, and
-// CLONE_PARENT_SETTID promises the word is already written by then — and must not start executing
+// tid before clone can return -- glibc reads it back out of the TCB immediately, and
+// CLONE_PARENT_SETTID promises the word is already written by then -- and must not start executing
 // guest code until the parent has finished writing the tid pointers the flags asked for.
 void* HostThreadEntry(void* Arg) {
   GuestThread& T = *static_cast<GuestThread*>(Arg);
@@ -762,7 +762,7 @@ void InstallProcessFaultHandlers() {
   //
   // deliberately without SA_RESTART. a guest thread parked in futex or poll has to come back out
   // of that host call for the syscall-exit check to run at all, and SA_RESTART would have the
-  // kernel silently re-enter it instead — which is precisely the thread that most needs waking.
+  // kernel silently re-enter it instead -- which is precisely the thread that most needs waking.
   struct sigaction Interrupt {};
   Interrupt.sa_sigaction = GuestInterruptHandler;
   Interrupt.sa_flags = SA_SIGINFO | SA_ONSTACK;
@@ -778,7 +778,7 @@ uint64_t SignalGuestThread(int32_t TID, int Signal) {
   }
 
   // the registry lock is held across both halves on purpose. it is what stops the target from
-  // finishing, unregistering and being deleted between being found and being written to — and it
+  // finishing, unregistering and being deleted between being found and being written to -- and it
   // is a leaf, taken for the duration of one walk with nothing acquired inside it, so holding it
   // over a tgkill cannot deadlock against the handler that tgkill runs.
   std::lock_guard Lock {RegistryLock};
@@ -833,9 +833,9 @@ void DeliverPendingAtSyscallExit(GuestThread& T, uint64_t Number, uint64_t Resul
   auto& State = T.Thread->CurrentFrame->State;
 
   // the syscall has to be finished by hand, because the JIT block that issued it is about to be
-  // abandoned. RIP is still *at* the two-byte `syscall` — FEX hands the handler the state as it was
+  // abandoned. RIP is still *at* the two-byte `syscall` -- FEX hands the handler the state as it was
   // when the instruction began (OpDispatchBuilder::SyscallOp) and lets the JIT step over it on
-  // the way back — so stepping it is ours, and RAX is ours to write.
+  // the way back -- so stepping it is ours, and RAX is ours to write.
   //
   // unless the signal asked for the call to be restarted, in which case the step is simply not
   // taken and the syscall number goes back where the guest put it. that is exactly what linux does
@@ -874,25 +874,25 @@ void DeliverPendingNow(GuestThread& T) {
 // and re-entering `ExecuteThread`, which dispatches from `State.rip`. FEX does not do it this
 // way: it rewrites the host signal context to land at the dispatcher's SRA-fill entry point and
 // stashes a copy of the host context on the guest stack, so `rt_sigreturn` can resume the
-// interrupted host frame exactly — which in turn requires being inside a host signal handler at
+// interrupted host frame exactly -- which in turn requires being inside a host signal handler at
 // sigreturn time, which FEX arranges by signalling itself.
 //
 // re-entering from the top is much less machinery and is correct for what a signal return
 // actually needs: resumption at a *guest* instruction boundary, which is all the x86-64 signal
 // ABI ever promises. what it gives up is resuming mid-block, so a host-level fault that needed to
 // restart a partially executed guest instruction could not be handled this way. nothing needs
-// that yet — the unaligned-access path handles its own case entirely inside the signal frame.
+// that yet -- the unaligned-access path handles its own case entirely inside the signal frame.
 //
 // one thing does have to be reset on re-entry: FEX's call-return shadow stack. its contents
-// describe host code addresses in call frames that no longer exist. a stale entry is not unsafe —
+// describe host code addresses in call frames that no longer exist. a stale entry is not unsafe --
 // `ret` compares the popped guest address against the real one and falls back to the block lookup
-// on a mismatch — but leaving the pointer where it was would let it drift toward a guard page
+// on a mismatch -- but leaving the pointer where it was would let it drift toward a guard page
 // across many signals.
 void Run(GuestThread& T) {
   for (;;) {
     // the escape hatch belongs to this thread and lives in its GuestThread, so a fault on one
-    // thread cannot land in another thread's dispatch loop. that was a single file-scope
-    // sigjmp_buf right up until this milestone.
+    // thread cannot land in another thread's dispatch loop. a single file-scope
+    // sigjmp_buf would put every thread's fault in the same one.
     if (sigsetjmp(T.EscapeHatch, 1) != 0) {
       if (T.Reason != Escape::Restart) {
         return;
@@ -941,7 +941,7 @@ uint64_t Clone(FEXCore::Core::CpuStateFrame* Frame, uint64_t Flags, uint64_t Sta
     return static_cast<uint64_t>(-ENOSYS);
   }
   // the sharing flags glibc's pthread_create always passes together with CLONE_THREAD. we make
-  // every one of them true by construction — same process, same address space, same fd table —
+  // every one of them true by construction -- same process, same address space, same fd table --
   // so the check is only here to catch a guest asking for something we would silently not do.
   constexpr uint64_t Required = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND;
   if ((Flags & Required) != Required) {
@@ -969,7 +969,7 @@ uint64_t Clone(FEXCore::Core::CpuStateFrame* Frame, uint64_t Flags, uint64_t Sta
   }
   auto& State = T->Thread->CurrentFrame->State;
 
-  // the GDT comes across from the parent — a thread inherits its segments — but into the child's
+  // the GDT comes across from the parent -- a thread inherits its segments -- but into the child's
   // own storage, and the pointers have to be re-aimed there because the memcpy above brought the
   // parent's addresses with it.
   std::memcpy(T->GDT, Parent->GDT, sizeof(T->GDT));
@@ -987,7 +987,7 @@ uint64_t Clone(FEXCore::Core::CpuStateFrame* Frame, uint64_t Flags, uint64_t Sta
 
   if (Flags & CLONE_SETTLS) {
     // on x86-64 the thread pointer is the FS base, and FEX keeps that in CPUState rather than in a
-    // descriptor — the same field arch_prctl(ARCH_SET_FS) writes.
+    // descriptor -- the same field arch_prctl(ARCH_SET_FS) writes.
     State.fs_cached = TLS;
   }
 
@@ -1001,14 +1001,14 @@ uint64_t Clone(FEXCore::Core::CpuStateFrame* Frame, uint64_t Flags, uint64_t Sta
     T->ClearChildTID = ChildTID;
   }
 
-  // the parent's signal mask is inherited; its alternate stack is not, which is what linux does —
+  // the parent's signal mask is inherited; its alternate stack is not, which is what linux does --
   // a new thread starts with no altstack of its own.
   T->BlockedMask = Parent->BlockedMask;
 
   pthread_attr_t Attr;
   ::pthread_attr_init(&Attr);
   // 8 MiB to match FEX's own guest threads. this is the *host* stack, and FEXCore compiles blocks
-  // on whichever thread first hits them — the IR builder and register allocator run here — so
+  // on whichever thread first hits them -- the IR builder and register allocator run here -- so
   // bionic's default is not obviously enough and being wrong about it would look like a random
   // crash deep inside the JIT.
   ::pthread_attr_setstacksize(&Attr, HostStackSize);
@@ -1080,7 +1080,7 @@ void ExitCurrent(int Status, bool Group) {
   T->Reason = Group ? Escape::ExitedGroup : Escape::Exited;
 
   // longjmp out of the syscall handler, which the JIT called from inside a translated block. this
-  // abandons FEXCore's dispatcher frame without unwinding it — which is what FEX does too
+  // abandons FEXCore's dispatcher frame without unwinding it -- which is what FEX does too
   // (LongjumpDeallocateAndExit, in LinuxSyscalls' Thread.cpp), because there is no way back into
   // a guest thread that has asked to stop existing.
   siglongjmp(T->EscapeHatch, 1);
@@ -1102,7 +1102,7 @@ uint64_t SetTidAddress(int32_t* TidPtr) {
   GuestThread* T = CurrentGuestThread;
   if (T) {
     // set_tid_address moves the word CLONE_CHILD_CLEARTID nominated. glibc calls it once during
-    // startup on the initial thread, which is how the *first* thread gets a join word at all —
+    // startup on the initial thread, which is how the *first* thread gets a join word at all --
     // nothing cloned it, so nothing could have passed one.
     T->ClearChildTID = TidPtr;
     return static_cast<uint64_t>(T->TID);
@@ -1162,7 +1162,7 @@ namespace {
 // a fault that is *not* in JIT'd code is a host crash, and "host PC = 0x63..." on its own says
 // nothing about where. dladdr names the shared object and the nearest exported symbol; the maps
 // line is the fallback, because FEX's own code buffers are anonymous mappings that no symbol
-// table describes. resolved here rather than in the handler — this runs on an ordinary stack,
+// table describes. resolved here rather than in the handler -- this runs on an ordinary stack,
 // after the fact.
 void DescribeHostAddress(uint64_t Addr) {
   Dl_info Info {};
@@ -1193,8 +1193,8 @@ void DescribeHostAddress(uint64_t Addr) {
   std::fclose(Maps);
 }
 
-// the guest bytes at a faulting RIP. for SIGILL this is the whole answer — FEXCore's decoder
-// rejected an opcode and nothing else in the report says which one — and for a SIGSEGV it at least
+// the guest bytes at a faulting RIP. for SIGILL this is the whole answer -- FEXCore's decoder
+// rejected an opcode and nothing else in the report says which one -- and for a SIGSEGV it at least
 // says what instruction was doing the access.
 //
 // guest and host share one address space 1:1, so this is a plain read of T.Fault.GuestRIP. it is
@@ -1249,7 +1249,7 @@ void PrintFaultReport(const GuestThread& T) {
     DescribeHostAddress(T.Fault.HostPC);
     // guest state was never gathered, because a host crash has none to gather: the registers
     // below are zeroes from initialisation, not values read out of anywhere.
-    std::printf("[host-layer]   (host-side crash — the guest registers below are not populated)\n");
+    std::printf("[host-layer]   (host-side crash -- the guest registers below are not populated)\n");
   }
   std::printf("[host-layer]   guest RIP   = 0x%llX\n", static_cast<unsigned long long>(T.Fault.GuestRIP));
   PrintGuestBytes(T.Fault.GuestRIP);

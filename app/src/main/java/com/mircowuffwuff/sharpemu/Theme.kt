@@ -8,42 +8,42 @@ import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
 
 /**
- * The app's palette, chosen in the settings scene.
+ * the app's palette, chosen in the settings scene.
  *
- * **A user-defined scheme is one colour, and Material generates the rest.**
+ * **a user-defined scheme is one colour, and Material generates the rest.**
  * `DynamicColorsOptions.Builder().setContentBasedSource(seed)` is the same machinery Material You
- * uses here, pointed at a colour the user picked instead of at the wallpaper — so the accent, the
+ * uses here, pointed at a colour the user picked instead of at the wallpaper -- so the accent, the
  * surfaces, the outlines and every text colour come out of tonal palettes rather than out of four
- * values somebody has to keep in balance by hand. It applies *over* whatever theme is current and
+ * values somebody has to keep in balance by hand. it applies *over* whatever theme is current and
  * **never reads `themes.xml`**, which is worth knowing before restructuring that file on its
  * account: a generated scheme is not built from anything in it, so nothing there can be a
  * prerequisite for one.
  *
- * **It needs dynamic colour, so it is offered exactly where Material You is** — API 31 against a
- * `minSdk` of 28. Below that the row is not in the list at all, which is the same guard and the same
- * reason. A hand-written generator for older devices stays possible and is not here.
+ * **it needs dynamic colour, so it is offered exactly where Material You is** -- API 31 against a
+ * `minSdk` of 28. below that the row is not in the list at all, which is the same guard and the same
+ * reason. a hand-written generator for older devices stays possible and is not here.
  *
- * **A screen wears a theme and a run borrows one.** [MainActivity] names the framework's fullscreen
- * theme in the manifest — its window is a surface a guest renders into, and a themed background
- * behind an opaque `SurfaceView` would be one more thing composited for nothing — so what is drawn
+ * **a screen wears a theme and a run borrows one.** [MainActivity] names the framework's fullscreen
+ * theme in the manifest -- its window is a surface a guest renders into, and a themed background
+ * behind an opaque `SurfaceView` would be one more thing composited for nothing -- so what is drawn
  * over a running game takes the chosen scheme from [overlayContext] instead of from its window.
  *
- * **Called before `setContentView` or it does nothing**, which is not a convention but how the
+ * **called before `setContentView` or it does nothing**, which is not a convention but how the
  * platform works: a theme is resolved while the view hierarchy is inflated, so a theme applied after
  * inflation leaves every already-inflated view on the old one.
  */
 object Theme {
 
-    /** What is stored, or the default. Never null, so a comparison against it cannot be ambiguous. */
+    /** what is stored, or the default. never null, so a comparison against it cannot be ambiguous. */
     @JvmStatic
     fun chosen(activity: Activity): String = Settings.of(activity).theme ?: Settings.THEME_DEFAULT
 
     /**
-     * What a screen was drawn with, for [recreateIfStale] to compare against.
+     * what a screen was drawn with, for [recreateIfStale] to compare against.
      *
-     * **Not the theme's name**, because a Custom theme can change without its name changing: picking
+     * **not the theme's name**, because a Custom theme can change without its name changing: picking
      * a new seed colour leaves the id at `custom` and every screen behind the picker would decide it
-     * was already up to date. The seed is part of the identity of what was drawn, so it is part of
+     * was already up to date. the seed is part of the identity of what was drawn, so it is part of
      * this string.
      */
     @JvmStatic
@@ -54,11 +54,11 @@ object Theme {
     }
 
     /**
-     * Restarts [activity] if the theme was changed on some screen it was not looking at.
+     * restarts [activity] if the theme was changed on some screen it was not looking at.
      *
-     * **Every screen that can be underneath the settings scene needs this, not just the one below
-     * it.** The scene where the theme is picked restarts itself; the section list behind it, and the
-     * game list behind that, are already inflated with the old palette and cannot be repainted. With
+     * **every screen that can be underneath the settings scene needs this, not just the one below
+     * it.** the scene where the theme is picked restarts itself; the section list behind it, and the
+     * game list behind that, are already inflated with the old palette and cannot be repainted. with
      * only the game list checking, backing out of a theme change lands on a stale section list, and
      * it takes leaving and re-entering to get the new one.
      *
@@ -72,11 +72,11 @@ object Theme {
     }
 
     /**
-     * Applies the stored theme, or the default when nothing was chosen.
+     * applies the stored theme, or the default when nothing was chosen.
      *
-     * Material You and Custom are the two that can be unavailable — both are dynamic colour, which
-     * is API 31 against a floor of 28 — so each degrades to the default rather than to something
-     * arbitrary, and neither row is offered where it cannot work. That is the same guard the
+     * Material You and Custom are the two that can be unavailable -- both are dynamic colour, which
+     * is API 31 against a floor of 28 -- so each degrades to the default rather than to something
+     * arbitrary, and neither row is offered where it cannot work. that is the same guard the
      * all-files row already has, for the same reason.
      */
     @JvmStatic
@@ -88,7 +88,7 @@ object Theme {
                     DynamicColors.applyToActivityIfAvailable(activity)
                 }
             // **the same generator, seeded by a colour instead of by the wallpaper.** everything a
-            // scheme needs — the accent, the surfaces, the outlines, every text colour — is derived
+            // scheme needs -- the accent, the surfaces, the outlines, every text colour -- is derived
             // from that one value by Material's own tonal palettes, which is why a custom theme is a
             // single Int in the store rather than the four colours a hand-written scheme wants.
             Settings.THEME_CUSTOM ->
@@ -100,18 +100,18 @@ object Theme {
     }
 
     /**
-     * A [Context] carrying the chosen scheme, for anything drawn over a running game.
+     * a [Context] carrying the chosen scheme, for anything drawn over a running game.
      *
-     * **The window it is drawn on is not themed and does not become themed.** A view built from this
-     * — or a layout inflated with `LayoutInflater.from(overlayContext(activity))` — resolves
+     * **the window it is drawn on is not themed and does not become themed.** a view built from this
+     * -- or a layout inflated with `LayoutInflater.from(overlayContext(activity))` -- resolves
      * `?attr/colorSurfaceContainer` and every other role exactly as the app's own screens do, while
-     * [MainActivity] keeps the framework fullscreen theme its `SurfaceView` wants. That is the whole
+     * [MainActivity] keeps the framework fullscreen theme its `SurfaceView` wants. that is the whole
      * of the difference: a scheme reaches the overlay through the context it is built from rather
      * than through the window it sits over.
      *
      * **Material You and Custom come out of the same generator [apply] uses, over the same base**, so
      * a generated overlay is the settings scene's scheme rather than a second one that happens to
-     * share a seed. Where dynamic colour is unavailable each falls back the way its row does.
+     * share a seed. where dynamic colour is unavailable each falls back the way its row does.
      */
     @JvmStatic
     fun overlayContext(activity: Activity): Context {
@@ -126,7 +126,7 @@ object Theme {
     }
 
     /**
-     * The style a scheme is drawn with.
+     * the style a scheme is drawn with.
      *
      * **Material You and Custom name the application theme**, which is what they land on: both are
      * `DynamicColors` applied over whichever theme is already current, and on one of the app's own
@@ -143,7 +143,7 @@ object Theme {
         else -> R.style.Theme_SharpEmu_Desktop
     }
 
-    /** The Custom scheme's generator input, in one place so a screen and an overlay cannot differ. */
+    /** the Custom scheme's generator input, in one place so a screen and an overlay cannot differ. */
     private fun seeded(activity: Activity): DynamicColorsOptions =
         DynamicColorsOptions.Builder()
             .setContentBasedSource(
@@ -151,13 +151,13 @@ object Theme {
             )
             .build()
 
-    /** Whether the Material You and Custom rows are worth offering on this device. */
+    /** whether the Material You and Custom rows are worth offering on this device. */
     @JvmStatic
     fun dynamicColourAvailable(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && DynamicColors.isDynamicColorAvailable()
 
     /**
-     * Restarts an activity so a theme change is visible immediately.
+     * restarts an activity so a theme change is visible immediately.
      *
      * `recreate()` rather than a manual relaunch: it keeps the task's back stack, and the settings
      * scene is deliberately a screen the user is standing on when they change this.

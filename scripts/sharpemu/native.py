@@ -21,8 +21,8 @@ def configure(toolchain, source, build, api_level, stl="c++_shared", build_type=
               defines=None, path_prefix=(), environment=None):
     """configure one cmake project against the NDK.
 
-    `path_prefix` is prepended to the child's `PATH` and nowhere else. a build that needed a tool on
-    `PATH` used to get it by modifying this process's own, which is a change that outlives the step
+    `path_prefix` is prepended to the child's `PATH` and nowhere else. a build that needs a tool on
+    `PATH` can take it by modifying this process's own, which is a change that outlives the step
     that wanted it -- and putting a directory full of unix tools on `PATH` shadows the platform's
     own `sort` and `find` for everything downstream of it.
     """

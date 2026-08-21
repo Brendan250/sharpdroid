@@ -15,26 +15,26 @@ import android.view.MotionEvent
 import android.view.View
 
 /**
- * The whole colour picker: hue across, chroma down, at a pinned tone.
+ * the whole colour picker: hue across, chroma down, at a pinned tone.
  *
- * **These are the generator's own axes rather than a conversion into them.** A seed's first stop is
+ * **these are the generator's own axes rather than a conversion into them.** a seed's first stop is
  * `Hct.fromInt`, so picking in hue and chroma is picking the two numbers `SchemeContent` actually
- * reads — see [HctColour]. Hue and *saturation* would look the same and would not be: HSV saturation
+ * reads -- see [HctColour]. hue and *saturation* would look the same and would not be: HSV saturation
  * is a fraction of whatever the screen can show at that hue, so one height in the field means a
  * different colourfulness in every column.
  *
- * **The field is painted in accents rather than in seeds**, so choosing from it is choosing the
- * colour the *Selected* line in the preview will be. The position still means chroma — which is what
- * tints the surfaces — but what is drawn is [HctColour.accent], the seed clamped to what the accent's
+ * **the field is painted in accents rather than in seeds**, so choosing from it is choosing the
+ * colour the *Selected* line in the preview will be. the position still means chroma -- which is what
+ * tints the surfaces -- but what is drawn is [HctColour.accent], the seed clamped to what the accent's
  * tone can hold.
  *
- * **Above a certain chroma the accent stops changing and the surfaces do not**, and nothing in the
+ * **above a certain chroma the accent stops changing and the surfaces do not**, and nothing in the
  * field marks where: the top of a red column tints the backgrounds without moving the accent, and
- * the preview is the only place that is visible. A dashed line across each column would say so, at
+ * the preview is the only place that is visible. a dashed line across each column would say so, at
  * the cost of a rule drawn over a colour field.
  *
- * The field is drawn from a small bitmap built once per size: each pixel is a CAM16 solve, which is
- * cheap in the thousands and not in the hundreds of thousands. Scaling it up is what a smooth
+ * the field is drawn from a small bitmap built once per size: each pixel is a CAM16 solve, which is
+ * cheap in the thousands and not in the hundreds of thousands. scaling it up is what a smooth
  * gradient is anyway.
  */
 class HueChromaField @JvmOverloads constructor(
@@ -48,7 +48,7 @@ class HueChromaField @JvmOverloads constructor(
     private val source = Rect()
     private var field: Bitmap? = null
 
-    /** Called whenever a touch moves the knob. Never called for a programmatic change. */
+    /** called whenever a touch moves the knob. never called for a programmatic change. */
     var onPicked: ((hue: Float, chromaFraction: Float) -> Unit)? = null
 
     var hue: Float = 0f
@@ -57,14 +57,14 @@ class HueChromaField @JvmOverloads constructor(
             invalidate()
         }
 
-    /** How colourful, as a fraction of the most this hue can be. */
+    /** how colourful, as a fraction of the most this hue can be. */
     var chromaFraction: Float = 1f
         set(value) {
             field = value.coerceIn(0f, 1f)
             invalidate()
         }
 
-    /** The chroma that fraction stands for right now. */
+    /** the chroma that fraction stands for right now. */
     fun chroma(): Float = HctColour.ceiling(hue) * chromaFraction
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -107,7 +107,7 @@ class HueChromaField @JvmOverloads constructor(
         )
     }
 
-    /** A white ring with a dark halo, so the knob is visible on any colour underneath it. */
+    /** a white ring with a dark halo, so the knob is visible on any colour underneath it. */
     private fun drawKnob(canvas: Canvas, x: Float, y: Float) {
         paint.style = Paint.Style.STROKE
         paint.color = Color.BLACK
@@ -140,15 +140,15 @@ class HueChromaField @JvmOverloads constructor(
         return true
     }
 
-    /** The preview panel's corner radius, so the two halves of the dialog match. */
+    /** the preview panel's corner radius, so the two halves of the dialog match. */
     private val radius = 16f * resources.displayMetrics.density
 
     /**
-     * How far inside its slot the field is drawn.
+     * how far inside its slot the field is drawn.
      *
-     * **The view keeps the whole slot and paints a little inside it**, which is what "smaller but
+     * **the view keeps the whole slot and paints a little inside it**, which is what "smaller but
      * anchored" means: shrinking the layout would move it, since it is centred by the row it sits in.
-     * The touch mapping uses the same inset, so the edges of the drawing are still the edges of the
+     * the touch mapping uses the same inset, so the edges of the drawing are still the edges of the
      * range.
      */
     private val inset = 6f

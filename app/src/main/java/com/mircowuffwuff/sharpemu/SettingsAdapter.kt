@@ -19,16 +19,16 @@ import com.mircowuffwuff.sharpemu.databinding.ItemSettingSwitchBinding
 import com.mircowuffwuff.sharpemu.databinding.ItemSettingValueBinding
 
 /**
- * Draws a section's rows.
+ * draws a section's rows.
  *
- * **A long press on a row the user has set offers to put it back to the default**, and it is the one
+ * **a long press on a row the user has set offers to put it back to the default**, and it is the one
  * piece of UI here that exists because of the precedence rule rather than because a screen wanted it
- * — a row with no way back is a one-way door. It is deliberately the only sign of that rule:
+ * -- a row with no way back is a one-way door. it is deliberately the only sign of that rule:
  * a mark distinguishing a set row from an untouched one has to hold a space on every row, which
  * indents the whole list to annotate one of them.
  *
- * **On a per-game list that gesture is replaced rather than joined**, and [useGlobal] is what replaces
- * it: a row overriding the global value draws a button saying so. The reasoning above inverts there —
+ * **on a per-game list that gesture is replaced rather than joined**, and [useGlobal] is what replaces
+ * it: a row overriding the global value draws a button saying so. the reasoning above inverts there --
  * an overridden row is the interesting case rather than the rare one, so the space a mark costs is
  * worth paying, and a hidden gesture doing the same thing in different words beside a visible button
  * would be two ways to say one thing.
@@ -43,9 +43,9 @@ class SettingsAdapter(
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     /**
-     * The whole list again, drawn without animation.
+     * the whole list again, drawn without animation.
      *
-     * For arriving at a section and for coming back to one: everything on screen is being drawn for
+     * for arriving at a section and for coming back to one: everything on screen is being drawn for
      * the first time, so there is no movement to describe.
      */
     fun submit(newRows: List<SettingRow>) {
@@ -54,35 +54,35 @@ class SettingsAdapter(
     }
 
     /**
-     * The whole list again, but saying which row the user just changed — so that row alone redraws
+     * the whole list again, but saying which row the user just changed -- so that row alone redraws
      * and the ones below it **slide** to their new places instead of jumping there.
      *
-     * **The list is replaced and the notification is narrow, and it needs to be both.** A row like
+     * **the list is replaced and the notification is narrow, and it needs to be both.** a row like
      * [SettingRow.Screen] carries the text it draws, so a value that changed is a row that has to be
      * rebuilt rather than rebound; but telling the adapter that *everything* changed is what throws
      * the animation away, because `notifyDataSetChanged` means "assume nothing about what moved" and
-     * RecyclerView answers by laying out again with no animation at all. This hands it a list it can
+     * RecyclerView answers by laying out again with no animation at all. this hands it a list it can
      * still reason about, and one index that is different.
      *
-     * **The payload is what keeps the row itself from flickering.** A change notification with none
+     * **the payload is what keeps the row itself from flickering.** a change notification with none
      * makes RecyclerView build a second holder and cross-fade the two, which on a switch row is a
      * visible blink of the toggle; any payload at all means the holder is reused and rebound in
      * place, leaving only the movement below it to animate.
      *
-     * **The row is found by its key, and being the same object is only the fast path.** A holder
+     * **the row is found by its key, and being the same object is only the fast path.** a holder
      * keeps the row it was bound with, and this method rebinds one row and leaves every other holder
-     * alone — so after any write, every row the user did not touch is still holding an object from a
-     * list that has since been replaced. Looking those up by identity fails, which sends a perfectly
+     * alone -- so after any write, every row the user did not touch is still holding an object from a
+     * list that has since been replaced. looking those up by identity fails, which sends a perfectly
      * ordinary second tap down the fallback below: the list is rebuilt from nothing, the item views
      * are torn down and made again, and the ripple under the finger and the switch's own thumb slide
-     * go with them. A key is the same string across every rebuild of a section, so it survives what
+     * go with them. a key is the same string across every rebuild of a section, so it survives what
      * an object reference cannot.
      *
-     * **Keys are unique within a section**, which is what makes this a lookup rather than a guess;
+     * **keys are unique within a section**, which is what makes this a lookup rather than a guess;
      * the identity test stays in front of it for the rows that carry no key at all.
      *
-     * A row that is in no list, or a rebuild that changed the list's length, falls back to [submit]
-     * — the affordance appearing inside a row never changes the length, and the one row set that
+     * a row that is in no list, or a rebuild that changed the list's length, falls back to [submit]
+     * -- the affordance appearing inside a row never changes the length, and the one row set that
      * does grow and shrink belongs to a theme change, which restarts the screen anyway.
      */
     fun submit(newRows: List<SettingRow>, changed: SettingRow) {
@@ -97,18 +97,18 @@ class SettingsAdapter(
     }
 
     /**
-     * The whole list again, one row longer or one shorter, saying which row arrived or left.
+     * the whole list again, one row longer or one shorter, saying which row arrived or left.
      *
-     * **This is the only path that animates a row into or out of the list**, and it exists because a
+     * **this is the only path that animates a row into or out of the list**, and it exists because a
      * row that comes and goes is otherwise indistinguishable from a list that was replaced: [submit]
      * says "assume nothing", and RecyclerView answers by laying out again with no animation at all.
-     * Named, an insert fades the new row up while the rows below slide down to make room for it, and
-     * a removal does both in reverse — which is the same pair of movements the Use global value
+     * named, an insert fades the new row up while the rows below slide down to make room for it, and
+     * a removal does both in reverse -- which is the same pair of movements the Use global value
      * button inside a row already gets, and for the same reason.
      *
-     * **It is the caller that knows what moved.** An adapter handed two lists can only diff them,
+     * **it is the caller that knows what moved.** an adapter handed two lists can only diff them,
      * and a diff of a settings section would have to decide whether a row whose value changed is the
-     * same row — a question the caller never has to ask, because it is the one that added or took
+     * same row -- a question the caller never has to ask, because it is the one that added or took
      * away the row.
      */
     fun replaceRow(newRows: List<SettingRow>, at: Int, arriving: Boolean) {
@@ -146,18 +146,18 @@ class SettingsAdapter(
     }
 
     /**
-     * True only while binding the one row a write just changed.
+     * true only while binding the one row a write just changed.
      *
-     * **It is what separates a row changing under the user's finger from a holder being reused**, and
+     * **it is what separates a row changing under the user's finger from a holder being reused**, and
      * without it a list that is scrolled would fade buttons in and out as recycled views arrived on
-     * rows that never changed. The payload [submit] sends is the signal: a bind that carries one is
+     * rows that never changed. the payload [submit] sends is the signal: a bind that carries one is
      * the targeted redraw, and a bind that carries none is a view being filled in for the first time
      * or being reused.
      */
     private var changing = false
 
     /**
-     * True while binding the pass that takes a faded-out button's space back — see [collapse].
+     * true while binding the pass that takes a faded-out button's space back -- see [collapse].
      */
     private var collapsing = false
 
@@ -174,13 +174,13 @@ class SettingsAdapter(
     }
 
     /**
-     * Announces that a button which has finished fading is now gone, so the row shrinks and the ones
+     * announces that a button which has finished fading is now gone, so the row shrinks and the ones
      * below it slide up.
      *
-     * **A second pass, because a height that changes outside one is a height nothing animates.** The
+     * **a second pass, because a height that changes outside one is a height nothing animates.** the
      * framework animates what moved between two layouts of its own; taking the view away inside an
      * animation's end action changes the layout after that comparison has already been made, so the
-     * rows below jump to their new places. Asking for another change on the same row puts the shrink
+     * rows below jump to their new places. asking for another change on the same row puts the shrink
      * inside a pass, which is the same thing that makes the button *appearing* slide.
      */
     private fun collapse(row: SettingRow) {
@@ -201,9 +201,9 @@ class SettingsAdapter(
     }
 
     /**
-     * A row that opens another screen, showing what is currently chosen underneath it.
+     * a row that opens another screen, showing what is currently chosen underneath it.
      *
-     * The long press works as on any stored row — a build that was chosen is a value like any other,
+     * the long press works as on any stored row -- a build that was chosen is a value like any other,
      * and *Use default* puts it back to the app deciding, which for the build row means the one that
      * shipped inside this APK.
      */
@@ -243,7 +243,7 @@ class SettingsAdapter(
             binding.summary.setText(row.summary)
 
             // set without the listener attached, or restoring the stored state would read as the
-            // user flipping it — which would write the key and make every untouched row "set" the
+            // user flipping it -- which would write the key and make every untouched row "set" the
             // first time its section is opened.
             binding.toggle.setOnCheckedChangeListener(null)
             binding.toggle.isChecked = stored(row.key, row.default)
@@ -295,7 +295,7 @@ class SettingsAdapter(
                 // **no Cancel button, which is Eden's shape for a single-choice list and is what
                 // stops this one scrolling.** a tap on an entry both chooses and dismisses, so the
                 // button was only ever a second way to do what the back gesture and a tap outside
-                // already do — and its row of padding was the difference between five themes fitting
+                // already do -- and its row of padding was the difference between five themes fitting
                 // and not. the dialogs that *commit* something, the colour picker and the two
                 // confirmations, keep theirs.
                 MaterialAlertDialogBuilder(binding.root.context)
@@ -325,11 +325,11 @@ class SettingsAdapter(
     }
 
     /**
-     * A row whose dialog is a slider along a ladder.
+     * a row whose dialog is a slider along a ladder.
      *
-     * **The dialog commits on a button rather than on a detent**, unlike [ValueHolder]'s
-     * single-choice list — which chooses and dismisses on one tap because a tap there *is* the
-     * choice. A slider is dragged across every position between where it started and where it is
+     * **the dialog commits on a button rather than on a detent**, unlike [ValueHolder]'s
+     * single-choice list -- which chooses and dismisses on one tap because a tap there *is* the
+     * choice. a slider is dragged across every position between where it started and where it is
      * going, so writing as it moves would store four rungs nobody asked for on the way to the fifth,
      * and each of them would be a value the precedence rule then treats as chosen. Cancel has to be
      * a real answer here for the same reason.
@@ -351,8 +351,8 @@ class SettingsAdapter(
             binding.root.setOnClickListener {
                 val view = DialogSliderChoiceBinding.inflate(LayoutInflater.from(binding.root.context))
                 // **the axis rather than the two end rungs.** naming the ends with their own entries
-                // put the same word on screen twice whenever the slider was at one of them — large
-                // and accented above, small and grey below — while what the scale is missing is not
+                // put the same word on screen twice whenever the slider was at one of them -- large
+                // and accented above, small and grey below -- while what the scale is missing is not
                 // the names, which the line above always gives, but which way the ladder runs and
                 // what it costs to go that way.
                 view.lowLabel.setText(row.low)
@@ -360,7 +360,7 @@ class SettingsAdapter(
 
                 // **the track is widened to the text column rather than the scale being pulled in to
                 // meet it.** a slider reserves room at both ends for the thumb to sit at an extreme,
-                // so out of the box its track starts inset from the widget's own edge — which leaves
+                // so out of the box its track starts inset from the widget's own edge -- which leaves
                 // it narrower than every other line in this dialog and leaves the two ends of the
                 // scale with nothing to line up against.
                 //
@@ -371,11 +371,11 @@ class SettingsAdapter(
                 // enough to read as one edge while the halo is still round at either end.
                 //
                 // **a fraction of what the widget reports rather than a measured dp**, so it stays
-                // the same share of the thumb's own room at every density — a literal number tuned
+                // the same share of the thumb's own room at every density -- a literal number tuned
                 // against one panel is a different amount of space on every other one.
                 //
                 // **the scale is not moved with it.** it sits on the dialog's own text column, which
-                // is where the widened track now very nearly begins — near enough that pulling the
+                // is where the widened track now very nearly begins -- near enough that pulling the
                 // labels the last few dp to meet it reads as further in rather than as aligned.
                 //
                 // the inset itself is not in Material's public resource set and is free to move in a
@@ -383,7 +383,7 @@ class SettingsAdapter(
                 //
                 // **the right end is held further in than the left, and that is not a symmetry
                 // mistake.** the dialog's own buttons sit below it, and a text button's label is
-                // inset inside its bounds — so a track running to the content column ends level with
+                // inset inside its bounds -- so a track running to the content column ends level with
                 // nothing, while one held off by slider_scale_end ends level with OK. the high label
                 // is moved by the same amount in the layout, so the two stay flush with each other.
                 val rest = view.slider.trackSidePadding * 3 / 8
@@ -431,10 +431,10 @@ class SettingsAdapter(
     }
 
     /**
-     * A switch the app cannot flip, over state the platform owns.
+     * a switch the app cannot flip, over state the platform owns.
      *
-     * The switch is not interactive — the layout already makes it so, since the whole row is what
-     * takes a tap — and nothing here writes anything. It is redrawn from [SettingRow.External.checked]
+     * the switch is not interactive -- the layout already makes it so, since the whole row is what
+     * takes a tap -- and nothing here writes anything. it is redrawn from [SettingRow.External.checked]
      * each time the section is rebuilt, which is what returning from android's own settings screen
      * causes.
      */
@@ -467,13 +467,13 @@ class SettingsAdapter(
     }
 
     /**
-     * The button under a row that overrides the global value, and nothing at all otherwise.
+     * the button under a row that overrides the global value, and nothing at all otherwise.
      *
-     * **Set on both branches**, because a holder is recycled: a button left visible from the row this
+     * **set on both branches**, because a holder is recycled: a button left visible from the row this
      * view last drew would offer to clear an override the row in front of it does not have.
      *
-     * A row with no key cannot be overridden — an action, a header, a permission this app does not
-     * own — and neither can any row on the global list, where the store has nothing behind it.
+     * a row with no key cannot be overridden -- an action, a header, a permission this app does not
+     * own -- and neither can any row on the global list, where the store has nothing behind it.
      */
     private fun useGlobal(button: MaterialButton, key: String?, row: SettingRow) {
         val overridden = settings.perGame && key != null && settings.isSet(key)
@@ -507,7 +507,7 @@ class SettingsAdapter(
 
         // **the fade is the button's own rather than the row's, and that is the difference from
         // cross-fading the whole row.** a change notification with no payload would fade one copy of
-        // the row out against another fading in, which does fade the button — and takes the switch
+        // the row out against another fading in, which does fade the button -- and takes the switch
         // beside it along, doubling a toggle that is already animating its own thumb.
         if (overridden) {
             // **it appears as the row grows.** the height is the layout's the moment this returns,
@@ -517,13 +517,13 @@ class SettingsAdapter(
             button.animate().alpha(1f).setDuration(FADE_MS).start()
         } else {
             // **going the other way the two cannot overlap**, because the row is only as short as
-            // the button is absent — so it fades here and is taken away in a pass of its own, which
+            // the button is absent -- so it fades here and is taken away in a pass of its own, which
             // is what lets the rows below slide up rather than jump. that is also the reason this is
             // quick rather than graceful: the fade is a delay in front of the movement.
             button.animate().alpha(0f).setDuration(FADE_MS).withEndAction {
                 // **a cancelled fade ends too, and must not collapse anything.** the end action runs
                 // either way, and a cancel is this view being bound to another row or overridden
-                // again — both of which leave it part way up, where a finished fade leaves it at
+                // again -- both of which leave it part way up, where a finished fade leaves it at
                 // nothing.
                 if (button.alpha == 0f) collapse(row)
             }.start()
@@ -531,15 +531,15 @@ class SettingsAdapter(
     }
 
     /**
-     * The way back out of a choice.
+     * the way back out of a choice.
      *
-     * **Offered only for a row that is actually set**, so a long press on an untouched row does
-     * nothing rather than showing a dialog whose button would be a no-op — which would tell the user
+     * **offered only for a row that is actually set**, so a long press on an untouched row does
+     * nothing rather than showing a dialog whose button would be a no-op -- which would tell the user
      * the row was set when it is not, and on the global list this gesture is the only place that
      * distinction is visible.
      *
-     * **And not offered at all on a per-game list**, where [useGlobal] is drawn on the row itself and
-     * does the same thing. The wording could not be shared either: on the global list the way back is
+     * **and not offered at all on a per-game list**, where [useGlobal] is drawn on the row itself and
+     * does the same thing. the wording could not be shared either: on the global list the way back is
      * to the app's own default, and on a per-game one it is to whatever the global list currently
      * says, which is a different sentence about a different value.
      */
@@ -579,10 +579,10 @@ class SettingsAdapter(
 
     private companion object {
         /**
-         * The circle a colour row draws, built rather than declared — a drawable resource is
+         * the circle a colour row draws, built rather than declared -- a drawable resource is
          * compiled and the colour here is a value, so it has to be a `GradientDrawable`.
          *
-         * **No ring.** It had one, on the reasoning that a swatch close to the row's own colour would
+         * **no ring.** it had one, on the reasoning that a swatch close to the row's own colour would
          * disappear; the switch in the row below has no ring either, and matching it matters more.
          */
         fun swatch(colour: Int): GradientDrawable = GradientDrawable().apply {
@@ -591,24 +591,24 @@ class SettingsAdapter(
         }
 
         /**
-         * Handed to `notifyItemChanged` so the holder is reused rather than cross-faded against a
-         * second one. Its value is never read — that it exists at all is the whole message.
+         * handed to `notifyItemChanged` so the holder is reused rather than cross-faded against a
+         * second one. its value is never read -- that it exists at all is the whole message.
          */
         val CHANGED = Any()
 
         /**
-         * Handed to `notifyItemChanged` for the pass that removes a button which has finished fading.
-         * It is distinguishable from [CHANGED] because that pass must not start another fade.
+         * handed to `notifyItemChanged` for the pass that removes a button which has finished fading.
+         * it is distinguishable from [CHANGED] because that pass must not start another fade.
          */
         val COLLAPSE = Any()
 
         /**
-         * How long the button takes to fade in or out.
+         * how long the button takes to fade in or out.
          *
-         * **Shorter than the movement it accompanies**, which is the framework's own 250 ms for an
+         * **shorter than the movement it accompanies**, which is the framework's own 250 ms for an
          * item change: the fade is what says the button arrived, and the slide is what says the list
          * made room for it, so a fade that outlasted the slide would still be finishing after
-         * everything had settled. Going away it is also the delay before the row collapses, which is
+         * everything had settled. going away it is also the delay before the row collapses, which is
          * the other reason to keep it short.
          */
         const val FADE_MS = 120L

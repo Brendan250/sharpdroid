@@ -1,15 +1,15 @@
 package com.mircowuffwuff.sharpemu;
 
 /**
- * Orders two {@code sharpemuVersion} strings.
+ * orders two {@code sharpemuVersion} strings.
  *
- * <p><b>A file of its own, with nothing Android in it.</b> This rule decides which build a list puts
- * first and which one a badge calls outdated, and getting it wrong is silent — a plausible order with
- * one build in the wrong place. Kept apart from {@link SharpEmuBuild}, it compiles and runs on a
+ * <p><b>a file of its own, with nothing Android in it.</b> this rule decides which build a list puts
+ * first and which one a badge calls outdated, and getting it wrong is silent -- a plausible order with
+ * one build in the wrong place. kept apart from {@link SharpEmuBuild}, it compiles and runs on a
  * plain JVM, so the ordering can be checked against real version strings without a device.
  *
- * <p><b>The rule is SharpEmu's release order, and it is not semver.</b> Semver says a suffixed
- * version precedes the bare one — {@code 1.0.0-beta} then {@code 1.0.0}. SharpEmu's releases run the
+ * <p><b>the rule is SharpEmu's release order, and it is not semver.</b> semver says a suffixed
+ * version precedes the bare one -- {@code 1.0.0-beta} then {@code 1.0.0}. SharpEmu's releases run the
  * other way: the bare version comes first and suffixed ones follow it.
  *
  * <pre>
@@ -21,16 +21,16 @@ package com.mircowuffwuff.sharpemu;
  *   0.0.3-release.2
  * </pre>
  *
- * <p>So this file exists partly to say that out loud: anybody who reads the comparator against semver
+ * <p>so this file exists partly to say that out loud: anybody who reads the comparator against semver
  * will think it is inverted and will be tempted to "fix" it, and the fix would reorder every build
  * list in the app.
  *
- * <p><b>Suffix labels order alphabetically rather than by a table of known words.</b> A table would
- * have to answer what an unknown label does, and a third-party build may carry any label at all — so
+ * <p><b>suffix labels order alphabetically rather than by a table of known words.</b> a table would
+ * have to answer what an unknown label does, and a third-party build may carry any label at all -- so
  * the rule that applies to {@code hotfix} before {@code release} is the rule that applies to
- * everything, and it is total. It happens to agree with the words themselves: alpha, beta, rc.
+ * everything, and it is total. it happens to agree with the words themselves: alpha, beta, rc.
  *
- * <p>Third-party builds are why this is a comparator rather than an assumption about our own version
+ * <p>third-party builds are why this is a comparator rather than an assumption about our own version
  * strings, and why it never throws: any two strings order, deterministically.
  */
 final class Versions {
@@ -38,7 +38,7 @@ final class Versions {
     private Versions() {
     }
 
-    /** Negative, zero or positive, as {@code a} sorts before, with, or after {@code b}. */
+    /** negative, zero or positive, as {@code a} sorts before, with, or after {@code b}. */
     static int compare(String a, String b) {
         String coreA = core(a);
         String coreB = core(b);
@@ -75,7 +75,7 @@ final class Versions {
         return a.compareTo(b);
     }
 
-    /** The leading dotted numbers: {@code 0.0.3} out of {@code 0.0.3-hotfix-2}. */
+    /** the leading dotted numbers: {@code 0.0.3} out of {@code 0.0.3-hotfix-2}. */
     private static String core(String version) {
         int i = 0;
         while (i < version.length()
@@ -90,9 +90,9 @@ final class Versions {
     }
 
     /**
-     * Compares dotted numbers numerically, never lexically.
+     * compares dotted numbers numerically, never lexically.
      *
-     * <p>Lexically, {@code 0.0.10} precedes {@code 0.0.9}. A missing component is zero, so
+     * <p>lexically, {@code 0.0.10} precedes {@code 0.0.9}. a missing component is zero, so
      * {@code 1.0} and {@code 1.0.0} are one version.
      */
     private static int compareDotted(String a, String b) {
@@ -108,7 +108,7 @@ final class Versions {
         return 0;
     }
 
-    /** The word in a suffix: {@code hotfix} out of {@code -hotfix-2}. Lowercased, never null. */
+    /** the word in a suffix: {@code hotfix} out of {@code -hotfix-2}. lowercased, never null. */
     private static String label(String suffix) {
         StringBuilder word = new StringBuilder();
         for (int i = 0; i < suffix.length(); i++) {
@@ -122,7 +122,7 @@ final class Versions {
         return word.toString();
     }
 
-    /** Every run of digits in a suffix, in order. */
+    /** every run of digits in a suffix, in order. */
     private static long[] numbers(String suffix) {
         String[] runs = suffix.split("\\D+");
         int count = 0;
@@ -152,7 +152,7 @@ final class Versions {
         return 0;
     }
 
-    /** A number, or zero for anything that is not one. Version strings come out of a file. */
+    /** a number, or zero for anything that is not one. version strings come out of a file. */
     private static long parse(String text) {
         try {
             return Long.parseLong(text);

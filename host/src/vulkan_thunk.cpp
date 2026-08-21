@@ -99,7 +99,7 @@ uint64_t NowNanos() {
 
 // this thread's CPU time, so the profile can say whether a command *burns* the frame or *waits*
 // inside it. wall time alone cannot: a driver that sleeps in an ioctl and one that spins look
-// identical, and only one of them is worth removing — the other is where idle goes, and taking it
+// identical, and only one of them is worth removing -- the other is where idle goes, and taking it
 // away just moves the idle somewhere else.
 uint64_t ThreadCpuNanos() {
   timespec Time {};
@@ -112,7 +112,7 @@ uint64_t ThreadCpuNanos() {
 // the profile can say a fence check *waited*, and cannot say what it waited for. two readings fit
 // equally: the guest is idle and the wait is where idle happens to land, or the GPU genuinely
 // takes longer and the wait is real. at a frame budget the game sets rather than the GPU, those
-// are indistinguishable from wall time alone — and they are opposite answers to "is this driver as
+// are indistinguishable from wall time alone -- and they are opposite answers to "is this driver as
 // fast".
 //
 // so: note when a submission's fence is handed to the queue, and how long until a fence check
@@ -120,7 +120,7 @@ uint64_t ThreadCpuNanos() {
 // SharpEmu and without a timestamp query.
 //
 // it is an **upper bound**, because completion is only observed when the guest asks. the guest
-// asks ~22 times a frame, so the granularity is well under a millisecond — fine for telling a
+// asks ~22 times a frame, so the granularity is well under a millisecond -- fine for telling a
 // 4 ms difference from none. the minimum is reported alongside the mean for the same reason: it is
 // the sample least inflated by polling latency.
 std::mutex FenceLock;
@@ -135,7 +135,7 @@ void NoteFenceSubmitted(uint64_t Fence) {
   }
   const uint64_t Now = NowNanos();
   std::lock_guard<std::mutex> Guard(FenceLock);
-  // submissions and completions balance in practice — 13.0 of each per frame — but a fence the
+  // submissions and completions balance in practice -- 13.0 of each per frame -- but a fence the
   // guest submits and never asks about again would sit here for the life of the run. bounded
   // rather than trusted, because this is a diagnostic and a diagnostic that leaks is worse than
   // one that occasionally forgets.
@@ -216,7 +216,7 @@ static_assert(std::size(Commands) == CommandCount, "command list and id enum dis
 // --- the custom driver, via libadrenotools -------------------------------------------------
 //
 // what adrenotools does is not "load this .so instead". it creates an isolated linker namespace,
-// preloads a hook into it, and then opens **the platform loader** — /system/lib64/libvulkan.so —
+// preloads a hook into it, and then opens **the platform loader** -- /system/lib64/libvulkan.so --
 // inside that namespace, so that when the loader goes looking for a driver the hook answers with
 // ours. that is the whole reason it exists rather than a dlopen: the loader keeps being the
 // loader, so WSI, the surface extensions and the ICD negotiation are all still the platform's,
@@ -225,7 +225,7 @@ static_assert(std::size(Commands) == CommandCount, "command list and id enum dis
 // that also means the swapchain work at 1a is not invalidated by swapping the driver: WSI never
 // lived in the driver to begin with.
 //
-// it must happen before the first vulkan call in the process, which it does — the whole thunk
+// it must happen before the first vulkan call in the process, which it does -- the whole thunk
 // resolves through Resolve(), and Resolve() is what calls this, once.
 
 // checked before calling adrenotools rather than after, because adrenotools_open_libvulkan
@@ -291,7 +291,7 @@ void* OpenCustomDriver() {
                                               nullptr, HookLibDir, Dir.c_str(), Name.c_str(), nullptr, nullptr);
   if (!Handle) {
     std::printf("[vulkan] adrenotools could not load %s: %s\n", Name.c_str(), ::dlerror());
-    std::printf("[vulkan]   this needs an app process — a shell binary has no namespace to bypass\n");
+    std::printf("[vulkan]   this needs an app process -- a shell binary has no namespace to bypass\n");
     return nullptr;
   }
   std::printf("[vulkan] adrenotools: %s injected from %s\n", Name.c_str(), Dir.c_str());
@@ -301,7 +301,7 @@ void* OpenCustomDriver() {
 // --- did the injection actually happen -----------------------------------------------------
 //
 // **a handle from adrenotools is not an answer.** what it returns is the platform loader, opened in an
-// isolated namespace with a hook in front of the loader's own dlopen — and the hook is a separate
+// isolated namespace with a hook in front of the loader's own dlopen -- and the hook is a separate
 // decision made later. read hook_android_dlopen_ext in libadrenotools: when it cannot load the custom
 // driver it calls its own fallback(), which loads the system driver and returns a perfectly good
 // handle. so the loud fallback above catches adrenotools refusing, and catches nothing at all when
@@ -314,7 +314,7 @@ void* OpenCustomDriver() {
 // it working across several turnip packages that all report the same device name.
 //
 // **the driver's reported identity is not this question and cannot answer it.** deviceName says turnip
-// or adreno, which stops being an answer the moment two turnip packages are on the device — and two is
+// or adreno, which stops being an answer the moment two turnip packages are on the device -- and two is
 // what this device has.
 enum class Injection { Yes, No, Unknown };
 
@@ -325,7 +325,7 @@ Injection Verdict = Injection::Unknown;
 Injection DriverIsMapped() {
   // **the two spellings of one path, and the whole check turns on them.** an app's data directory is
   // reached as /data/user/0/<package>, which is a symlink to /data/data/<package>, and the launch
-  // passes the first while the kernel reports the second — so matching the string we were handed
+  // passes the first while the kernel reports the second -- so matching the string we were handed
   // finds nothing at all on a driver that is mapped four times over. that failure is silent, it is
   // indistinguishable from the one this check exists to catch, and it condemns every driver on the
   // device. resolving here rather than where the flag is parsed keeps it beside the only thing that
@@ -334,14 +334,14 @@ Injection DriverIsMapped() {
   const bool Resolved = ::realpath(DriverPath, Canonical) != nullptr;
   const char* Wanted = Resolved ? Canonical : DriverPath;
 
-  // "re" — close-on-exec, because the guest forks nothing but the emulator's own child processes are
+  // "re" -- close-on-exec, because the guest forks nothing but the emulator's own child processes are
   // not this file's business to leak into.
   std::FILE* Maps = std::fopen("/proc/self/maps", "re");
   if (!Maps) {
     // **unknown, and never a failure.** the expensive direction here is the false positive: a driver
     // that loaded and is reported as broken ends a run that would have worked. a maps file we cannot
     // read says nothing about the driver, so it is not allowed to say anything about the driver.
-    std::printf("[vulkan] /proc/self/maps: %s — whether the injection took cannot be checked\n",
+    std::printf("[vulkan] /proc/self/maps: %s -- whether the injection took cannot be checked\n",
                 std::strerror(errno));
     return Injection::Unknown;
   }
@@ -376,13 +376,13 @@ Injection DriverIsMapped() {
 
 // the loader binds an ICD on its first entry point rather than at dlopen, so nothing is mapped yet at
 // the moment the injection is set up and a check there would condemn every driver ever loaded. this
-// forces the binding with the cheapest call that does it — a pure query, taking no instance, that the
-// guest itself makes moments later — and then asks maps.
+// forces the binding with the cheapest call that does it -- a pure query, taking no instance, that the
+// guest itself makes moments later -- and then asks maps.
 void VerifyInjection() {
   auto Enumerate = reinterpret_cast<PFN_vkEnumerateInstanceExtensionProperties>(
     ::dlsym(Library, "vkEnumerateInstanceExtensionProperties"));
   if (!Enumerate) {
-    std::printf("[vulkan] the loader has no vkEnumerateInstanceExtensionProperties — whether the"
+    std::printf("[vulkan] the loader has no vkEnumerateInstanceExtensionProperties -- whether the"
                 " injection took cannot be checked\n");
     return;
   }
@@ -409,7 +409,7 @@ void OpenLibrary() {
     Library = OpenCustomDriver();
     Injected = Library != nullptr;
     if (!Library) {
-      std::printf("[vulkan] falling back to the platform loader — this is NOT the custom driver\n");
+      std::printf("[vulkan] falling back to the platform loader -- this is NOT the custom driver\n");
       // a refusal from adrenotools and a missing file are both definite: the chosen driver is not
       // what this process will render through. the *quiet* case is settled below instead.
       Verdict = Injection::No;
@@ -469,12 +469,12 @@ bool UseAndroidWsi();
 //
 // **the list is much shorter with a real window.** under android WSI everything below except the
 // surface constructor is a genuine loader entry point that the host can resolve and that does the
-// right thing, so forwarding is not merely allowed but the entire point — those commands stop
+// right thing, so forwarding is not merely allowed but the entire point -- those commands stop
 // being ours and go back to being vulkan's.
 bool ImplementedHere(uint32_t Id) {
   // the one command that is always ours, in both modes and for opposite reasons. headless: there
   // is no window, so the surface is a token we invent. android: there *is* a window, and this is
-  // where VK_EXT_headless_surface is translated into a real VK_KHR_android_surface — which is what
+  // where VK_EXT_headless_surface is translated into a real VK_KHR_android_surface -- which is what
   // lets the fork keep asking for a headless surface and need no change at all.
   if (Id == Id_vkCreateHeadlessSurfaceEXT) {
     return true;
@@ -574,18 +574,18 @@ bool Attach(uint64_t Base) {
 // --- WSI, the invented half ------------------------------------------------------------------
 //
 // **everything below runs only under `--vulkan-wsi headless`.** with a window the swapchain is the
-// driver's and these commands are forwarded — see UseAndroidWsi() and ImplementedHere().
+// driver's and these commands are forwarded -- see UseAndroidWsi() and ImplementedHere().
 //
 // it exists because `VK_KHR_surface` needs a real window on android and a binary run as the shell
 // user cannot have one: `ANativeWindow` only exists once there is an app. so rather than wait for
-// the app, the thunk *is* the window system — it hands out a surface, owns the images, and turns
+// the app, the thunk *is* the window system -- it hands out a surface, owns the images, and turns
 // vkQueuePresentKHR into whatever the host wants a present to mean: a frame counter, an optional
 // PPM, or a copy into a window buffer.
 //
 // **this is not the path a game runs on**, since the app supplies a window and the swapchain goes
 // back to the driver. it is kept, selectable and covered by the regression set for two reasons: a
-// shell binary has no window and needs it, and a graphics regression under a real swapchain — or
-// under a driver other than the one a result was proved against — needs something known-good to
+// shell binary has no window and needs it, and a graphics regression under a real swapchain -- or
+// under a driver other than the one a result was proved against -- needs something known-good to
 // bisect against.
 //
 // the guest asks for this through `VK_EXT_headless_surface`, which is a real vulkan extension
@@ -620,18 +620,18 @@ uint32_t SurfaceHeight = 1080;
 const char* DumpDirectory {};
 std::atomic<uint64_t> PresentedFrames {};
 
-// the app's surface. null wherever there is no app — including the whole regression set, which
-// still runs as a shell binary with no window anywhere — so every branch on this is also the line
+// the app's surface. null wherever there is no app -- including the whole regression set, which
+// still runs as a shell binary with no window anywhere -- so every branch on this is also the line
 // between "WSI can be invented" and "WSI has somewhere to go".
 std::atomic<::ANativeWindow*> AppWindow {};
 // set once a window has been seen. the *size* has to stop being overridable at that point, or a
-// --vulkan-size left on a command line quietly contradicts the buffer frames land in — and an
+// --vulkan-size left on a command line quietly contradicts the buffer frames land in -- and an
 // extent mismatch does not error, it recreates the swapchain forever and never renders.
 bool WindowOwnsSize {};
 
 WsiMode RequestedWsi {WsiMode::Auto};
 // latched, not recomputed. ImplementedHere() is consulted at proc-address time, vkCreateInstance
-// decides an extension list from it, and the dispatch switch reads it on every call — an answer
+// decides an extension list from it, and the dispatch switch reads it on every call -- an answer
 // that changed halfway through would mean an instance created for one window system serving
 // commands belonging to the other.
 bool AndroidWsiLatched {};
@@ -791,7 +791,7 @@ uint64_t CreateSwapchain(const VkSwapchainCreateInfoKHR* Info, VkDevice Device, 
   return VK_SUCCESS;
 }
 
-// pulling a presented frame back out — a full device-to-host copy and a stall, into a linear image
+// pulling a presented frame back out -- a full device-to-host copy and a stall, into a linear image
 // the CPU can read. it exists so that "the game renders" can be looked at rather than inferred from
 // a frame counter, and the headless present is the same copy into an ANativeWindow buffer instead
 // of a file.
@@ -1027,11 +1027,11 @@ void DumpFrame(Swapchain* Chain, uint32_t Index, uint64_t Frame) {
 
 // the same capture, into the app's window instead of a file.
 //
-// the copy is on the CPU and it is not free — 8 MB a frame at 1080p, read back over PCIe-equivalent
+// the copy is on the CPU and it is not free -- 8 MB a frame at 1080p, read back over PCIe-equivalent
 // and written again with a channel swap. it is the honest shape of "the host layer owns the
 // swapchain", and the way out of it is for the swapchain to stop being ours: a real
 // VK_KHR_android_surface on this window would let the driver composite the guest's images with no
-// copy at all. that is a follow-up and a measurement, not a milestone — see the performance file.
+// copy at all. that is a follow-up and a measurement, not a milestone -- see the performance file.
 // only the headless path needs this, and only it may do it: it is about to write into the window
 // by hand, so it has to know the buffer's size and format rather than letting the compositor pick
 // one. under android WSI the driver owns this window and setting geometry behind it would be a
@@ -1085,10 +1085,10 @@ void PostFrame(Swapchain* Chain, uint32_t Index, ::ANativeWindow* Window) {
 // counted in both modes, because under android WSI the present itself is forwarded and there is
 // nothing else left that knows a frame happened. the run summary only prints on a clean exit and a
 // game run is killed by a timeout, so the log line is the frame counter as far as any real run is
-// concerned — which is a finding in its own right and cost a run to notice.
+// concerned -- which is a finding in its own right and cost a run to notice.
 // the profile dump, as a delta since the last one rather than a running total. a total is
-// dominated by start-up forever — shader compilation and the first pipeline creations are seconds
-// of `vkCreateGraphicsPipelines` that never repeat — and would bury a steady-state stall under it.
+// dominated by start-up forever -- shader compilation and the first pipeline creations are seconds
+// of `vkCreateGraphicsPipelines` that never repeat -- and would bury a steady-state stall under it.
 // per-interval means every dump describes the frames that just happened.
 void DumpProfile(uint64_t Frame, uint64_t IntervalFrames) {
   struct Row {
@@ -1181,7 +1181,7 @@ uint64_t CountPresentedFrame() {
 
 // present is where back-pressure comes from. the guest's frame is not finished when it calls
 // this -- it is finished when the semaphores it is waiting on are signalled -- so waiting here
-// is what stops the render loop free-running. without it that loop free-runs — measured at 70,000
+// is what stops the render loop free-running. without it that loop free-runs -- measured at 70,000
 // dispatches a second with nothing to push back on it, which is the leading suspect for the device
 // reboots.
 uint64_t Present(const VkPresentInfoKHR* Info) {
@@ -1279,7 +1279,7 @@ void SetAndroidWindow(::ANativeWindow* Window) {
   // note what is deliberately *not* done here: ANativeWindow_setBuffersGeometry. under android WSI
   // the driver configures this window itself, and pinning a format behind its back is a good way
   // to get a swapchain that disagrees with the buffers it is handed. the headless path still needs
-  // it, so it asks for it at the point it is about to write — see EnsureWindowGeometry.
+  // it, so it asks for it at the point it is about to write -- see EnsureWindowGeometry.
   AppWindow.store(Window, std::memory_order_release);
   std::printf("[vulkan] surface attached: %ux%u\n", SurfaceWidth, SurfaceHeight);
 }
@@ -1328,7 +1328,7 @@ bool ChosenDriverLoads() {
   // otherwise sit in that buffer until 4 KB of a run that is not going to happen.
   std::fflush(stdout);
   // Unknown is a yes here, and that is the whole of the safety argument. it covers a run that named
-  // no driver, a maps file that could not be read and a path that would not resolve — none of which
+  // no driver, a maps file that could not be read and a path that would not resolve -- none of which
   // is evidence against the driver, and all of which would otherwise end a run that works.
   return Verdict != Injection::No;
 }
@@ -1340,8 +1340,8 @@ std::atomic<bool> TurboRunning {};
 void SetTurbo(bool Enabled) {
   if (!Enabled) {
     // **self-healing, and not optional.** the pinned state is a device-global KGSL property that
-    // outlives the process, and a run killed by `am force-stop` — which is how every measurement
-    // in this project ends — never reaches the release below. so a run that does *not* ask for
+    // outlives the process, and a run killed by `am force-stop` -- which is how every measurement
+    // in this project ends -- never reaches the release below. so a run that does *not* ask for
     // turbo clears it on the way in, which means the next ordinary launch always puts the
     // governor back however the last one died.
     ::adrenotools_set_turbo(false);
@@ -1433,7 +1433,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
   // through to the marshaller at the bottom and become ordinary forwarded vulkan again.
   //
   // which ones those are is decided in exactly one place, ImplementedHere(), because the
-  // proc-address gate has to give the same answer — a disagreement between those two has cost a
+  // proc-address gate has to give the same answer -- a disagreement between those two has cost a
   // whole milestone before. dispatching on CommandCount matches no case and so lands on the
   // default, which is the forward.
   const bool AlwaysOurs = Id == Id_vkCreateInstance || Id == Id_vkEnumerateInstanceExtensionProperties ||
@@ -1476,7 +1476,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
     }
     // and the mirror of the removal above: under android WSI the surface the guest asked for by
     // one name is created by another, so the instance needs the extension that other name belongs
-    // to. the guest never asked for it and never learns it is there — it is ours, in exactly the
+    // to. the guest never asked for it and never learns it is there -- it is ours, in exactly the
     // way VK_EXT_headless_surface was the other way round.
     if (UseAndroidWsi() && !HasAndroidSurface) {
       Kept.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
@@ -1656,14 +1656,14 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
   //
   // **the guest is a desktop-shaped client and android surfaces rotate.** the Odin 3's panel is
   // natively portrait, so a landscape surface reports currentTransform = ROTATE_90, and
-  // VulkanVideoPresenter passes `PreTransform = capabilities.CurrentTransform` — which on every
+  // VulkanVideoPresenter passes `PreTransform = capabilities.CurrentTransform` -- which on every
   // desktop is IDENTITY and a no-op, and here is a *promise* that the client has already rotated
   // its own content. it has not. the first frames through the real swapchain came out on their
   // side, exactly as that promise being false predicts.
   //
   // so the promise is withdrawn here rather than in the fork: `VulkanVideoPresenter.cs` is
   // upstream and this is one line inside a shared code path, which is the shape of edit the fork
-  // exists to avoid — and more to the point, which client pre-rotates is a property of the window
+  // exists to avoid -- and more to the point, which client pre-rotates is a property of the window
   // system integration, and the window system integration is this file. the capabilities the guest
   // reads stay honest; only the promise changes.
   VkSwapchainCreateInfoKHR SwapchainOverride {};
@@ -1698,7 +1698,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
   // of them waiting. so the profile accumulates wall time per command id and the dump sorts by it.
   //
   // one clock_gettime either side, only when asked for. off, this is the same two lines it always
-  // was — the branch is on a bool that never changes after start-up and predicts perfectly.
+  // was -- the branch is on a bool that never changes after start-up and predicts perfectly.
   uint64_t Result;
   if (ProfileEnabled) [[unlikely]] {
     const uint64_t Start = NowNanos();
@@ -1774,14 +1774,14 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
 
   // and what the allocation is *for*. a size on its own says how big the per-frame allocation is
   // and not which resource it belongs to, and the guest is managed code whose call site the host
-  // cannot see — but an image created immediately before an allocation of its own size identifies
+  // cannot see -- but an image created immediately before an allocation of its own size identifies
   // itself by geometry. printed on the same schedule as the allocations below so the two lines sit
   // together in the log.
   if (ProfileEnabled && Id == Id_vkCreateImage) {
     static std::atomic<uint64_t> SeenImages {};
     const uint64_t Index = SeenImages.fetch_add(1, std::memory_order_relaxed);
     if (Index < 8 || Index % 300 == 0) {
-      // Argument[N+1] is function argument N, so pCreateInfo is [2] and not [1] — [1] is the
+      // Argument[N+1] is function argument N, so pCreateInfo is [2] and not [1] -- [1] is the
       // VkDevice, which prints as a plausible-looking extent and nonsense everywhere else.
       const auto* Info = reinterpret_cast<const VkImageCreateInfo*>(Args->Argument[2]);
       if (Info) {
@@ -1796,7 +1796,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
   // **the per-frame allocation, named.** the profile shows one vkAllocateMemory and one
   // vkFreeMemory per frame costing more than everything else put together, on *both* drivers. a
   // time without a size is not actionable, so under --vulkan-profile the first few are printed
-  // with their size and memory type — which is what says whether this is a large allocation or an
+  // with their size and memory type -- which is what says whether this is a large allocation or an
   // expensive small one.
   if (ProfileEnabled && Id == Id_vkAllocateMemory) {
     static std::atomic<uint64_t> Seen {};
@@ -1853,8 +1853,8 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
     }
   }
 
-  // **and the other half of the transform decision.** forcing preTransform to identity is legal —
-  // supportedTransforms says 0x1FF, identity included — but the driver then reports every acquire
+  // **and the other half of the transform decision.** forcing preTransform to identity is legal --
+  // supportedTransforms says 0x1FF, identity included -- but the driver then reports every acquire
   // and present as VK_SUBOPTIMAL_KHR, because from its point of view the client could have saved
   // it a rotation and did not. a well-behaved client treats suboptimal as "recreate the
   // swapchain", so VulkanVideoPresenter did: **a new swapchain every 26 ms, forever, rendering
@@ -1863,7 +1863,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
   // returning an error.
   //
   // suboptimal is not news here. *we* chose the compositor rotation, knowingly, on the guest's
-  // behalf — so the layer that made the trade absorbs the flag that reports it, and the guest is
+  // behalf -- so the layer that made the trade absorbs the flag that reports it, and the guest is
   // told what is true for it: the frame was presented. a genuine OUT_OF_DATE still passes through
   // untouched, because that one really does mean the swapchain must go.
   if (TransformOverridden && Result == VK_SUBOPTIMAL_KHR &&
@@ -1873,12 +1873,12 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
 
   // an extension the guest asked for and the driver does not have. this is one of the few results
   // in vulkan that names a *set* without saying which member of it failed, and the guest cannot
-  // find out either — it gets one error code for a list it already believed. the thunk is the only
+  // find out either -- it gets one error code for a list it already believed. the thunk is the only
   // place holding both the request and the driver, so it is the only place that can answer, and
   // the answer is the whole diagnosis when a driver is swapped underneath a working client.
   //
   // note the sign. Result is the raw 64-bit return with a 32-bit VkResult zero-extended into it,
-  // so every *error* code — all of which are negative — compares equal to nothing at all when
+  // so every *error* code -- all of which are negative -- compares equal to nothing at all when
   // matched against the enum directly. VK_SUCCESS and VK_SUBOPTIMAL_KHR above get away with it
   // because they are non-negative.
   if (static_cast<VkResult>(static_cast<int32_t>(Result)) == VK_ERROR_EXTENSION_NOT_PRESENT &&
@@ -1932,7 +1932,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
                     VK_API_VERSION_PATCH(Device.apiVersion), Device.driverVersion);
       }
       // **the memory types, spelled out.** the guest picks a type by index and the index means
-      // nothing across drivers — the same allocation is type 6 on the stock driver and type 0 on
+      // nothing across drivers -- the same allocation is type 6 on the stock driver and type 0 on
       // turnip. what matters is the flags behind it, because a mapped allocation that is HOST
       // VISIBLE but not HOST CACHED is uncached memory as far as the CPU is concerned, and every
       // guest store into it costs a bus transaction instead of a cache line. that time is *guest*

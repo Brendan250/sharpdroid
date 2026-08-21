@@ -6,59 +6,59 @@ import java.io.File
 import java.io.IOException
 
 /**
- * The one SharpEmu build that ships inside the APK: where it is before it is a directory, and what
+ * the one SharpEmu build that ships inside the APK: where it is before it is a directory, and what
  * turns it into one.
  *
- * **It is an [AssetTree]**, `assets/sharpemu/` — the payload, its `plugins/`, the licences, and a
- * `meta.json` generated when the APK was built — which is where the listing, the space check and the
+ * **it is an [AssetTree]**, `assets/sharpemu/` -- the payload, its `plugins/`, the licences, and a
+ * `meta.json` generated when the APK was built -- which is where the listing, the space check and the
  * `.partial` write live, shared with the guest libraries in [GuestLibraries]. [BuildImport] handles
  * zips because a zip is what somebody *sends* you; nothing sends you the build you shipped.
  *
- * **Nothing is extracted until a launch needs it**, which is GameNative's shape: an app update that
+ * **nothing is extracted until a launch needs it**, which is GameNative's shape: an app update that
  * changed only the app costs nothing, and a user who never runs the bundled build never pays 76 MB
- * of internal storage for it. The extraction is what [MainActivity] runs before it resolves a
+ * of internal storage for it. the extraction is what [MainActivity] runs before it resolves a
  * payload.
  *
- * **Absent is a normal state.** A development build of the app bundles nothing — that is what keeps
- * the deploy loop's APK small and its staged builds authoritative — so every entry point here
+ * **absent is a normal state.** a development build of the app bundles nothing -- that is what keeps
+ * the deploy loop's APK small and its staged builds authoritative -- so every entry point here
  * answers "there is none" without treating it as a fault.
  */
 object BundledBuild {
 
     private const val TAG = "sharpemu"
 
-    /** The asset directory the APK carries the build in. `scripts/build-apk.py` populates it. */
+    /** the asset directory the APK carries the build in. `scripts/build-apk.py` populates it. */
     private const val ASSETS = "sharpemu"
 
-    /** What [ensure] did. */
+    /** what [ensure] did. */
     sealed class Outcome {
-        /** This APK ships no build. A development build of the app is in this state. */
+        /** this APK ships no build. a development build of the app is in this state. */
         object NotBundled : Outcome()
 
-        /** On disk and readable, whether it was already there or was extracted just now. */
+        /** on disk and readable, whether it was already there or was extracted just now. */
         data class Ready(val build: SharpEmuBuild) : Outcome()
 
-        /** Refused before writing anything. Both numbers are named so the toast can be specific. */
+        /** refused before writing anything. both numbers are named so the toast can be specific. */
         data class OutOfSpace(val needed: Long, val free: Long) : Outcome()
 
-        /** Anything else. Already logged; [why] is what a toast may say. */
+        /** anything else. already logged; [why] is what a toast may say. */
         data class Failed(val why: String) : Outcome()
     }
 
-    /** True when this APK carries a build. Cheap: it opens one small asset. */
+    /** true when this APK carries a build. cheap: it opens one small asset. */
     @JvmStatic
     fun isBundled(context: Context): Boolean = assetMeta(context) != null
 
     /**
-     * What the bundled build *is*, without extracting it.
+     * what the bundled build *is*, without extracting it.
      *
-     * **Read from the asset when there is one, and from disk otherwise.** The build manager and the
-     * settings row both have to name the bundled build before any game has been launched — the whole
+     * **read from the asset when there is one, and from disk otherwise.** the build manager and the
+     * settings row both have to name the bundled build before any game has been launched -- the whole
      * point of pinning it is that it is there and selected from the first time the screen is opened
-     * — and at that moment it is 76 MB of APK and not a directory. Its identity is in the asset's
+     * -- and at that moment it is 76 MB of APK and not a directory. its identity is in the asset's
      * `meta.json` either way, so the screen can be honest about a build the disk has never seen.
      *
-     * The disk fallback covers a real case rather than a hypothetical one: installing a development
+     * the disk fallback covers a real case rather than a hypothetical one: installing a development
      * APK over a release one leaves the extracted directory behind, and it is still a build that
      * runs.
      */
@@ -69,13 +69,13 @@ object BundledBuild {
     }
 
     /**
-     * Puts the bundled build on disk if this APK ships one and it is not already there, and answers
+     * puts the bundled build on disk if this APK ships one and it is not already there, and answers
      * with what a launch may run.
      *
-     * **Off the main thread.** It writes 76 MB.
+     * **off the main thread.** it writes 76 MB.
      *
-     * @param progress called as bytes land. Nothing draws it today — a launch shows a black screen
-     *   throughout — and it is reported anyway, because the caller is the only place that can decide
+     * @param progress called as bytes land. nothing draws it today -- a launch shows a black screen
+     *   throughout -- and it is reported anyway, because the caller is the only place that can decide
      *   whether a wait is worth showing and this is the only place that knows how far along it is.
      */
     @JvmStatic
@@ -108,23 +108,23 @@ object BundledBuild {
         return Outcome.Ready(extracted)
     }
 
-    /** Where it lands: the reserved folder, which no derived build folder name can collide with. */
+    /** where it lands: the reserved folder, which no derived build folder name can collide with. */
     private fun target(internal: File) = File(internal, SharpEmuBuild.BUNDLED)
 
     /**
-     * Whether what is on disk is the build this APK carries.
+     * whether what is on disk is the build this APK carries.
      *
-     * **The commit is the test**, and it is the reason `meta.json` records one: `sharpemuVersion` is
+     * **the commit is the test**, and it is the reason `meta.json` records one: `sharpemuVersion` is
      * upstream's tag and the fork moves faster than upstream, so two builds of one tag are the
-     * ordinary case and are identical in every other field a comparison could use. Re-extracting on
+     * ordinary case and are identical in every other field a comparison could use. re-extracting on
      * every app update would be the alternative, and it would charge 76 MB of writes for an update
      * that changed a string in the settings scene.
      *
-     * **With no commit on either side the whole `meta.json` is compared instead.** A build packaged
-     * from a published archive records none — there was no checkout to ask — and something still has
+     * **with no commit on either side the whole `meta.json` is compared instead.** a build packaged
+     * from a published archive records none -- there was no checkout to ask -- and something still has
      * to notice when the APK starts carrying a different one.
      *
-     * What it cannot see is a payload rebuilt from a dirty fork tree at the same commit.
+     * what it cannot see is a payload rebuilt from a dirty fork tree at the same commit.
      * `scripts/package-build.py` warns when it packages one, which is where that belongs.
      */
     private fun isStale(context: Context, target: File, assetMeta: JSONObject): Boolean {
@@ -141,15 +141,15 @@ object BundledBuild {
     }
 
     /**
-     * Lays the tree down and reads back what landed.
+     * lays the tree down and reads back what landed.
      *
-     * **The read back is not belt and braces.** What is on disk is what will be launched, and this is
-     * the last moment a mismatch is cheap to notice — after this the failure is somewhere inside
-     * SharpEmu. A tree that is not a runnable build is removed rather than left: [SharpEmuBuild.list]
+     * **the read back is not belt and braces.** what is on disk is what will be launched, and this is
+     * the last moment a mismatch is cheap to notice -- after this the failure is somewhere inside
+     * SharpEmu. a tree that is not a runnable build is removed rather than left: [SharpEmuBuild.list]
      * would otherwise find it and the build manager would offer it.
      *
-     * A `.partial` left behind by a process that died is invisible rather than dangerous, since
-     * [SharpEmuBuild.list] and [SharpEmuBuild.mostRecent] both skip one. That is why this tree needs
+     * a `.partial` left behind by a process that died is invisible rather than dangerous, since
+     * [SharpEmuBuild.list] and [SharpEmuBuild.mostRecent] both skip one. that is why this tree needs
      * no stamp of its own: `meta.json` is both the identity and the mark of a finished extraction.
      */
     private fun extract(
@@ -169,7 +169,7 @@ object BundledBuild {
         return build
     }
 
-    /** The asset's `meta.json`, or null when this APK ships no build. */
+    /** the asset's `meta.json`, or null when this APK ships no build. */
     private fun assetMeta(context: Context): JSONObject? = try {
         context.assets.open("$ASSETS/meta.json").use {
             JSONObject(it.readBytes().decodeToString())

@@ -14,17 +14,17 @@ import java.io.File
 import java.util.concurrent.Executors
 
 /**
- * The GPU driver manager: which Vulkan drivers are on the device, which one a game loads, and how one
+ * the GPU driver manager: which Vulkan drivers are on the device, which one a game loads, and how one
  * arrives.
  *
- * Reached from **Settings → Graphics → Custom driver**, and from nowhere else.
+ * reached from **Settings → Graphics → Custom driver**, and from nowhere else.
  *
- * **The system driver is pinned at the top with no delete button**, and it is what a launch loads
- * when nothing is chosen — Eden's shape, and the same shape the build manager pins the bundled build
- * with. Everything below it was either staged from a PC or imported from a zip.
+ * **the system driver is pinned at the top with no delete button**, and it is what a launch loads
+ * when nothing is chosen -- Eden's shape, and the same shape the build manager pins the bundled build
+ * with. everything below it was either staged from a PC or imported from a zip.
  *
- * **An import is on the worker**: it reads and writes megabytes through a content provider, and the
- * scan behind it parses a `meta.json` per package across FUSE-backed external storage. Either on the
+ * **an import is on the worker**: it reads and writes megabytes through a content provider, and the
+ * scan behind it parses a `meta.json` per package across FUSE-backed external storage. either on the
  * main thread is a frozen screen and, past five seconds, a dialog offering to kill the app.
  */
 class DriversActivity : AppCompatActivity() {
@@ -39,9 +39,9 @@ class DriversActivity : AppCompatActivity() {
     private val staged: File get() = AppStorage.stagedDrivers(getExternalFilesDir(null)!!)
 
     /**
-     * The zip picker.
+     * the zip picker.
      *
-     * Registered at construction, which the contract requires — the activity can be recreated while
+     * registered at construction, which the contract requires -- the activity can be recreated while
      * the picker is in front of it, and a launcher registered later than `onCreate` has nothing to
      * deliver the result to.
      *
@@ -59,7 +59,7 @@ class DriversActivity : AppCompatActivity() {
         super.onCreate(state)
         // **which store this manager is choosing for**, forwarded by the row that opened it. a
         // per-game section sends its game, the cog's own sections send nothing, and everything below
-        // — the list, the radio, the import and the delete — is the same screen either way: what
+        // -- the list, the radio, the import and the delete -- is the same screen either way: what
         // moves is only which file the selection is written to.
         settings = intent.getStringExtra(SettingsSectionActivity.EXTRA_GAME)
             ?.takeIf { it.isNotEmpty() }
@@ -112,10 +112,10 @@ class DriversActivity : AppCompatActivity() {
     }
 
     /**
-     * Rescans and redraws.
+     * rescans and redraws.
      *
-     * On the worker because it opens and parses a `meta.json` per package across two volumes, one of
-     * which is FUSE-backed external storage — reads there can be slow for reasons that have nothing
+     * on the worker because it opens and parses a `meta.json` per package across two volumes, one of
+     * which is FUSE-backed external storage -- reads there can be slow for reasons that have nothing
      * to do with how many drivers there are.
      */
     private fun refresh() {
@@ -141,15 +141,15 @@ class DriversActivity : AppCompatActivity() {
     }
 
     /**
-     * Back to the driver the device shipped with.
+     * back to the driver the device shipped with.
      *
-     * **It is stored rather than cleared**, so the row the user tapped is a choice like any other. An
+     * **it is stored rather than cleared**, so the row the user tapped is a choice like any other. an
      * absent setting means the same thing, which is what makes the system driver the default without
-     * anything having to say so — but a user who deliberately went back to it should not have that
+     * anything having to say so -- but a user who deliberately went back to it should not have that
      * read as never having decided.
      */
     private fun selectSystem() {
-        // per-game, the row already marked is still worth a write — see BuildsActivity.select, which
+        // per-game, the row already marked is still worth a write -- see BuildsActivity.select, which
         // states the reason once for both managers.
         if (GpuDriver.isSystem(settings.driver) && !settings.perGame) return
         settings.driver = GpuDriver.SYSTEM
@@ -158,13 +158,13 @@ class DriversActivity : AppCompatActivity() {
     }
 
     /**
-     * Chooses a package. **Nothing is copied here and nothing waits.**
+     * chooses a package. **nothing is copied here and nothing waits.**
      *
-     * A staged package's library is copied onto internal storage at launch, because the linker will
-     * not `dlopen` one from external storage — [MainActivity] does that, and it is the same copy the
-     * `--es driver` path has always done. An imported one is already where it has to be.
+     * a staged package's library is copied onto internal storage at launch, because the linker will
+     * not `dlopen` one from external storage -- [MainActivity] does that, and it is the same copy the
+     * `--es driver` path has always done. an imported one is already where it has to be.
      *
-     * **What is stored is the folder name**, so the choice names one package rather than a family.
+     * **what is stored is the folder name**, so the choice names one package rather than a family.
      */
     private fun select(entry: DriverLibrary.Entry) {
         if (entry.selected && !settings.perGame) return
@@ -174,7 +174,7 @@ class DriversActivity : AppCompatActivity() {
     }
 
     /**
-     * Imports a picked zip, and selects it — which is the only reading that makes sense: importing a
+     * imports a picked zip, and selects it -- which is the only reading that makes sense: importing a
      * driver is how somebody says they want to run on it.
      */
     private fun importZip(zip: Uri) {
@@ -203,10 +203,10 @@ class DriversActivity : AppCompatActivity() {
     }
 
     /**
-     * **The warning is about the staged copy, not about which copy the row is showing.**
+     * **the warning is about the staged copy, not about which copy the row is showing.**
      *
-     * A deletion removes both copies of a name, because the list shows one entry per folder and
-     * leaving half of it behind would look like a deletion that did nothing. So the sentence about a
+     * a deletion removes both copies of a name, because the list shows one entry per folder and
+     * leaving half of it behind would look like a deletion that did nothing. so the sentence about a
      * PC has to be chosen by whether a staged copy exists.
      */
     private fun confirmDelete(entry: DriverLibrary.Entry) {
@@ -226,13 +226,13 @@ class DriversActivity : AppCompatActivity() {
     }
 
     /**
-     * Removes a package, and moves the selection back to the system driver if it was the chosen one.
+     * removes a package, and moves the selection back to the system driver if it was the chosen one.
      *
-     * **The replacement is the system driver rather than the next package in the list**, which is
-     * where this differs from the build manager and it is not a shortcut. Builds are ours and
+     * **the replacement is the system driver rather than the next package in the list**, which is
+     * where this differs from the build manager and it is not a shortcut. builds are ours and
      * interchangeable, so the newest remaining one is a reasonable substitute; driver packages come
      * from different people and target different Adreno generations, so promoting an unrelated one
-     * would be the app choosing a driver nobody asked for. The system driver always works.
+     * would be the app choosing a driver nobody asked for. the system driver always works.
      */
     private fun delete(entry: DriverLibrary.Entry) {
         binding.progress.visibility = View.VISIBLE
@@ -245,7 +245,7 @@ class DriversActivity : AppCompatActivity() {
             GpuDriver.delete(File(internalRoot, folder))
             GpuDriver.delete(File(staged, folder))
             // and the library that was copied out of it, or the next launch loads a driver whose
-            // package is gone — a run attributed to something the manager no longer lists.
+            // package is gone -- a run attributed to something the manager no longer lists.
             GpuDriver.delete(AppStorage.installedDriver(cacheDir, folder))
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread

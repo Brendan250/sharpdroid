@@ -106,7 +106,7 @@
     <!-- the two labels on the per-game scene's fact table. ordinary case here and drawn as small
          capitals by the style, so a string stays a word.
 
-         the version is the dump's own content version — the release it is — rather than any of the
+         the version is the dump's own content version (the release it is) rather than any of the
          four other version fields a param.json carries. -->
     <string name="game_settings_label_title_id">Title ID</string>
     <string name="game_settings_label_version">Version</string>

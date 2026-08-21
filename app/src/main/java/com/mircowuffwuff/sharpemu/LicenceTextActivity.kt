@@ -10,22 +10,22 @@ import java.io.File
 import java.util.concurrent.Executors
 
 /**
- * One licence document, read as it ships.
+ * one licence document, read as it ships.
  *
- * Reached from the Third-party licences list, and from the About screen's own licence card — the text
+ * reached from the Third-party licences list, and from the About screen's own licence card -- the text
  * this app is under is the GPL, and the GPL ships beside the guest libraries already, so there is one
  * copy of it in the APK rather than two that can disagree.
  *
- * **Nothing is reformatted and nothing is parsed.** These are plain text written by the people whose
+ * **nothing is reformatted and nothing is parsed.** these are plain text written by the people whose
  * terms they state, laid out for a fixed-width column: indented clauses, aligned numbering, a title
- * centred with spaces. Rendering them as prose reflows all of it into something that reads as damaged,
+ * centred with spaces. rendering them as prose reflows all of it into something that reads as damaged,
  * and looking for markdown in them finds headings and emphasis that are not there.
  *
- * **The read does not trim.** Every one of these files opens with a title centred by leading spaces,
- * so stripping whitespace shifts the first line left and nothing else — which looks like a bug in the
+ * **the read does not trim.** every one of these files opens with a title centred by leading spaces,
+ * so stripping whitespace shifts the first line left and nothing else -- which looks like a bug in the
  * document rather than in the reader.
  *
- * **Off the main thread, for the largest rather than the typical.** These run from 2 to 68 KB and the
+ * **off the main thread, for the largest rather than the typical.** these run from 2 to 68 KB and the
  * big one is a copyright statement listing every file in a compiler, so the screen draws its frame
  * first and fills in.
  */
@@ -74,7 +74,7 @@ class LicenceTextActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    /** The asset whole, byte for byte. See the class note on why nothing is trimmed. */
+    /** the asset whole, byte for byte. see the class note on why nothing is trimmed. */
     private fun read(asset: String): String? = try {
         assets.open(asset).use { it.readBytes().decodeToString() }
     } catch (e: Exception) {
@@ -83,10 +83,10 @@ class LicenceTextActivity : AppCompatActivity() {
     }
 
     /**
-     * A file on the device, for a document that is not this app's.
+     * a file on the device, for a document that is not this app's.
      *
-     * **A selected emulator build's notices are files rather than assets**, since the build may have
-     * been imported from a zip this project never packaged. It can be deleted while this screen is
+     * **a selected emulator build's notices are files rather than assets**, since the build may have
+     * been imported from a zip this project never packaged. it can be deleted while this screen is
      * open, so a read that fails is the unreadable message rather than a crash.
      */
     private fun readFile(path: String): String? = try {
@@ -104,9 +104,9 @@ class LicenceTextActivity : AppCompatActivity() {
         private const val EXTRA_TITLE = "title"
 
         /**
-         * Opens one document, titled [title] — [asset] out of the APK, or [path] off the device.
+         * opens one document, titled [title] -- [asset] out of the APK, or [path] off the device.
          *
-         * **The title is passed rather than derived from the path**, because the two differ: a
+         * **the title is passed rather than derived from the path**, because the two differ: a
          * copyright statement is named for its source package and lives in a file with a suffix on it,
          * and the list is where that is already worked out.
          */
@@ -118,7 +118,7 @@ class LicenceTextActivity : AppCompatActivity() {
                     .putExtra(EXTRA_TITLE, title)
             )
 
-        /** Opens an asset, for a caller that has no file to offer. */
+        /** opens an asset, for a caller that has no file to offer. */
         fun open(context: Context, asset: String, title: String) = open(context, asset, null, title)
     }
 }

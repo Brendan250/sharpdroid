@@ -32,7 +32,7 @@ namespace {
 
 // `mrs` of an ID_AA64* register is trapped and emulated by the kernel at EL0, which is what makes
 // this readable from an ordinary android process at all. the kernel answers with a *sanitised*
-// view — fields it does not want userspace acting on read as zero — and that is the right answer
+// view -- fields it does not want userspace acting on read as zero -- and that is the right answer
 // to describe FEXCore with, since it is also what the guest's threads will observe.
 struct IDRegisters {
   uint64_t ISAR0 {};
@@ -75,7 +75,7 @@ DEFINE_SYSREG_READER(ZFR0, s3_0_c0_c4_4)
 
 #undef DEFINE_SYSREG_READER
 
-// `rdvl x0, #8` — the vector length in bits. it cannot be written as a mnemonic for the same reason
+// `rdvl x0, #8` -- the vector length in bits. it cannot be written as a mnemonic for the same reason
 // ZFR0 cannot be named, and it is only architecturally defined where SVE is implemented, so it is
 // reached only after the ID registers have said so.
 __attribute__((naked)) uint64_t ReadSVEVectorLengthInBits() {
@@ -86,7 +86,7 @@ __attribute__((naked)) uint64_t ReadSVEVectorLengthInBits() {
 }
 
 // every feature field in these registers is four bits wide, and the offsets below are written as
-// FEX writes them — the field's index times four — so the two can be read side by side.
+// FEX writes them -- the field's index times four -- so the two can be read side by side.
 constexpr uint64_t Field(uint64_t Register, unsigned Offset) {
   return (Register >> Offset) & 0b1111;
 }
@@ -163,13 +163,13 @@ IDRegisters ReadIDRegisters() {
 // --- the same registers, named on the command line ----------------------------------------------
 
 // FEXCore's own `CPUFeatureRegisters`, which is a comma-separated list of `name=hex`. it is the
-// honest way to ask what this build would do on a CPU that is not this one — a feature set can be
+// honest way to ask what this build would do on a CPU that is not this one -- a feature set can be
 // described exactly, rather than a boolean being forced past the check that reads the hardware.
 // unnamed registers keep the value the hardware gave, so one register can be overridden alone.
 void ApplyRegisterOverride(IDRegisters& Registers, std::string_view Config) {
   while (!Config.empty()) {
     // a comma is the separator FEX documents, and a semicolon is accepted beside it because this
-    // option travels here inside argument vectors that already split on commas — the app's `--es
+    // option travels here inside argument vectors that already split on commas -- the app's `--es
     // fex` does, so a comma-separated value arrives as several options and the second one refuses
     // the run by name. one spelling that survives the journey is worth more than one that is tidy.
     const size_t End = Config.find_first_of(",;");
@@ -228,13 +228,13 @@ void ApplyRegisterOverride(IDRegisters& Registers, std::string_view Config) {
 //
 // this is not optional and understating it is not safe, which makes it the exception to the rule
 // above. FEXCore's CPUID emulation sizes its per-core table from CPUMIDRs.size() and then indexes
-// it with the *current* core number — CPUIDEmu::Function_8000_0002h is `PerCPUData[GetCPUID()]`
-// with no bounds check — so leaving the vector empty is a wild read the moment a guest asks for
+// it with the *current* core number -- CPUIDEmu::Function_8000_0002h is `PerCPUData[GetCPUID()]`
+// with no bounds check -- so leaving the vector empty is a wild read the moment a guest asks for
 // CPUID leaf 0x8000_0002, the processor brand string.
 //
 // read from /sys rather than by pinning to each core and executing `mrs`: the kernel already
 // publishes the value per cpu, and MIDR_EL1 in userspace is an emulated trap anyway. it matters
-// that these are per-core and not one value copied around — the Snapdragon 8 Elite really is
+// that these are per-core and not one value copied around -- the Snapdragon 8 Elite really is
 // hybrid, reporting 0x514F0014 on some cores and 0x513F0014 on the rest, and FEXCore decides
 // whether to advertise a hybrid topology to the guest by comparing them.
 void FillMIDRs(FEXCore::HostFeatures& Features) {
@@ -272,7 +272,7 @@ constexpr uint32_t MIDRPartNum(uint32_t MIDR) {
 
 // where the CPU advertises an extension it does not deliver. these are the cases understating is
 // not merely allowed but required, and they are why the probe is a port of FEX's rather than a
-// reading of the ID registers on their own — the registers say yes to all three.
+// reading of the ID registers on their own -- the registers say yes to all three.
 void HandleErrata(FEXCore::HostFeatures& Features) {
   constexpr uint32_t Implementer_ARM = 0x41;
   constexpr uint32_t PartNum_V2 = 0xd4f;
@@ -364,7 +364,7 @@ FEXCore::HostFeatures MinimalFeatures() {
 
 // what the last probe decoded, so that the two report lines describe one thing. re-reading the
 // hardware there would print registers the feature line beside it was not computed from, which is
-// exactly wrong under a CPUFeatureRegisters override — the case the raw line exists for.
+// exactly wrong under a CPUFeatureRegisters override -- the case the raw line exists for.
 IDRegisters LastProbed {};
 bool HaveProbed = false;
 
@@ -420,7 +420,7 @@ FEXCore::HostFeatures ProbedFeatures() {
 
   // not a capability. SupportsAVX is what decides whether FEXCore's decoder has a VEX table *to
   // decode with*: the Decoder constructor picks VEXTableOps + SVE256 if the host has it,
-  // VEXTableOps_AVX128 — 256-bit decomposed into pairs of 128-bit NEON, which any arm64 can run —
+  // VEXTableOps_AVX128 -- 256-bit decomposed into pairs of 128-bit NEON, which any arm64 can run --
   // if it does not, and leaves both null otherwise. so with it unset every VEX-encoded instruction
   // is undecodable and raises #UD, which is fine for a guest that checks CPUID first and fatal for
   // one that does not. FEX sets it unconditionally on arm64 for the same reason.

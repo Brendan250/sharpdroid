@@ -7,9 +7,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.mircowuffwuff.sharpemu.databinding.ItemFolderBinding
 
 /**
- * The rows of [FoldersActivity]: one granted folder each.
+ * the rows of [FoldersActivity]: one granted folder each.
  *
- * **The whole row is not clickable and the button is.** There is exactly one thing to do to a folder
+ * **the whole row is not clickable and the button is.** there is exactly one thing to do to a folder
  * and it is destructive, so a row that acted on a tap would be a row that removes a folder when
  * somebody meant to look at it.
  */
@@ -18,7 +18,7 @@ class FolderAdapter(
     private val onRemove: (Item) -> Unit,
 ) : RecyclerView.Adapter<FolderAdapter.Holder>() {
 
-    /** A granted folder and what to call it — see [GameLibrary.label] for why it is the document id. */
+    /** a granted folder and what to call it -- see [GameLibrary.label] for why it is the document id. */
     data class Item(val tree: Uri, val label: String)
 
     fun submit(newItems: List<Item>) {

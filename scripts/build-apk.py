@@ -297,10 +297,10 @@ def write_bundle_meta(build, asset):
 def stage_guest_libs():
     """assemble the asset tree for the x86-64 shared objects the guest's own linker searches.
 
-    **the APK is where these come from, and there is no way to build one without them.** they used to
-    reach a device over `adb` alone, which meant a release install could not start a game and a data
-    wipe put a working install in that same state -- the platform's own wipe takes the external files
-    directory, which is where they were. so the refusal here is what keeps the failure on this
+    **the APK is where these come from, and there is no way to build one without them.** reaching a
+    device over `adb` alone leaves a release install unable to start a game, and puts a working
+    install in that same state after a data wipe -- the platform's own wipe takes the external files
+    directory, which is where a staged set lives. so the refusal here is what keeps the failure on this
     machine, where the fetch that fixes it can be named.
 
     **the identity is computed here rather than on the device.** the set has no natural version:

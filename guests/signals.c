@@ -113,8 +113,8 @@ struct __attribute__((packed)) UContext {
   u64 uc_sigmask[16];
 };
 
-// the restorer. a handler returns here, and this is what asks the kernel — or, here, the host
-// layer — to put everything back. glibc and bionic both supply one of these on x86-64, which is
+// the restorer. a handler returns here, and this is what asks the kernel -- or, here, the host
+// layer -- to put everything back. glibc and bionic both supply one of these on x86-64, which is
 // why SA_RESTORER exists at all on this architecture.
 extern void Restorer(void);
 __asm__(".globl Restorer\n"
@@ -128,7 +128,7 @@ static volatile int HandlerRan = 0;
 static volatile u64 HandlerFaultAddress = 0;
 static volatile u64 HandlerFaultRIP = 0;
 static volatile u64 HandlerRBX = 0;
-///< RBX as the guest reads it back *after* sigreturn — the handler rewrote it in the frame.
+///< RBX as the guest reads it back *after* sigreturn -- the handler rewrote it in the frame.
 static volatile u64 HandlerRBX_After = 0;
 static volatile u64 HandlerTrapNo = 0;
 
@@ -254,7 +254,7 @@ __attribute__((used)) static void StartC(u64* Stack) {
   //
   // this is a different path through the host layer entirely. a bad address is a real host
   // SIGSEGV out of JIT'd code; an invalid opcode is something FEXCore's *decoder* recognises,
-  // so it never reaches the CPU — the JIT emits a block that records the fault and branches to
+  // so it never reaches the CPU -- the JIT emits a block that records the fault and branches to
   // a trampoline. it is also the exact path SharpEmu's SSE4a emulation lives on, since EXTRQ
   // and INSERTQ are #UD on every CPU that is not an AMD from 2007.
   //

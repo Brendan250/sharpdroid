@@ -14,17 +14,17 @@ import java.io.File
 import java.util.concurrent.Executors
 
 /**
- * The SharpEmu build manager: which builds are on the device, which one runs, and how one arrives.
+ * the SharpEmu build manager: which builds are on the device, which one runs, and how one arrives.
  *
- * Reached from **Settings → Emulation → SharpEmu build**, and from nowhere else.
+ * reached from **Settings → Emulation → SharpEmu build**, and from nowhere else.
  *
- * **A build runs where it is, so selecting one writes a line and copies nothing.** The bundled build
- * is pinned at the top with no delete button — exactly one ships per APK, so there is never a
- * question of which of ours is the default — and everything below it was either staged from a PC or
+ * **a build runs where it is, so selecting one writes a line and copies nothing.** the bundled build
+ * is pinned at the top with no delete button -- exactly one ships per APK, so there is never a
+ * question of which of ours is the default -- and everything below it was either staged from a PC or
  * imported from a zip.
  *
- * **The two things that do touch a build directory are on the worker**: an import extracts tens of
- * megabytes, and a scan parses a `meta.json` per build across FUSE-backed external storage. Either
+ * **the two things that do touch a build directory are on the worker**: an import extracts tens of
+ * megabytes, and a scan parses a `meta.json` per build across FUSE-backed external storage. either
  * on the main thread is seconds of frozen screen and, past five, a dialog offering to kill the app.
  */
 class BuildsActivity : AppCompatActivity() {
@@ -39,9 +39,9 @@ class BuildsActivity : AppCompatActivity() {
     private val staged: File get() = AppStorage.stagedBuilds(getExternalFilesDir(null)!!)
 
     /**
-     * The zip picker.
+     * the zip picker.
      *
-     * Registered at construction, which the contract requires — the activity can be recreated while
+     * registered at construction, which the contract requires -- the activity can be recreated while
      * the picker is in front of it, and a launcher registered later than `onCreate` has nothing to
      * deliver the result to.
      *
@@ -58,7 +58,7 @@ class BuildsActivity : AppCompatActivity() {
         Theme.apply(this)
         drawnWith = Theme.signature(this)
         super.onCreate(state)
-        // which store this manager is choosing for, forwarded by the row that opened it — see
+        // which store this manager is choosing for, forwarded by the row that opened it -- see
         // DriversActivity, which takes it the same way and for the same reason.
         settings = intent.getStringExtra(SettingsSectionActivity.EXTRA_GAME)
             ?.takeIf { it.isNotEmpty() }
@@ -110,10 +110,10 @@ class BuildsActivity : AppCompatActivity() {
     }
 
     /**
-     * Rescans and redraws.
+     * rescans and redraws.
      *
-     * On the worker because it opens and parses a `meta.json` per build across two volumes, one of
-     * which is FUSE-backed external storage — reads there can be slow for reasons that have nothing
+     * on the worker because it opens and parses a `meta.json` per build across two volumes, one of
+     * which is FUSE-backed external storage -- reads there can be slow for reasons that have nothing
      * to do with how many builds there are.
      */
     private fun refresh() {
@@ -140,20 +140,20 @@ class BuildsActivity : AppCompatActivity() {
     }
 
     /**
-     * Chooses a build. **Nothing is copied and nothing waits.**
+     * chooses a build. **nothing is copied and nothing waits.**
      *
-     * A build runs where it is, so selecting one is a single line in the store. A 76 MB copy would
+     * a build runs where it is, so selecting one is a single line in the store. a 76 MB copy would
      * buy durability against re-staging, which is a thing only a developer does and exactly the
-     * thing they mean to do — and `docs/build-format.md` measures the volume as costing nothing:
-     * 874–902 ms from external against 879–907 from internal.
+     * thing they mean to do -- and `docs/build-format.md` measures the volume as costing nothing:
+     * 874-902 ms from external against 879-907 from internal.
      *
-     * **What is stored is the folder name**, a concrete identity derived from `meta.json`, so the
+     * **what is stored is the folder name**, a concrete identity derived from `meta.json`, so the
      * choice survives a newer build of the same id arriving.
      */
     private fun select(entry: BuildLibrary.Entry) {
         // **the row already marked is still worth a write when this manager answers for one game**,
         // and only then. what is marked there is whatever the app's own row currently says, so
-        // tapping it means "this game runs this build" rather than "no change" — and without the
+        // tapping it means "this game runs this build" rather than "no change" -- and without the
         // write the game would keep following the app's row the day it moves. on the app's own
         // screen the mark and the store are the same thing, so tapping it is genuinely nothing.
         if (entry.selected && !settings.perGame) return
@@ -163,7 +163,7 @@ class BuildsActivity : AppCompatActivity() {
     }
 
     /**
-     * Imports a picked zip, and selects it — which is the only reading that makes sense: importing a
+     * imports a picked zip, and selects it -- which is the only reading that makes sense: importing a
      * build is how somebody says they want to run it.
      */
     private fun importZip(zip: Uri) {
@@ -192,11 +192,11 @@ class BuildsActivity : AppCompatActivity() {
     }
 
     /**
-     * **The warning is about the staged copy, not about which copy the row is showing.**
+     * **the warning is about the staged copy, not about which copy the row is showing.**
      *
-     * A deletion removes both copies of an identity, because the list shows one entry per identity
-     * and leaving half of it behind would look like a deletion that did nothing. So the sentence
-     * about a PC has to be chosen by whether a staged copy exists — an installed entry with a staged
+     * a deletion removes both copies of an identity, because the list shows one entry per identity
+     * and leaving half of it behind would look like a deletion that did nothing. so the sentence
+     * about a PC has to be chosen by whether a staged copy exists -- an installed entry with a staged
      * twin got the shorter message and lost the twin anyway, which is the dialog saying less than
      * the button does.
      */
@@ -217,14 +217,14 @@ class BuildsActivity : AppCompatActivity() {
     }
 
     /**
-     * Removes a build, and moves the selection off it if it was the chosen one.
+     * removes a build, and moves the selection off it if it was the chosen one.
      *
-     * **The replacement is the bundled build, or the newest one left, rather than nothing**, because
-     * a cleared selection means the app resolves whatever was staged most recently — a different
-     * answer arrived at silently. Naming the replacement says which build took over and leaves it
+     * **the replacement is the bundled build, or the newest one left, rather than nothing**, because
+     * a cleared selection means the app resolves whatever was staged most recently -- a different
+     * answer arrived at silently. naming the replacement says which build took over and leaves it
      * visible on the row that now carries the radio.
      *
-     * Nothing is copied for it. A build runs where it is, so taking over is a line in the store and
+     * nothing is copied for it. a build runs where it is, so taking over is a line in the store and
      * costs the same whether it happens here or at the next launch.
      */
     private fun delete(entry: BuildLibrary.Entry) {

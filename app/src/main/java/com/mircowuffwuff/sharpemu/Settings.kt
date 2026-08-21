@@ -5,40 +5,40 @@ import android.content.SharedPreferences
 import java.io.File
 
 /**
- * What the user chose, and — just as importantly — what they did not.
+ * what the user chose, and -- just as importantly -- what they did not.
  *
- * **"Unset" is a value here, distinct from "set to the default", and that distinction is the whole
- * design.** A launch merges three sources in this order, last winning:
+ * **"unset" is a value here, distinct from "set to the default", and that distinction is the whole
+ * design.** a launch merges three sources in this order, last winning:
  *
  * ```
  * the build's own env  <  these settings  <  the launch intent's extras
  * ```
  *
- * which is the order `docs/build-format.md` already documents for the environment. The trap it
+ * which is the order `docs/build-format.md` already documents for the environment. the trap it
  * exists to avoid is precise: if a row that has never been touched reported its default as a
- * *choice*, the app would start sending that value on every launch — and `am start` omitting the
+ * *choice*, the app would start sending that value on every launch -- and `am start` omitting the
  * matching extra would no longer reach the default, because a default it can no longer get to is
- * not a default. So a row that has never been touched contributes nothing to the argument vector,
+ * not a default. so a row that has never been touched contributes nothing to the argument vector,
  * and [MainActivity] sees an absence this file had no hand in.
  *
- * That is what keeps `scripts/run.py` uncompromised. It is also why every accessor here answers a
+ * that is what keeps `scripts/run.py` uncompromised. it is also why every accessor here answers a
  * nullable, and why there is a [clear] rather than only a setter: "use the default" has to be
  * reachable from the UI, or a row is a one-way door.
  *
- * **A `SharedPreferences` line, like [GameLibrary]'s folder list.** Nothing here is big enough to
+ * **a `SharedPreferences` line, like [GameLibrary]'s folder list.** nothing here is big enough to
  * want a file of its own, and the platform's own store is what survives an app update without a
  * migration of ours.
  *
- * **One game may answer differently, and that is [fallback].** [forGame] opens a store of that game's
+ * **one game may answer differently, and that is [fallback].** [forGame] opens a store of that game's
  * own with the global one behind it, so the precedence a launch merges becomes four deep:
  *
  * ```
  * the build's own env  <  global settings  <  this game's settings  <  the launch intent's extras
  * ```
  *
- * Every property a per-game scene offers asks its own store first and the one behind it second, so a
- * game that overrides nothing is the global configuration exactly. What does **not** fall back is the
- * App section — a theme or a fullscreen mode is the app's rather than a title's, and a property that
+ * every property a per-game scene offers asks its own store first and the one behind it second, so a
+ * game that overrides nothing is the global configuration exactly. what does **not** fall back is the
+ * App section -- a theme or a fullscreen mode is the app's rather than a title's, and a property that
  * fell back would imply a per-game one exists.
  *
  * @param fallback the store consulted when this one holds no answer, or null for the global store.
@@ -49,49 +49,49 @@ class Settings private constructor(
 ) {
 
     /**
-     * True once the user has touched this row, whatever they set it to.
+     * true once the user has touched this row, whatever they set it to.
      *
-     * **Strictly this store and never [fallback]**, which is what gives one method two useful
-     * meanings: on the global store it is "set", and on a per-game store it is "overridden" — the
+     * **strictly this store and never [fallback]**, which is what gives one method two useful
+     * meanings: on the global store it is "set", and on a per-game store it is "overridden" -- the
      * question *Use global value* is drawn from and the question *Use default* is offered from.
      */
     fun isSet(key: String): Boolean = prefs.contains(key)
 
-    /** Whether this store answers for one game rather than for the app. */
+    /** whether this store answers for one game rather than for the app. */
     val perGame: Boolean get() = fallback != null
 
-    /** Back to "the app decides", which is not the same as writing the default in. */
+    /** back to "the app decides", which is not the same as writing the default in. */
     fun clear(key: String) = prefs.edit().remove(key).apply()
 
     /**
-     * Every row back to untouched, at once.
+     * every row back to untouched, at once.
      *
-     * **Through the store rather than by deleting its file**, and that is not a style preference:
+     * **through the store rather than by deleting its file**, and that is not a style preference:
      * `SharedPreferences` is cached per process, so a file removed underneath the framework is one
      * the framework rewrites from memory the moment anything else is set. `clear()` is the only
      * removal that both the disk and the copy in memory agree about.
      *
-     * **It does not touch the all-files permission, and there is nothing here that could.** That row
-     * stores no key — [AllFiles] reads the platform live on every look — so it is an exception to
+     * **it does not touch the all-files permission, and there is nothing here that could.** that row
+     * stores no key -- [AllFiles] reads the platform live on every look -- so it is an exception to
      * this by construction rather than by an exclusion somebody has to remember.
      *
-     * **This store only.** A per-game store is its own file, so resetting the app's settings means
-     * this and then [forgetEveryGame] — see there for why they are two calls rather than one.
+     * **this store only.** a per-game store is its own file, so resetting the app's settings means
+     * this and then [forgetEveryGame] -- see there for why they are two calls rather than one.
      */
     fun clearAll() = prefs.edit().clear().apply()
 
     /**
-     * How many rows are on something other than their default.
+     * how many rows are on something other than their default.
      *
-     * **It compares values rather than counting what is set, and the two are not the same number.**
-     * A row the user opened and put back on the value it already had is set — it reaches a launch,
-     * an export carries it, and *Reset* clears it — but it is not a row that differs from the
+     * **it compares values rather than counting what is set, and the two are not the same number.**
+     * a row the user opened and put back on the value it already had is set -- it reaches a launch,
+     * an export carries it, and *Reset* clears it -- but it is not a row that differs from the
      * default, and a card reporting it would tell somebody three things had changed when the app
-     * behaves exactly as it shipped. What the User data screen states is the *state*, so this
+     * behaves exactly as it shipped. what the User data screen states is the *state*, so this
      * answers about the state.
      *
-     * **The driver has two spellings of one answer** — absent and [GpuDriver.SYSTEM] both mean the
-     * driver the device shipped with — so it is asked rather than compared. Everything else has one
+     * **the driver has two spellings of one answer** -- absent and [GpuDriver.SYSTEM] both mean the
+     * driver the device shipped with -- so it is asked rather than compared. everything else has one
      * default and one way to say it.
      */
     fun changedFromDefault(): Int {
@@ -120,13 +120,13 @@ class Settings private constructor(
     }
 
     /**
-     * How many rows this store overrides, whatever they are set to.
+     * how many rows this store overrides, whatever they are set to.
      *
-     * **It counts what is set rather than what differs**, which is the opposite of
-     * [changedFromDefault] and right for the opposite reason: an override *is* the state here. A row
+     * **it counts what is set rather than what differs**, which is the opposite of
+     * [changedFromDefault] and right for the opposite reason: an override *is* the state here. a row
      * a game overrides with the same value the app's own row holds still reaches a launch from this
      * file, still survives the app's row moving, and is still what the *Use global value* button
-     * takes away — so reporting it as no change would describe a store that behaves differently as
+     * takes away -- so reporting it as no change would describe a store that behaves differently as
      * one that behaves the same.
      */
     fun overridden(): Int = prefs.all.size
@@ -135,19 +135,19 @@ class Settings private constructor(
     // App
 
     /**
-     * Which palette the app's own screens wear. Never reaches the guest and never reaches the
-     * argument vector — it is the one row here that is purely the frontend's.
+     * which palette the app's own screens wear. never reaches the guest and never reaches the
+     * argument vector -- it is the one row here that is purely the frontend's.
      */
     var theme: String?
         get() = prefs.getString(KEY_THEME, null)
         set(value) = prefs.edit().putString(KEY_THEME, value).apply()
 
     /**
-     * The seed colour a *Custom* theme is generated from.
+     * the seed colour a *Custom* theme is generated from.
      *
-     * **One colour, and the scheme is derived from it** — Material's own generator produces the
+     * **one colour, and the scheme is derived from it** -- Material's own generator produces the
      * accent, the surfaces, the outlines and every text colour that goes with them, which is why
-     * this is a single `Int` rather than the four a scheme would otherwise need. See [Theme].
+     * this is a single `Int` rather than the four a scheme would otherwise need. see [Theme].
      */
     var customColour: Int?
         get() = if (prefs.contains(KEY_CUSTOM_COLOUR)) {
@@ -158,13 +158,13 @@ class Settings private constructor(
         set(value) = prefs.edit().putInt(KEY_CUSTOM_COLOUR, value!!).apply()
 
     /**
-     * Whether the app's own screens hide the system bars.
+     * whether the app's own screens hide the system bars.
      *
-     * Off — the default — is the ordinary android screen: the layout pads itself by whatever the
-     * status and navigation bars occupy. On is the same edge-to-edge window with the bars hidden and
+     * off -- the default -- is the ordinary android screen: the layout pads itself by whatever the
+     * status and navigation bars occupy. on is the same edge-to-edge window with the bars hidden and
      * a swipe bringing them back transiently.
      *
-     * **This is the app's screens and never a guest's.** [MainActivity] hides its bars whatever this
+     * **this is the app's screens and never a guest's.** [MainActivity] hides its bars whatever this
      * says, because the surface is what decides the extent the guest presents at and a visible bar
      * would shrink it.
      */
@@ -176,16 +176,16 @@ class Settings private constructor(
     // Emulation
 
     /**
-     * The build the user chose, as its on-device folder name.
+     * the build the user chose, as its on-device folder name.
      *
-     * **A concrete identity and never a pointer.** The folder name is derived from `meta.json` —
-     * `<id>-<sharpemuVersion>-<packagedAt>` — so it names one build rather than a family, and a
-     * choice survives a newer build of the same id arriving. A stored id would quietly become a
+     * **a concrete identity and never a pointer.** the folder name is derived from `meta.json` --
+     * `<id>-<sharpemuVersion>-<packagedAt>` -- so it names one build rather than a family, and a
+     * choice survives a newer build of the same id arriving. a stored id would quietly become a
      * different payload the day one did.
      *
-     * **Null means the bundled build**, the one that ships inside this APK. That is a real answer
+     * **null means the bundled build**, the one that ships inside this APK. that is a real answer
      * rather than an absence, which is why no row here has to describe a rule instead of naming a
-     * build. A debug app bundles none, so there it falls back to the most recently staged build —
+     * build. a debug app bundles none, so there it falls back to the most recently staged build --
      * the behaviour the deploy loop has always had.
      */
     var build: String?
@@ -196,7 +196,7 @@ class Settings private constructor(
      * `--strict` on the payload's own command line, which fails a launch when an imported symbol
      * cannot be resolved rather than continuing without it.
      *
-     * **This is a guest argument and not a host-layer flag.** The host layer takes
+     * **this is a guest argument and not a host-layer flag.** the host layer takes
      * `<elf> [guest args...]` and has always passed the rest through; nothing below the payload
      * knows or cares what this means.
      */
@@ -209,14 +209,14 @@ class Settings private constructor(
         set(value) = prefs.edit().putBoolean(KEY_STRICT, value!!).apply()
 
     /**
-     * The FEXCore JIT preset, as one of [FexPreset.ALL].
+     * the FEXCore JIT preset, as one of [FexPreset.ALL].
      *
-     * **It is not in [guestEnvironment] and must not become so.** A preset reaches FEXCore as
-     * `--fex` flags on the host layer's own command line, beside `--smc` — see [FexPreset] for why
+     * **it is not in [guestEnvironment] and must not become so.** a preset reaches FEXCore as
+     * `--fex` flags on the host layer's own command line, beside `--smc`. see [FexPreset] for why
      * the environment route does not exist here at all, and [MainActivity] for the rule that keeps
      * a build's `env` out of anything governing the host layer's correctness.
      *
-     * Stored as the id rather than as an index, so a store survives a rung being inserted into the
+     * stored as the id rather than as an index, so a store survives a rung being inserted into the
      * ladder.
      */
     var fexPreset: String?
@@ -230,8 +230,8 @@ class Settings private constructor(
      * `SHARPEMU_RENDER_SCALE`, the guest environment variable `VulkanVideoPresenter` reads: render
      * offscreen targets below native resolution and upscale on present.
      *
-     * Stored as the string the payload parses rather than as an index, so the store stays readable
-     * and a value the desktop UI grows later does not need a table here to be expressible. The four
+     * stored as the string the payload parses rather than as an index, so the store stays readable
+     * and a value the desktop UI grows later does not need a table here to be expressible. the four
      * offered are the four the desktop UI offers.
      */
     var renderScale: String?
@@ -239,15 +239,15 @@ class Settings private constructor(
         set(value) = prefs.edit().putString(KEY_RENDER_SCALE, value).apply()
 
     /**
-     * The GPU driver the user chose, as its on-device folder name.
+     * the GPU driver the user chose, as its on-device folder name.
      *
      * **[GpuDriver.SYSTEM] is a value here and so is absence**, and they mean the same thing: the
-     * driver the device shipped with. Storing it is what lets the manager's radio mark a choice
-     * rather than an empty store, and it costs nothing to a launch — [MainActivity] reads both as
+     * driver the device shipped with. storing it is what lets the manager's radio mark a choice
+     * rather than an empty store, and it costs nothing to a launch -- [MainActivity] reads both as
      * "no custom driver" and passes no flags at all, which is the run every measurement in this
      * project was taken on.
      *
-     * A folder name rather than a display name, because two packages can call themselves the same
+     * a folder name rather than a display name, because two packages can call themselves the same
      * thing and only one directory can be loaded.
      */
     var driver: String?
@@ -255,20 +255,20 @@ class Settings private constructor(
         set(value) = prefs.edit().putString(KEY_DRIVER, value).apply()
 
     /**
-     * Whether compiled graphics pipelines are kept between runs.
+     * whether compiled graphics pipelines are kept between runs.
      *
-     * **Off is the default, and it is the one row here whose default is not the emulator's own.**
-     * The cache is derived state written throughout a run and kept per title, so holding it is a
-     * thing to opt into rather than something an install starts doing unasked — and what it buys is
+     * **off is the default, and it is the one row here whose default is not the emulator's own.**
+     * the cache is derived state written throughout a run and kept per title, so holding it is a
+     * thing to opt into rather than something an install starts doing unasked -- and what it buys is
      * time rather than capability, which is the kind of trade that belongs to the person paying it.
      *
-     * **It travels as `SHARPEMU_VK_PIPELINE_CACHE=0`, which is the emulator's own opt-out**, and the
-     * cache then lives for the run and is never written. Leaving `SHARPEMU_VK_PIPELINE_CACHE_PATH`
+     * **it travels as `SHARPEMU_VK_PIPELINE_CACHE=0`, which is the emulator's own opt-out**, and the
+     * cache then lives for the run and is never written. leaving `SHARPEMU_VK_PIPELINE_CACHE_PATH`
      * out instead would not disable anything: unset means the emulator resolves its portable
      * default, a directory inside the build, so the cache would still persist and would sit where a
      * re-stage destroys it.
      *
-     * Nothing deletes a cache already on the device. The User data screen is where bytes are
+     * nothing deletes a cache already on the device. the User data screen is where bytes are
      * removed, and a file nothing reads costs only space.
      */
     var diskShaderCache: Boolean?
@@ -283,22 +283,22 @@ class Settings private constructor(
     // Controls
 
     /**
-     * Whether a connected controller reaches the guest at all.
+     * whether a connected controller reaches the guest at all.
      *
-     * **Named for what it will govern and currently governing the whole of controller input**, which
+     * **named for what it will govern and currently governing the whole of controller input**, which
      * is the honest state of it rather than a shortcut: there is one mapping, it is by button
-     * position, and there are no port rows to be automatic about — so until there are, the switch is
-     * input on or off. The row's own summary says exactly that.
+     * position, and there are no port rows to be automatic about -- so until there are, the switch is
+     * input on or off. the row's own summary says exactly that.
      *
-     * **The key says *automatic* for the same reason.** Per-pad mappings are what the port rows will
+     * **the key says *automatic* for the same reason.** per-pad mappings are what the port rows will
      * store, so the unqualified name belongs to them rather than to the switch above them.
      *
-     * **Off does not disable rumble**, which is [vibrateHandheld]'s to decide. The two are separate because a
+     * **off does not disable rumble**, which is [vibrateHandheld]'s to decide. the two are separate because a
      * person who wants to play by touch on a device that has a pad in it should still feel a game's
      * haptics, and because a controller that misbehaves is a different complaint from a motor that is
      * distracting.
      *
-     * **Neither of these becomes a launch argument.** They are read by the process that runs the
+     * **neither of these becomes a launch argument.** they are read by the process that runs the
      * guest and applied to what this app does with events it receives and with a request it is
      * handed, so a launch naming no extras is the argument vector it has always been.
      */
@@ -311,28 +311,28 @@ class Settings private constructor(
         set(value) = prefs.edit().putBoolean(KEY_AUTOMATIC_CONTROLLER_MAPPING, value!!).apply()
 
     /**
-     * Whether the loading screen estimates how far along a boot is, or simply says one is happening.
+     * whether the loading screen estimates how far along a boot is, or simply says one is happening.
      *
-     * **Off is the indeterminate bar on every launch of every game**, with the cover, the name and the
-     * phase line unchanged and the screen still coming down at the first frame. What goes is the
-     * determinate sweep and the figure under it — the half of that screen that needs a record.
+     * **off is the indeterminate bar on every launch of every game**, with the cover, the name and the
+     * phase line unchanged and the screen still coming down at the first frame. what goes is the
+     * determinate sweep and the figure under it -- the half of that screen that needs a record.
      *
-     * **The record is still written while this is off, and that is not a compromise.** The host layer's
+     * **the record is still written while this is off, and that is not a compromise.** the host layer's
      * checkpoint tap cannot be turned off by this: `Reached()` arriving at the end of the table is the
      * only signal the app has that the guest has presented a frame, and it is what takes the loading
-     * screen down — a launch that dropped `--boot-progress` would leave that screen over a running
-     * game forever. So the timings are stamped either way, and declining to record them would throw an
-     * answer away rather than save any work. It also keeps switching this back on immediate, where
+     * screen down -- a launch that dropped `--boot-progress` would leave that screen over a running
+     * game forever. so the timings are stamped either way, and declining to record them would throw an
+     * answer away rather than save any work. it also keeps switching this back on immediate, where
      * discarding would cost one more indeterminate boot per title afterwards.
      *
-     * **The row says so**, because a switch that reads as "stop doing this" while the app quietly keeps
+     * **the row says so**, because a switch that reads as "stop doing this" while the app quietly keeps
      * timing every boot is a small lie, and one clause in a summary is the whole of the fix.
      *
-     * **The app's rather than a title's**, like the theme and the fullscreen mode above it: a person
-     * who does not want an estimate does not want one per game. So it is not offered per game and does
-     * not fall back — see [forGame].
+     * **the app's rather than a title's**, like the theme and the fullscreen mode above it: a person
+     * who does not want an estimate does not want one per game. so it is not offered per game and does
+     * not fall back -- see [forGame].
      *
-     * Gated where the screen is drawn and not in the argument vector, so a launch naming no extras is
+     * gated where the screen is drawn and not in the argument vector, so a launch naming no extras is
      * the one every measurement in this project was taken on.
      */
     var loadingEstimate: Boolean?
@@ -344,19 +344,19 @@ class Settings private constructor(
         set(value) = prefs.edit().putBoolean(KEY_LOADING_ESTIMATE, value!!).apply()
 
     /**
-     * Whether FEXCore is told what this processor can do, out of the processor's own ID registers.
+     * whether FEXCore is told what this processor can do, out of the processor's own ID registers.
      *
-     * **On is the honest answer and off is the fallback**, which is the opposite way round from most
-     * switches here. Understating a host's instruction set never changes what translated code
+     * **on is the honest answer and off is the fallback**, which is the opposite way round from most
+     * switches here. understating a host's instruction set never changes what translated code
      * computes, only how many instructions it takes to compute it -- so there is no correctness
      * argument for the conservative set, and this row exists because a probe is a thing that can be
      * wrong about a device nobody here has.
      *
-     * **Not a preset rung, and it must not become one.** The preset ladder trades faithfulness for
+     * **not a preset rung, and it must not become one.** the preset ladder trades faithfulness for
      * speed, and describing the host truthfully is not a trade -- a rung that turned this off would
      * be a rung that was slower for no fidelity.
      *
-     * It is a launch argument: off travels as `--host-features minimal`, and on says nothing, so a
+     * it is a launch argument: off travels as `--host-features minimal`, and on says nothing, so a
      * launch naming no extras is the argument vector every measurement here was taken on.
      */
     var hostFeatureProbe: Boolean?
@@ -368,15 +368,15 @@ class Settings private constructor(
         set(value) = prefs.edit().putBoolean(KEY_HOST_FEATURE_PROBE, value!!).apply()
 
     /**
-     * Whether a game may drive **this device's** vibration motor.
+     * whether a game may drive **this device's** vibration motor.
      *
-     * **Named for the handheld and not for vibration in general**, because a controller with a motor
-     * of its own is a second answer to "should this rumble" rather than the same one — and the day
+     * **named for the handheld and not for vibration in general**, because a controller with a motor
+     * of its own is a second answer to "should this rumble" rather than the same one -- and the day
      * that exists, a setting called simply *vibrate* would have to mean both or be renamed.
      *
-     * Gated in the app rather than in the host layer, because the vibrator is the app's: the guest's
+     * gated in the app rather than in the host layer, because the vibrator is the app's: the guest's
      * request still crosses and is still counted, and what changes is whether the platform is asked.
-     * That keeps a run with this off distinguishable in the log from a run where the game never asked.
+     * that keeps a run with this off distinguishable in the log from a run where the game never asked.
      */
     var vibrateHandheld: Boolean?
         get() = if (prefs.contains(KEY_VIBRATE_HANDHELD)) {
@@ -387,20 +387,20 @@ class Settings private constructor(
         set(value) = prefs.edit().putBoolean(KEY_VIBRATE_HANDHELD, value!!).apply()
 
     /**
-     * The guest environment these settings contribute, in the order it should be applied.
+     * the guest environment these settings contribute, in the order it should be applied.
      *
-     * **Only what was actually chosen.** An untouched row puts nothing in the map, so the guest's
+     * **only what was actually chosen.** an untouched row puts nothing in the map, so the guest's
      * environment is byte-for-byte one this file had no hand in.
      *
-     * The launcher's own four — the host window, its size, the host audio selector and the .NET one
-     * — are written by [MainActivity] *after* this map and are deliberately not expressible here.
-     * They are the contract a payload is run under rather than a preference, which is the same rule
+     * the launcher's own four -- the host window, its size, the host audio selector and the .NET one
+     * -- are written by [MainActivity] *after* this map and are deliberately not expressible here.
+     * they are the contract a payload is run under rather than a preference, which is the same rule
      * `docs/build-format.md` states for a build's `env`.
      *
      * **[fexPreset] is absent for a stronger reason than that**, and adding it here would be a
      * defect rather than a style choice: this map has a build's own `env` merged underneath it, so
-     * anything expressible here is expressible by a payload — and a JIT preset is not a payload's to
-     * choose. It travels as host-layer flags instead.
+     * anything expressible here is expressible by a payload -- and a JIT preset is not a payload's to
+     * choose. it travels as host-layer flags instead.
      */
     fun guestEnvironment(): Map<String, String> {
         val env = LinkedHashMap<String, String>()
@@ -429,7 +429,7 @@ class Settings private constructor(
         const val KEY_AUTOMATIC_CONTROLLER_MAPPING = "automatic_controller_mapping"
         const val KEY_VIBRATE_HANDHELD = "vibrate_handheld"
 
-        /** The four the desktop UI offers, as the payload parses them. */
+        /** the four the desktop UI offers, as the payload parses them. */
         val RENDER_SCALES = arrayOf("1.0", "0.75", "0.5", "0.25")
 
         /** Theme ids, matching the order of `R.array.theme_entries`. */
@@ -441,10 +441,10 @@ class Settings private constructor(
         const val THEME_CUSTOM = "custom"
 
         /**
-         * **The order the dropdown shows, and the values the store holds.**
+         * **the order the dropdown shows, and the values the store holds.**
          *
-         * `Theme.SharpEmu` — the application style, Material3 following the platform — is not among
-         * them: an explicit Light and an explicit Dark cover it. It stays as a style because the
+         * `Theme.SharpEmu` -- the application style, Material3 following the platform -- is not among
+         * them: an explicit Light and an explicit Dark cover it. it stays as a style because the
          * manifest names it and because it is what an activity wears for the moment before [Theme]
          * sets the chosen one.
          */
@@ -452,28 +452,28 @@ class Settings private constructor(
             arrayOf(THEME_SHARPEMU, THEME_LIGHT, THEME_DARK, THEME_MATERIAL_YOU, THEME_CUSTOM)
 
         /**
-         * **Every custom seed is at this tone and the picker has no control for it.**
+         * **every custom seed is at this tone and the picker has no control for it.**
          *
-         * Tone is HCT's perceptual lightness — CIE L\* — and pinning it is what locks a seed's
-         * brightness. Locking HSV's *value* does not: measured on four seeds picked at value 0.75,
+         * tone is HCT's perceptual lightness -- CIE L\* -- and pinning it is what locks a seed's
+         * brightness. locking HSV's *value* does not: measured on four seeds picked at value 0.75,
          * the tone runs from **37 for a violet to 71 for a green**.
          *
-         * **It is not free.** The generator does read a seed's tone — `SchemeContent` is a content
-         * scheme and its accent tracks it — but the
+         * **it is not free.** the generator does read a seed's tone -- `SchemeContent` is a content
+         * scheme and its accent tracks it -- but the
          * tracking is clamped: measured on this device, seed tones of 40 and 60 both produce an
          * accent at tone 80, and only above about 60 does the accent drift lighter and lose chroma.
-         * So this is the top of the useful range rather than an arbitrary middle, and [HctColour]
+         * so this is the top of the useful range rather than an arbitrary middle, and [HctColour]
          * slides *below* it per hue where that buys chroma.
          */
         const val CUSTOM_TONE = 60f
 
         /**
-         * The seed a Custom theme starts at, before the user has picked one.
+         * the seed a Custom theme starts at, before the user has picked one.
          *
-         * **The maintainer's own** — so that selecting *Custom* and changing nothing lands somewhere
+         * **the maintainer's own** -- so that selecting *Custom* and changing nothing lands somewhere
          * deliberate rather than on whatever a null would generate.
          *
-         * It is a literal rather than a call into [HctColour] for two reasons: the picker produced
+         * it is a literal rather than a call into [HctColour] for two reasons: the picker produced
          * it, so it is already at that hue's tone and round-trips through the field unchanged, and a
          * constant that needs a gamut search to evaluate would drag the whole per-hue table into the
          * first screen that reads any setting at all.
@@ -482,13 +482,13 @@ class Settings private constructor(
 
         /**
          * **SharpEmu is the default**: a fresh install should look like this emulator rather than
-         * like a stock android app, and the palette is the desktop build's own. It is also the fallback for an id this build does not know, so a store
+         * like a stock android app, and the palette is the desktop build's own. it is also the fallback for an id this build does not know, so a store
          * written by a later version degrades to the app's own look rather than to a theme that is no
          * longer offered.
          */
         const val THEME_DEFAULT = THEME_SHARPEMU
 
-        /** The global store's file, and the prefix every per-game store's file carries. */
+        /** the global store's file, and the prefix every per-game store's file carries. */
         private const val STORE = "settings"
         private const val GAME_STORE_PREFIX = "settings-game-"
 
@@ -497,14 +497,14 @@ class Settings private constructor(
             Settings(context.getSharedPreferences(STORE, Context.MODE_PRIVATE))
 
         /**
-         * One game's store, with the global one behind it.
+         * one game's store, with the global one behind it.
          *
-         * [key] is the game's identity as [Game.configKey] answers it — the title id the emulator
+         * [key] is the game's identity as [Game.configKey] answers it -- the title id the emulator
          * itself resolves, so that a game's settings, its save data directory and its pipeline cache
          * are all filed under one string rather than under three spellings of one idea.
          *
-         * **A file per game rather than prefixed keys in the global store**, which is what makes
-         * "forget this game" a deletion and what keeps the global store readable. It costs nothing to
+         * **a file per game rather than prefixed keys in the global store**, which is what makes
+         * "forget this game" a deletion and what keeps the global store readable. it costs nothing to
          * an export: the Everything archive packs the whole of `shared_prefs/`, so these travel with
          * it and are restored by an import without either side naming them.
          */
@@ -515,16 +515,16 @@ class Settings private constructor(
         )
 
         /**
-         * Every per-game store, emptied.
+         * every per-game store, emptied.
          *
-         * **Through each store's own API rather than by deleting files**, for the reason [clearAll]
+         * **through each store's own API rather than by deleting files**, for the reason [clearAll]
          * gives: `SharedPreferences` is cached per process, and a file removed underneath the
-         * framework is one the framework rewrites from memory the next time anything is set. A store
+         * framework is one the framework rewrites from memory the next time anything is set. a store
          * this process has never opened is opened to be cleared, which is the same call either way.
          *
-         * **The files are found by listing `shared_prefs/` rather than by remembering which games
-         * have one.** An index would be a second thing to keep in step with the stores themselves,
-         * and it would be wrong in exactly the case that matters — a store restored by an import,
+         * **the files are found by listing `shared_prefs/` rather than by remembering which games
+         * have one.** an index would be a second thing to keep in step with the stores themselves,
+         * and it would be wrong in exactly the case that matters -- a store restored by an import,
          * which arrives as a file and tells nothing.
          */
         @JvmStatic
@@ -535,7 +535,7 @@ class Settings private constructor(
             }
         }
 
-        /** The identity of every game that has a store, whether or not anything is in it. */
+        /** the identity of every game that has a store, whether or not anything is in it. */
         @JvmStatic
         fun gameStoreKeys(context: Context): List<String> {
             val sharedPrefs = File(context.filesDir.parentFile, "shared_prefs")

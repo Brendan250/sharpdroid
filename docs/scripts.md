@@ -44,7 +44,7 @@ py scripts/run.py --game existing      launch what is already on the device
 | | |
 | --- | --- |
 | **`scripts/run.py`** | **build it, put it on the device, start it, show the log.** the one command you want most of the time |
-| `scripts/build.py` | build everything in dependency order. `--list` prints the steps and what each will do, `--install` installs the APK, `--clean` wipes what the native steps write, `--force` fetches again as well, `--only <step>` runs one |
+| `scripts/build.py` | build everything in dependency order. `--list` prints the steps and what each does, `--install` installs the APK, `--clean` wipes what the native steps write, `--force` fetches again as well, `--only <step>` runs one |
 | `scripts/regression.py` | stage the shell binary and run the host layer's 15 regression modes on the device. **exits non-zero if any fail**, so it can gate anything |
 
 ### the screen
@@ -53,7 +53,7 @@ py scripts/run.py --game existing      launch what is already on the device
 
 **a lock with a credential behind it is said out loud and left alone.** no script here types one.
 
-staging does not do this and neither does the regression set -- copying files needs no display, and the host layer's regression modes have no app and no window.
+staging does not do this and neither does the regression set — copying files needs no display, and the host layer's regression modes have no app and no window.
 
 ### which app you are building
 
@@ -97,7 +97,7 @@ each of these is one job, and `scripts/build.py` runs them in this order. **the 
 | | |
 | --- | --- |
 | `scripts/fetch-guest-libs.py` | the x86-64 glibc set the guest's own linker searches, built out of debian packages pinned on `snapshot.debian.org` by content hash and verified against it, plus the licences they are redistributed under. `--keep-packages` keeps the downloads |
-| `scripts/build-adrenotools.py` | the GPU driver loading library. the host project imports it as a static library at configure time and will not configure without it |
+| `scripts/build-adrenotools.py` | the GPU driver loading library. the host project imports it as a static library at configure time and does not configure without it |
 | `scripts/gen-thunks.py` | regenerates both halves of both thunks from the NDK's headers. **the output is committed**, so this is what you run when the NDK moves rather than on every build. `--check` reports what would change and writes nothing |
 | `scripts/build-thunks.py` | assembles the guest halves into `libvulkan.so.1` and `libaaudio.so`, beside the glibc set |
 | `scripts/build-host.py` | the host layer: the library the app loads, and the same thing as a shell binary. `--clean` wipes first, `--probe` builds the host vulkan probe instead |
@@ -110,7 +110,7 @@ each of these is one job, and `scripts/build.py` runs them in this order. **the 
 
 **the dex half runs gradle once before the build**, to ask what it resolved rather than to trust what is declared. `--offline` reaches that invocation too — it is asked for to find out whether anything is being fetched that nobody declared, and an invocation exempt from it is one the question is not being asked of.
 
-`py scripts/build.py --list` prints the whole sequence and says what each step will do. it also reports when the committed thunk sources no longer match the NDK's headers, which is the only thing that would otherwise need someone to think of asking.
+`py scripts/build.py --list` prints the whole sequence and says what each step does. it also reports when the committed thunk sources no longer match the NDK's headers, which is the only thing that would otherwise need someone to think of asking.
 
 **a build step runs every time, and only the fetch is skipped when its output is already there.** the difference is who knows about the inputs: what a fetch produces either exists or does not, while what a build produces is stale the moment a source changes — and the driver cannot see that without knowing every source file, every header and the state of a submodule, which is the job of the cmake, ninja or compiler invocation the step already makes. so the step is entered and its own tool decides there is nothing to do. that costs about six seconds across the four build steps, against a stale library being packaged into an APK and a run whose log is missing the line the change added — which reads as the change not working rather than as the change never having been installed.
 
@@ -145,7 +145,7 @@ it produces a **directory and a zip** under `build/builds/` and stops. producing
 
 **`--from-archive` needs no fork checkout, no .NET SDK and no git.** that is the path a third party takes, and the one any automated job would take. what it cannot do is record a commit, so the build's `commit` is empty and its `source` names the archive instead.
 
-the fork checkout is resolved by **`SHARPEMU_ANDROID_FORK`**, falling back to the `external/sharpemu` submodule and to nothing else. the submodule is a pin, nothing develops in it, and a checkout beside this repository is deliberately not in the order -- if it were, the pin would be the one path no machine ever took and would go stale with nothing to notice.
+the fork checkout is resolved by **`SHARPEMU_ANDROID_FORK`**, falling back to the `external/sharpemu` submodule and to nothing else. the submodule is a pin, nothing develops in it, and a checkout beside this repository is deliberately not in the order — if it were, the pin would be the one path no machine ever took and would go stale with nothing to notice.
 
 [`build-format.md`](build-format.md) is what a build is.
 
@@ -167,7 +167,7 @@ two things a shippable APK refuses that a development one does not:
 - **a build the submodule pointer does not name.** that pointer is what makes an APK reproducible from a clone. the development identity prints the mismatch and builds anyway, because it installs under its own application id and there is no clone to reproduce it from
 - **a build packaged from an archive**, since it records no commit to check
 
-both identities refuse a build whose contract generation the app does not speak, and the range is read out of the app's own source so that a script cannot bless a build the app will refuse.
+both identities refuse a build whose contract generation the app does not speak, and the range is read out of the app's own source so that a script cannot bless a build the app refuses.
 
 **the APK also records the commit of this repository it was built from**, which the app shows on its About screen beside its version and which a bug report is worth having: a version alone names a fortnight of commits. a working tree with uncommitted changes in it is marked as such, because an APK built from one is not the commit it names. **not knowing is a supported state and never a refusal** — a source archive carries no `.git` and a machine may have no `git` at all, and the app then shows the version by itself.
 

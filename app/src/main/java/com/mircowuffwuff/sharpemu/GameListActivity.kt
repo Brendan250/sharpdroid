@@ -16,20 +16,20 @@ import com.mircowuffwuff.sharpemu.databinding.ActivityGameListBinding
 import java.util.concurrent.Executors
 
 /**
- * The app's first screen: the games that are on the device, and a tap to run one.
+ * the app's first screen: the games that are on the device, and a tap to run one.
  *
- * **This is the launcher activity and [MainActivity] is not.** MainActivity stays exported and keeps
+ * **this is the launcher activity and [MainActivity] is not.** MainActivity stays exported and keeps
  * every one of its intent extras, so `am start -n <id>/com.mircowuffwuff.sharpemu.MainActivity --es
- * game ...` and each script that builds that component name are unaffected. That is on purpose rather
- * than by accident: the intent path is the control arm — a game that boots by intent and not by tap
+ * game ...` and each script that builds that component name are unaffected. that is on purpose rather
+ * than by accident: the intent path is the control arm -- a game that boots by intent and not by tap
  * says the fault is this screen's.
  *
- * **A game is here from one of two places and the row does not say which**, because nothing about
- * playing it differs. What differs is the intent: a staged game is a path and a granted one is a
+ * **a game is here from one of two places and the row does not say which**, because nothing about
+ * playing it differs. what differs is the intent: a staged game is a path and a granted one is a
  * directory inside a tree, which the host layer answers for file by file. [GameLibrary] finds both
  * and [launch] is where the two part ways.
  *
- * **A tap runs a game and holding it configures one** — [launch] and [configure]. The two gestures
+ * **a tap runs a game and holding it configures one** -- [launch] and [configure]. the two gestures
  * take the same row and part ways immediately: one builds an argument vector, and the other opens a
  * store.
  */
@@ -40,28 +40,28 @@ class GameListActivity : AppCompatActivity() {
     private val scanner = Executors.newSingleThreadExecutor()
 
     /**
-     * The theme the settings scene last stored, as this screen was drawn with it.
+     * the theme the settings scene last stored, as this screen was drawn with it.
      *
-     * **Kept so that coming back from settings can notice.** A theme is resolved while the view
-     * hierarchy is inflated, so a screen that was already inflated cannot be repainted — it has to
+     * **kept so that coming back from settings can notice.** a theme is resolved while the view
+     * hierarchy is inflated, so a screen that was already inflated cannot be repainted -- it has to
      * be recreated, and recreating unconditionally in `onResume` would restart this activity every
      * time the user came back from anywhere.
      */
     private lateinit var drawnWith: String
 
     /**
-     * The directory picker the empty state's button opens.
+     * the directory picker the empty state's button opens.
      *
-     * **The empty state goes straight to the picker rather than to the folder manager**, because on
+     * **the empty state goes straight to the picker rather than to the folder manager**, because on
      * this screen there is nothing to manage: a person looking at "no games yet" wants to point at
-     * their library, not to visit a list that is also empty and press a second button. The manager
+     * their library, not to visit a list that is also empty and press a second button. the manager
      * stays where it is for everything after the first folder.
      *
-     * **What that costs is one duplicated picker and not one duplicated rule** — [GameLibrary.add]
+     * **what that costs is one duplicated picker and not one duplicated rule** -- [GameLibrary.add]
      * decides, and [GameLibrary.message] says, so a folder that is itself a game is refused in the
      * same words here as there.
      *
-     * Registered at construction, which the contract requires: the activity can be recreated while
+     * registered at construction, which the contract requires: the activity can be recreated while
      * the picker is in front of it, and a launcher registered later than `onCreate` has nothing to
      * deliver the result to.
      */
@@ -71,15 +71,15 @@ class GameListActivity : AppCompatActivity() {
     }
 
     /**
-     * A run, and why it did not start when it did not.
+     * a run, and why it did not start when it did not.
      *
-     * **The message is said here rather than by the screen that produced it, because a toast belongs
-     * to the process that posted one.** A guest gets a process of its own and is ended with it, so a
-     * run that gives up posts a toast and is killed a few hundred milliseconds later — the platform
-     * cancels it with the process, and what a person sees is a flicker they cannot read. This screen
+     * **the message is said here rather than by the screen that produced it, because a toast belongs
+     * to the process that posted one.** a guest gets a process of its own and is ended with it, so a
+     * run that gives up posts a toast and is killed a few hundred milliseconds later -- the platform
+     * cancels it with the process, and what a person sees is a flicker they cannot read. this screen
      * is in the process that survives, which is what makes the message readable at all.
      *
-     * A run that ends normally carries no message and says nothing. Registered at construction for
+     * a run that ends normally carries no message and says nothing. registered at construction for
      * the reason [picker] is.
      */
     private val run = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -103,13 +103,13 @@ class GameListActivity : AppCompatActivity() {
         adapter = GameAdapter(emptyList(), this::launch, this::configure)
         // **a grid of covers rather than a column of rows.** the count comes from integers.xml, so
         // the orientation qualifier answers it and a rotation re-reads it without anything watching
-        // — the activity is recreated, which is what makes a resource the right place for it.
+        // -- the activity is recreated, which is what makes a resource the right place for it.
         binding.games.layoutManager =
             GridLayoutManager(this, resources.getInteger(R.integer.game_columns))
         binding.games.adapter = adapter
 
         // the cog is a view in the toolbar rather than a menu item, so that where it sits is this
-        // layout's business — see activity_game_list.xml.
+        // layout's business -- see activity_game_list.xml.
         binding.settings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
@@ -136,17 +136,17 @@ class GameListActivity : AppCompatActivity() {
         )
         // **without this the gesture would fire mid-list.** SwipeRefreshLayout decides by asking its
         // direct child whether it can scroll up, and its direct child is the frame holding both the
-        // list and the empty label — a frame never scrolls, so the answer would always be "no" and a
+        // list and the empty label -- a frame never scrolls, so the answer would always be "no" and a
         // drag anywhere in a scrolled list would refresh instead of scrolling.
         binding.swipe.setOnChildScrollUpCallback { _, _ -> binding.games.canScrollVertically(-1) }
     }
 
     /**
-     * Rescans on every return to the screen.
+     * rescans on every return to the screen.
      *
-     * A game arrives while the app is open — adb writes the directory from a PC, or a file manager
-     * finishes a copy into a granted folder — and the pull gesture is the deliberate answer rather
-     * than the only one. Looking again whenever this screen comes forward costs a scan nobody waited
+     * a game arrives while the app is open -- adb writes the directory from a PC, or a file manager
+     * finishes a copy into a granted folder -- and the pull gesture is the deliberate answer rather
+     * than the only one. looking again whenever this screen comes forward costs a scan nobody waited
      * for and saves the gesture being mandatory.
      */
     override fun onResume() {
@@ -164,12 +164,12 @@ class GameListActivity : AppCompatActivity() {
     }
 
     /**
-     * Puts a folder picked from the empty state into the library, then rescans.
+     * puts a folder picked from the empty state into the library, then rescans.
      *
-     * On the scanner, because taking a grant queries a content provider — and on *that* thread in
+     * on the scanner, because taking a grant queries a content provider -- and on *that* thread in
      * particular so the rescan below cannot start before the folder is stored.
      *
-     * **The spinner is shown rather than nothing**, since the grant is a provider round trip on a
+     * **the spinner is shown rather than nothing**, since the grant is a provider round trip on a
      * screen whose only content is the message saying there is none.
      */
     private fun addFolder(tree: Uri) {
@@ -187,15 +187,15 @@ class GameListActivity : AppCompatActivity() {
     }
 
     /**
-     * Scans on a worker and draws the result on the main thread.
+     * scans on a worker and draws the result on the main thread.
      *
-     * **The scan opens and parses a file per game, and asks a content provider for the granted ones**,
-     * so it is off the main thread — a directory on external storage is one whose reads can be slow
+     * **the scan opens and parses a file per game, and asks a content provider for the granted ones**,
+     * so it is off the main thread -- a directory on external storage is one whose reads can be slow
      * for reasons that have nothing to do with how many games there are, and a provider query is a
      * binder round trip on top of that.
      *
-     * One thread, so two scans cannot race and hand the adapter their results out of order — which
-     * the pull gesture starting one while `onResume` already did is exactly how to arrange. The
+     * one thread, so two scans cannot race and hand the adapter their results out of order -- which
+     * the pull gesture starting one while `onResume` already did is exactly how to arrange. the
      * finished check is what keeps a scan that outlived the screen from touching a destroyed one.
      */
     private fun refresh() {
@@ -221,10 +221,10 @@ class GameListActivity : AppCompatActivity() {
     }
 
     /**
-     * Opens one game's settings.
+     * opens one game's settings.
      *
-     * **Everything that scene draws is already in hand**, because this row was built by opening the
-     * dump — so the artwork, the name and the identity are handed over rather than read again. The
+     * **everything that scene draws is already in hand**, because this row was built by opening the
+     * dump -- so the artwork, the name and the identity are handed over rather than read again. the
      * identity in particular is worth not re-reading: for a game inside a granted tree it is a
      * content provider round trip, and this is a gesture that happens while a finger is held down.
      */
@@ -233,14 +233,14 @@ class GameListActivity : AppCompatActivity() {
     }
 
     /**
-     * Starts the guest.
+     * starts the guest.
      *
-     * **The intent is [GameLaunch]'s rather than this screen's**, a game's own scene starting a run
-     * too — see there for which extra carries which kind of game, and for why every other extra is
+     * **the intent is [GameLaunch]'s rather than this screen's**, a game's own scene starting a run
+     * too -- see there for which extra carries which kind of game, and for why every other extra is
      * left absent.
      */
     private fun launch(game: Game) {
-        // for a result, and the result is only ever a refusal to explain — see [run]. it changes
+        // for a result, and the result is only ever a refusal to explain -- see [run]. it changes
         // nothing about the launch itself: the extras are the same ones `am start` carries, which is
         // what keeps the intent path a control arm.
         run.launch(GameLaunch.intent(this, game.source, game.name, GameLaunch.From.LIST))

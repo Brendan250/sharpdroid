@@ -22,21 +22,21 @@ namespace GuestFiles {
 namespace {
 
 // the gate. written once before any guest thread exists, read from all of them, and it is the first
-// thing every entry point does — so a run that never mounts anything pays one relaxed load and a
+// thing every entry point does -- so a run that never mounts anything pays one relaxed load and a
 // predictable branch per path-taking syscall, which is the same shape the dispatcher already pays
 // for `if (Trace)` on every syscall at all.
 std::atomic<bool> Active {false};
 
-// the invented prefix, without a trailing slash. "/game" — so /game/eboot.bin is what the guest is
+// the invented prefix, without a trailing slash. "/game" -- so /game/eboot.bin is what the guest is
 // told its own dump is called, and the prefix test cannot be ambiguous the way a real path would be.
 std::string Mount;
 
 // a fabricated device number. it has to be non-zero and it has to be the same for every file here,
-// because a caller comparing two files for identity compares (st_dev, st_ino) — and it must not be a
+// because a caller comparing two files for identity compares (st_dev, st_ino) -- and it must not be a
 // device the guest could reach any other way, which nothing under an invented mount can be.
 constexpr uint64_t MountDevice = 0x5348415250ULL;
 
-// the guest's O_* values, which are not the host's — see TranslateOpenFlags in linux_syscalls.cpp for
+// the guest's O_* values, which are not the host's -- see TranslateOpenFlags in linux_syscalls.cpp for
 // the four bits that move. these are read out of the guest's own flag word, so they are the x86-64
 // ones and never the arm64 ones.
 constexpr uint64_t GuestO_WRONLY = 1;
@@ -69,8 +69,8 @@ std::unordered_map<std::string, CacheLine> Cache;
 std::unordered_map<int, OpenDirectory> Directories;
 
 // **negative answers are cached too, and that is licensed by two measurements rather than by
-// optimism.** a fifth of this workload's opens are of files that are not there — .NET probing for a
-// library it might find beside an assembly — and repeating a ~1 ms provider round trip for each of
+// optimism.** a fifth of this workload's opens are of files that are not there -- .NET probing for a
+// library it might find beside an assembly -- and repeating a ~1 ms provider round trip for each of
 // them, every time, is the difference between a boot that notices this layer and one that does not.
 // it is safe because the layer is read-only and because the guest's path-taking finishes at the end
 // of boot: nothing this process does can make an absent file appear. a user editing their library
@@ -86,7 +86,7 @@ bool Lookup(const std::string& Relative, CacheLine* Out) {
   }
 
   // deliberately outside the lock. it is a binder round trip, and two guest threads asking about two
-  // different files should not queue behind each other for it — the worst a race can do here is ask
+  // different files should not queue behind each other for it -- the worst a race can do here is ask
   // the provider the same question twice and agree about the answer.
   CacheLine Line {};
   SafBridge::StatResult Result {};
@@ -104,7 +104,7 @@ bool Lookup(const std::string& Relative, CacheLine* Out) {
 }
 
 // FNV-1a over the relative path. an inode number has to be stable for the life of the run and unique
-// within the mount, and a document id is a string — so it is invented from the one thing that is
+// within the mount, and a document id is a string -- so it is invented from the one thing that is
 // already unique per file. zero is reserved because a caller may read it as "no inode".
 uint64_t InodeOf(const std::string& Relative) {
   uint64_t Hash = 1469598103934665603ULL;
@@ -140,7 +140,7 @@ void FillStat(const std::string& Relative, const CacheLine& Line, struct stat* O
 }
 
 // splits an absolute path inside the mount, or a path relative to one of our directories, into the
-// relative form the java side takes. false means the path is not ours after all — which a path that
+// relative form the java side takes. false means the path is not ours after all -- which a path that
 // climbs out with ".." genuinely is not, since "/game/.." names the real filesystem.
 bool Normalise(const std::string& Base, const char* Path, std::string* Out) {
   std::vector<std::string> Parts;
@@ -192,7 +192,7 @@ bool Normalise(const std::string& Base, const char* Path, std::string* Out) {
   return true;
 }
 
-// the prefix test proper. "/game" matches "/game" and "/game/..." and nothing else — in particular
+// the prefix test proper. "/game" matches "/game" and "/game/..." and nothing else -- in particular
 // not "/gamesave", which a plain strncmp would accept.
 bool UnderMount(const char* Path) {
   if (!Path || Mount.empty()) {
@@ -239,7 +239,7 @@ std::string Display(const std::string& Relative) {
   return Relative.empty() ? Mount : Mount + "/" + Relative;
 }
 
-// x86-64 struct linux_dirent64, which is byte-identical on arm64 — unlike struct stat, which is the
+// x86-64 struct linux_dirent64, which is byte-identical on arm64 -- unlike struct stat, which is the
 // one that needed translating. the name is a flexible array the kernel writes past the end of the
 // header, so the header is declared and the name is appended by hand.
 struct GuestDirent64 {
@@ -255,7 +255,7 @@ constexpr uint8_t DT_REG_VALUE = 8;
 
 // said once, loudly, and then never again. a write into a game dump would mean the read-only
 // assumption this layer is built on is wrong, and the measurement that licensed it was taken on two
-// titles — so if a third one writes, that has to arrive as a sentence in the log rather than as a
+// titles -- so if a third one writes, that has to arrive as a sentence in the log rather than as a
 // game that mysteriously fails to save.
 void ReportWrite(const std::string& Where) {
   static std::atomic<bool> Said {false};
@@ -263,7 +263,7 @@ void ReportWrite(const std::string& Where) {
     return;
   }
   std::printf("[files] REFUSED a write to \"%s\". this layer is read-only, which was measured on two"
-              " titles that never write into their own dump — this one does, and that is a finding\n",
+              " titles that never write into their own dump -- this one does, and that is a finding\n",
               Where.c_str());
   std::fflush(stdout);
 }
@@ -279,7 +279,7 @@ bool SetMount(const char* Prefix) {
     // the shell binary, or an app whose helper class did not resolve. refusing here is the point:
     // mounting onto nothing would give the guest a directory in which every file is missing, and it
     // would report as a broken game dump rather than as a host layer that was never wired up.
-    std::fprintf(stderr, "[files] no provider on the other side of the JNI boundary — a mount needs the app\n");
+    std::fprintf(stderr, "[files] no provider on the other side of the JNI boundary -- a mount needs the app\n");
     return false;
   }
 
@@ -336,7 +336,7 @@ int64_t Open(int DirFD, const char* Path, uint64_t GuestFlags) {
       return FD;
     }
     // **is it seekable, and asked once rather than assumed.** a provider is allowed to answer with a
-    // pipe, and a pipe would work for exactly as long as the guest read forwards — then fail at the
+    // pipe, and a pipe would work for exactly as long as the guest read forwards -- then fail at the
     // first seek, thousands of instructions away from here and looking like anything but this. one
     // lseek at the first open says so now. it does not move the offset: SEEK_CUR of zero is the
     // question "where am I", which is ESPIPE on a pipe and 0 on a file.
@@ -354,7 +354,7 @@ int64_t Open(int DirFD, const char* Path, uint64_t GuestFlags) {
   // out of an empty memfd and the listing is kept beside it: the fd number is then unique, owned by
   // the kernel, closed by an ordinary close, and impossible to confuse with a live descriptor
   // belonging to something else. guest_procfs.cpp answers /proc/self/cmdline the same way, and for
-  // the same reason — this needs the fd, not the file.
+  // the same reason -- this needs the fd, not the file.
   std::vector<SafBridge::Child> Children;
   if (!SafBridge::ListChildren(Relative, &Children)) {
     return -EIO;
@@ -497,7 +497,7 @@ int64_t GetDents(int FD, void* Buffer, size_t Size) {
 
     GuestDirent64 Header {};
     // the inode of what the entry actually names, so that "." inside a directory and the directory
-    // itself agree — a caller walking a tree and remembering where it has been compares exactly that.
+    // itself agree -- a caller walking a tree and remembering where it has been compares exactly that.
     std::string Full;
     if (Item.Name == ".") {
       Full = Dir.Relative;

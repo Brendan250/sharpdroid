@@ -10,27 +10,27 @@ import android.util.Log
 import java.io.File
 
 /**
- * The all-files permission, and the one thing the app does differently while it is held.
+ * the all-files permission, and the one thing the app does differently while it is held.
  *
- * **It is an opt-in and it is never the mechanism.** A folder the user granted is reached through a
- * content provider, file by file, and that is how the app works with nothing switched on — every
+ * **it is an opt-in and it is never the mechanism.** a folder the user granted is reached through a
+ * content provider, file by file, and that is how the app works with nothing switched on -- every
  * reference emulator this one was modelled on does the same, and what it costs was measured rather
- * than argued: [GuestFiles] and `docs/guest-files.md`. Turning this on changes nothing about which
- * folders are in the library or how they are listed. It changes exactly one thing, and only for a
+ * than argued: [GuestFiles] and `docs/guest-files.md`. turning this on changes nothing about which
+ * folders are in the library or how they are listed. it changes exactly one thing, and only for a
  * game inside one of them: the directory becomes an ordinary path, so the guest opens its files with
  * ordinary syscalls and the file layer is never registered at all.
  *
- * **That is today's staged code path rather than a third implementation of anything** — the same one
- * every measurement in this project was taken on — which is why the whole feature is a branch at
+ * **that is today's staged code path rather than a third implementation of anything** -- the same one
+ * every measurement in this project was taken on -- which is why the whole feature is a branch at
  * launch. [GameListActivity] is where the branch is.
  *
- * **The permission is read at each launch and never cached.** It can be revoked from the platform's
+ * **the permission is read at each launch and never cached.** it can be revoked from the platform's
  * own settings while the app is running, and a stale yes would be a path the app can no longer open.
  *
- * The row that turns it on is in Settings → Data, under the same *Game files* label as the folder
- * manager — the two are one question, which is where a library comes from and how it is reached.
+ * the row that turns it on is in Settings → Data, under the same *Game files* label as the folder
+ * manager -- the two are one question, which is where a library comes from and how it is reached.
  *
- * **`android.provider.Settings` is imported here and this app has a [Settings] of its own.** The
+ * **`android.provider.Settings` is imported here and this app has a [Settings] of its own.** the
  * explicit import wins inside this file, which is correct and worth a sentence, because the two are
  * one letter apart and one of them opens a platform screen.
  */
@@ -39,20 +39,20 @@ object AllFiles {
     private const val TAG = "sharpemu"
 
     /**
-     * Whether this device has the permission at all.
+     * whether this device has the permission at all.
      *
-     * It arrived in API 30 and `minSdk` is 28, so below that there is nothing to ask for and nothing
-     * to show — a granted game is reached through the provider, which is what it is for.
+     * it arrived in API 30 and `minSdk` is 28, so below that there is nothing to ask for and nothing
+     * to show -- a granted game is reached through the provider, which is what it is for.
      */
     fun supported(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
 
-    /** Whether it is held, right now. Never remembered — see the note on the class. */
+    /** whether it is held, right now. never remembered -- see the note on the class. */
     fun granted(): Boolean = supported() && Environment.isExternalStorageManager()
 
     /**
-     * Opens the platform's own toggle for this app, and says whether anything opened.
+     * opens the platform's own toggle for this app, and says whether anything opened.
      *
-     * There is no dialog to raise: this permission is granted in Settings and nowhere else. The
+     * there is no dialog to raise: this permission is granted in Settings and nowhere else. the
      * per-app screen is the one to land on; a device without it falls back to the list of every app,
      * which is worse but is not nothing.
      */
@@ -76,14 +76,14 @@ object AllFiles {
         }
 
     /**
-     * Where a granted game's directory is on disk, or null to reach it through the provider instead.
+     * where a granted game's directory is on disk, or null to reach it through the provider instead.
      *
-     * Null is an ordinary answer and every one of its causes is: the permission is not held, the
+     * null is an ordinary answer and every one of its causes is: the permission is not held, the
      * device is too old to have it, the volume is not mounted, or the id does not map the way
-     * [TreeDocument.path] assumes. Each of those means the app does what it does by default.
+     * [TreeDocument.path] assumes. each of those means the app does what it does by default.
      *
-     * **The `eboot.bin` is what is checked rather than the directory**, and it is the same test the
-     * scan applies. A derived path that exists but is not this game would otherwise be a run that
+     * **the `eboot.bin` is what is checked rather than the directory**, and it is the same test the
+     * scan applies. a derived path that exists but is not this game would otherwise be a run that
      * boots something else; a derived path that is right but empty is a dump that would fail much
      * further on, with the file layer named for it.
      */
@@ -92,7 +92,7 @@ object AllFiles {
         val directory = TreeDocument.path(documentId) ?: return null
         if (!File(directory, Game.EBOOT).isFile) {
             Log.w(TAG, "[app] all-files access is on, but " + documentId + " does not resolve to a"
-                + " readable game directory — " + directory + " has no " + Game.EBOOT + " in it."
+                + " readable game directory -- " + directory + " has no " + Game.EBOOT + " in it."
                 + " reaching it through the grant instead")
             return null
         }

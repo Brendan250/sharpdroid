@@ -3,7 +3,7 @@
   one game's settings, upright.
 
   **one column that scrolls as a whole**: the artwork, then what the dump says about itself, then the
-  cards. see layout-land, which is the composition this one is derived from — there the same three
+  cards. see layout-land, which is the composition this one is derived from: there the same three
   blocks are a column beside a column, because the width is there to put them side by side and the
   height is not.
 
@@ -12,9 +12,9 @@
   block mostly empty while the thing a person came to look at was the smallest item on the screen.
   full width also gives the path its own line to wrap on rather than two thirds of one.
 
-  **it is capped at a third of the panel, and that is not a stylistic limit.** a square sized by width
-  costs the most height on the screen with the least of it — which is a 16:9 panel, not the 21:9 ones
-  this is drawn for. uncapped, the first card starts below the fold on 16:9 and this stops being a
+  **it is capped at a share of the panel's height, and that is not a stylistic limit.** a square
+  sized by width costs the most height on the screen with the least of it, which is a 16:9 panel,
+  not the 21:9 ones this is drawn for. uncapped, the first card starts below the fold on 16:9 and this stops being a
   screen anybody can act on without scrolling. the cap is applied in GameSettingsActivity, because it
   is a minimum of two numbers and XML holds neither; a bool decides whether it applies, so that this
   file's rule is read from the resources rather than from a test on the orientation.
@@ -38,7 +38,7 @@
         android:layout_height="?attr/actionBarSize"
         app:navigationIcon="@drawable/ic_back" />
 
-    <!-- the negative margin every card screen in this app takes against the toolbar — see
+    <!-- the negative margin every card screen in this app takes against the toolbar. see
          activity_settings.xml for what it borrows and why. here it is the scroller that sits under
          the toolbar, so it is the scroller that takes it, and the artwork starts on the line every
          other screen's content starts on. -->
@@ -83,7 +83,7 @@
 
             <!-- **as wide as the artwork and centred under it**, rather than as wide as the column.
                  these are facts about the thing above them, so they read as a caption when they sit
-                 within its edges and as a separate block when they run past them — and where the cap
+                 within its edges and as a separate block when they run past them; where the cap
                  binds, the artwork is narrower than the column, so full width would put the table's
                  first character to the left of the picture it describes. the width is applied in
                  GameSettingsActivity beside the artwork's own, being the same number.
@@ -101,14 +101,14 @@
             <!-- **the cards are a block inside the scroller rather than a list of their own**, so the
                  whole column moves as one thing: two scrolling regions on one screen would each be
                  half of the gesture. nested scrolling is off and the height wraps, which recycles
-                 nothing and costs nothing to recycle — the sections a game answers for are a fixed
+                 nothing and costs nothing to recycle: the sections a game answers for are a fixed
                  list, not a library.
 
                  **the negative horizontal margin is the card's own margin cancelled.** every card in
                  this app carries 6dp of its own, so a list laid out flush with this column would
                  draw its cards 6dp inside the artwork above them. taking that 6dp back here is what
                  puts the two edges on one line, and it is the same subtraction layout-land spells
-                 out for the same pair of numbers — neither of which belongs to this file.
+                 out for the same pair of numbers, neither of which belongs to this file.
 
                  the top margin is 10dp rather than 16dp for that reason too: the card's own vertical
                  margin supplies the other 6dp. -->

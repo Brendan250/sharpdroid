@@ -325,7 +325,7 @@ static void TestJumpIntoDataPage(void) {
 //
 // the block is decoded before the store runs, so FEXCore translates `mov eax, 42` and only then
 // seals the page. the store faults, and merely putting the write permission back and re-running it
-// is not enough — control would carry straight on into the translation just dropped and the
+// is not enough -- control would carry straight on into the translation just dropped and the
 // function would return 42. the host layer has to re-enter the dispatcher asking for a
 // single-instruction block, which is the one part of mtrack that is not just bookkeeping.
 static const unsigned char SelfPatchingBody[10] = {0xC6, 0x47, 0x05, 0x63, 0xB8, 0x2A, 0x00, 0x00, 0x00, 0xC3};

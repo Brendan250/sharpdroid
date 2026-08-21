@@ -21,21 +21,21 @@ import java.util.Locale
 import java.util.concurrent.Executors
 
 /**
- * One game's user data: what the emulator has written for this title and nothing else.
+ * one game's user data: what the emulator has written for this title and nothing else.
  *
- * **A screen of its own rather than [UserDataActivity] told which game**, which is the opposite call
- * to the one the settings sections take — and the reason is that the two screens differ in what their
- * cards mean rather than only in what they act on. There is no Everything here, because a title has
+ * **a screen of its own rather than [UserDataActivity] told which game**, which is the opposite call
+ * to the one the settings sections take -- and the reason is that the two screens differ in what their
+ * cards mean rather than only in what they act on. there is no Everything here, because a title has
  * no install to replace; there is no Settings card, because a game's overrides are shown as overrides
  * on the rows themselves; and Save data on the app's screen is a merge across the library where here
- * it is one title, replaced. Two of the four cards survive that and neither survives it unchanged.
+ * it is one title, replaced. two of the four cards survive that and neither survives it unchanged.
  *
- * **What it does share is every part below the meaning**: the manager frame, the card, the adapter
- * and the archive. So a card gains a button here the day it gains one there.
+ * **what it does share is every part below the meaning**: the manager frame, the card, the adapter
+ * and the archive. so a card gains a button here the day it gains one there.
  *
- * **A game whose dump names no title id gets no cards at all.** The emulator files such a dump under
- * one shared name, so this screen's whole premise — that a directory belongs to the game whose
- * artwork is one step back — is false for it. Offering to export or delete there would name one game
+ * **a game whose dump names no title id gets no cards at all.** the emulator files such a dump under
+ * one shared name, so this screen's whole premise -- that a directory belongs to the game whose
+ * artwork is one step back -- is false for it. offering to export or delete there would name one game
  * and act on several, and drawing the cards without their buttons would be an explanation on four
  * lines of a thing better said in one.
  */
@@ -46,16 +46,16 @@ class GameUserDataActivity : AppCompatActivity() {
     private lateinit var drawnWith: String
     private val worker = Executors.newSingleThreadExecutor()
 
-    /** The name of this title's directories — [Game.emulatorTitleId], not its config key. */
+    /** the name of this title's directories -- [Game.emulatorTitleId], not its config key. */
     private lateinit var titleId: String
 
-    /** What to call the game in a question about it. */
+    /** what to call the game in a question about it. */
     private lateinit var gameName: String
 
     /**
-     * Registered at construction, for [UserDataActivity]'s reason: a picker can outlive this screen.
+     * registered at construction, for [UserDataActivity]'s reason: a picker can outlive this screen.
      *
-     * **Neither remembers which card asked, where the app's screen has to.** Only one card here
+     * **neither remembers which card asked, where the app's screen has to.** only one card here
      * exports or imports anything, so there is no second answer for a result to belong to.
      */
     private val exportTo =
@@ -104,10 +104,10 @@ class GameUserDataActivity : AppCompatActivity() {
     }
 
     /**
-     * Whether this dump's directories are the shared ones.
+     * whether this dump's directories are the shared ones.
      *
      * [Game.UNKNOWN_TITLE_ID] is the emulator's answer for a dump naming no title id, and it is the
-     * same answer for every such dump — so what is under it belongs to no one game.
+     * same answer for every such dump -- so what is under it belongs to no one game.
      */
     private fun shared(): Boolean = titleId == Game.UNKNOWN_TITLE_ID
 
@@ -124,7 +124,7 @@ class GameUserDataActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    /** Measures this title's two directories on the worker and draws them on the main thread. */
+    /** measures this title's two directories on the worker and draws them on the main thread. */
     private fun refresh() {
         if (shared()) return
         val files = filesDir
@@ -148,10 +148,10 @@ class GameUserDataActivity : AppCompatActivity() {
     }
 
     /**
-     * **The title id is in the filename and the game's name is not.**
+     * **the title id is in the filename and the game's name is not.**
      *
-     * A display name is whatever the dump says it is — punctuation, a colon, a language nobody
-     * else's filesystem agrees about — and the id is the string the archive is actually keyed by, so
+     * a display name is whatever the dump says it is -- punctuation, a colon, a language nobody
+     * else's filesystem agrees about -- and the id is the string the archive is actually keyed by, so
      * it is what makes two exports on a desktop tellable apart by the thing that matters.
      */
     private fun suggestedName(): String {
@@ -181,12 +181,12 @@ class GameUserDataActivity : AppCompatActivity() {
     // import
 
     /**
-     * Reads the archive's manifest, then asks.
+     * reads the archive's manifest, then asks.
      *
-     * **The manifest is checked here and the title is not**, which is the one place this screen has
+     * **the manifest is checked here and the title is not**, which is the one place this screen has
      * to differ from the app's: whether an archive holds *this* game cannot be known without reading
      * the whole of it, and reading it twice to ask a question first would double the wait on the
-     * larger of the two cases. So the question is asked about the archive, and an archive that turns
+     * larger of the two cases. so the question is asked about the archive, and an archive that turns
      * out not to hold this title changes nothing and says so.
      */
     private fun offerImport(zip: Uri) = busy {
@@ -304,9 +304,9 @@ class GameUserDataActivity : AppCompatActivity() {
     companion object {
 
         /**
-         * **The emulator's name for the title, not the key its settings are filed under.** The two
-         * agree for every dump that names a title id and differ for one that does not — and what
-         * this screen measures, exports and deletes are directories the *emulator* named. See
+         * **the emulator's name for the title, not the key its settings are filed under.** the two
+         * agree for every dump that names a title id and differ for one that does not -- and what
+         * this screen measures, exports and deletes are directories the *emulator* named. see
          * [Game.emulatorTitleId].
          */
         const val EXTRA_TITLE_ID = "titleId"

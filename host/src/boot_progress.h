@@ -1,4 +1,4 @@
-// sharpemu-android host layer — where a boot has got to, for something that wants to draw it.
+// sharpemu-android host layer -- where a boot has got to, for something that wants to draw it.
 //
 // a guest takes several seconds to reach its first frame and the picture is black for all of it.
 // the emulator says a great deal about what it is doing during that time, on stdout, and this is
@@ -7,15 +7,15 @@
 //
 // **the two ends of the table belong to this project and the middle does not.** the start is the
 // host layer's own; the end is the vulkan thunk's first presented frame. everything between is a
-// line the emulator prints, and the emulator is free to rename any of them at any time — so the
+// line the emulator prints, and the emulator is free to rename any of them at any time -- so the
 // design is built around that being survivable rather than around it not happening:
 //
 //  - **entries are optional.** the scan runs forward from the current position to the end of the
 //    table, so a pattern that no longer appears is passed over the moment a later one matches. it
 //    costs one label and one correction point, never the feature. matching only the *next* entry
 //    would instead let a single renamed line stall the table and kill every entry behind it.
-//  - **position only ever moves forward.** several lines here occur more than once in one boot —
-//    `=== Execute START ===` occurs once per module — so "the first line that matches anything"
+//  - **position only ever moves forward.** several lines here occur more than once in one boot --
+//    `=== Execute START ===` occurs once per module -- so "the first line that matches anything"
 //    and "any line that matches this" are both wrong, and neither is reachable from here.
 //  - **the terminal entry is not a line at all.** the thunk advances it, and it advances to the
 //    *end*, so every entry that never matched is passed over at once and the position lands on
@@ -26,7 +26,7 @@
 //    and a boot that is simply fast look identical from outside.
 //
 // armed by `--boot-progress` and off otherwise, so a run from a shell and the regression set
-// produce exactly the log they produced before this existed.
+// produce exactly the log they produce without it.
 
 #pragma once
 
@@ -45,7 +45,7 @@ bool Enabled();
 /**
  * @brief offer one finished log line to the table.
  *
- * called from the log pump, which is **not the guest's thread** — it drains the pipe under fds 1
+ * called from the log pump, which is **not the guest's thread** -- it drains the pipe under fds 1
  * and 2 on a thread of its own. that placement is the whole cost argument: the work cannot land on
  * the boot's critical path, whatever it costs. the other place every guest line passes is the write
  * syscall, and that one *is* the guest's thread.

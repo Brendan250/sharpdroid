@@ -1,4 +1,4 @@
-// sharpemu-android host layer — a /proc/self that describes the guest.
+// sharpemu-android host layer -- a /proc/self that describes the guest.
 //
 // this is the first place the host layer stops being a pass-through. everywhere else, forwarding a
 // guest syscall to bionic gives an honest answer, because the guest really does live in this
@@ -10,7 +10,7 @@
 // readlink("/proc/self/exe") and then parses a bundle header out of whatever comes back.
 //
 // what is deliberately NOT virtualised is as interesting as what is. guest and host share one
-// address space 1:1 — FEX does not translate guest addresses — so /proc/self/maps read straight
+// address space 1:1 -- FEX does not translate guest addresses -- so /proc/self/maps read straight
 // from bionic already describes the guest's mappings, at their real addresses, more accurately
 // than anything synthesised could. the same goes for /proc/self/fd. those pass through.
 
@@ -29,14 +29,14 @@ public:
 
   // if Path names something under /proc/self (or /proc/<our own pid>) that should be answered with
   // a different file, returns that file's path. otherwise returns nullptr and the caller carries
-  // on as before. covers open, stat, access — everything that takes a path and wants the file.
+  // on as before. covers open, stat, access -- everything that takes a path and wants the file.
   const char* Substitute(const char* Path) const;
 
   // the readlink answer for a /proc/self symlink, or nullptr if this is not one we own.
   const char* ReadLinkTarget(const char* Path) const;
 
   // /proc entries that are generated rather than stored need a file to hand back. returns an open
-  // fd on an in-memory copy, or -1 for "not one of ours" — distinct from a real error, which
+  // fd on an in-memory copy, or -1 for "not one of ours" -- distinct from a real error, which
   // cannot happen here.
   int OpenSynthetic(const char* Path) const;
 

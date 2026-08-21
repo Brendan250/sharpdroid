@@ -16,27 +16,27 @@ import androidx.core.animation.doOnEnd
 import com.mircowuffwuff.sharpemu.databinding.ActivityAboutBinding
 
 /**
- * The About screen: what this is, what it runs, what it was read against, and what it is under.
+ * the About screen: what this is, what it runs, what it was read against, and what it is under.
  *
- * Reached from **Settings → About**, whose card opens this directly — the shape User data already uses
+ * reached from **Settings → About**, whose card opens this directly -- the shape User data already uses
  * for a section that is a screen rather than a list of rows.
  *
- * **A colophon rather than a list of credits.** Five facts is what the screen carries, and five facts
+ * **a colophon rather than a list of credits.** five facts is what the screen carries, and five facts
  * do not want five cards to live in: a label column and a value column states all of it at once, on a
  * landscape handheld, with nothing scrolled and nothing hidden behind a tap that only reveals text.
  * `part_about_facts.xml` is the table and is shared by both orientations; `part_about_body.xml` is the
  * composition and has a `-land` variant, because the one thing the shape of the screen changes is
  * whether the drawing sits above the text or beside it.
  *
- * **It credits without thanking.** Listing somebody under *Read against* is the credit; a paragraph
+ * **it credits without thanking.** listing somebody under *Read against* is the credit; a paragraph
  * about how grateful we are is what happens when a card asks for prose there is no prose to give.
  *
- * **There is no adapter and there is no list.** Everything here ships in the APK and none of it changes
- * while the screen is up. The one thing read off the device is which SharpEmu build a launch would
- * run, and that is asked of [BuildLibrary] rather than worked out again — the same resolution the
+ * **there is no adapter and there is no list.** everything here ships in the APK and none of it changes
+ * while the screen is up. the one thing read off the device is which SharpEmu build a launch would
+ * run, and that is asked of [BuildLibrary] rather than worked out again -- the same resolution the
  * build row and the launcher itself use, so this screen cannot name a build the launch would not.
  *
- * **No network.** Every link hands its URL to whatever browser the device has and the screen works
+ * **no network.** every link hands its URL to whatever browser the device has and the screen works
  * with none, which is the state some of these devices are in and the state all of them are in on a
  * plane.
  */
@@ -46,11 +46,11 @@ class AboutActivity : AppCompatActivity() {
     private lateinit var drawnWith: String
 
     /**
-     * Set between the drawing being tapped and the browser being asked for.
+     * set between the drawing being tapped and the browser being asked for.
      *
-     * The drawing answers a tap by moving and *then* leaving, so there is a window in which a second
-     * tap would queue a second departure. It is cleared in `onResume`, which is where coming back from
-     * the browser lands — and is also what tells that method the face is still the pulled one and
+     * the drawing answers a tap by moving and *then* leaving, so there is a window in which a second
+     * tap would queue a second departure. it is cleared in `onResume`, which is where coming back from
+     * the browser lands -- and is also what tells that method the face is still the pulled one and
      * wants putting back.
      */
     private var leaving = false
@@ -133,10 +133,10 @@ class AboutActivity : AppCompatActivity() {
     // what the lines say
 
     /**
-     * The app version, and the commit this APK was built from when it knows one.
+     * the app version, and the commit this APK was built from when it knows one.
      *
-     * **An APK built outside the repository does not know one**, and that is a normal state rather
-     * than a fault — `app_commit` is empty there, and the line is the version alone. A placeholder
+     * **an APK built outside the repository does not know one**, and that is a normal state rather
+     * than a fault -- `app_commit` is empty there, and the line is the version alone. a placeholder
      * would be worse than saying less: an unresolvable string in a bug report is one somebody then
      * tries to resolve.
      */
@@ -157,14 +157,14 @@ class AboutActivity : AppCompatActivity() {
     }
 
     /**
-     * Both emulators' versions, on one line, in the order the two names above them are in.
+     * both emulators' versions, on one line, in the order the two names above them are in.
      *
-     * **It is one string rather than a field each with a separator between them**, because the dot
-     * dividing the two is meant to be the same mark as the dot inside the SharpEmu version — and the
-     * only way to be sure of that is for it to be the same character of the same string. It is also
+     * **it is one string rather than a field each with a separator between them**, because the dot
+     * dividing the two is meant to be the same mark as the dot inside the SharpEmu version -- and the
+     * only way to be sure of that is for it to be the same character of the same string. it is also
      * `about_version`, the format the app's own version line uses, so the two lines cannot drift.
      *
-     * **The dot goes with the value it introduces.** A build that could not describe the FEX submodule
+     * **the dot goes with the value it introduces.** a build that could not describe the FEX submodule
      * leaves the line at SharpEmu's half alone: an empty field beside a full one reads as a value that
      * failed, and a separator with nothing after it as one still arriving.
      */
@@ -175,13 +175,13 @@ class AboutActivity : AppCompatActivity() {
     }
 
     /**
-     * The SharpEmu build a launch would run, as a version and a commit.
+     * the SharpEmu build a launch would run, as a version and a commit.
      *
-     * **Asked of [BuildLibrary] rather than resolved again**, which is what stops this screen naming a
+     * **asked of [BuildLibrary] rather than resolved again**, which is what stops this screen naming a
      * build the launcher would not: the store, the bundled build and the most recently staged one are
      * three answers in a defined order, and there is one implementation of that order.
      *
-     * **A device with no build at all is a normal state**, since a development APK ships none, and so
+     * **a device with no build at all is a normal state**, since a development APK ships none, and so
      * is a build that records no commit, which is one packaged from a published archive.
      */
     private fun buildLine(): String {
@@ -219,37 +219,37 @@ class AboutActivity : AppCompatActivity() {
     }
 
     /**
-     * Rocks [drawing], pulls a face doing it, and opens [url] on the beat the rock lands.
+     * rocks [drawing], pulls a face doing it, and opens [url] on the beat the rock lands.
      *
-     * **The lettering asks and the movement answers.** The drawing carries no ripple, so what says it
+     * **the lettering asks and the movement answers.** the drawing carries no ripple, so what says it
      * is pressable is the invitation drawn over it, and what a press gets back is not a highlight but
-     * the thing itself moving. Leaving at the end of that rather than at the start is what makes the
+     * the thing itself moving. leaving at the end of that rather than at the start is what makes the
      * two one gesture: a browser that opened on the down-press would take the screen away before
      * anybody saw the drawing react.
      *
-     * **The lettering takes no part in this, which is why it is a sibling view rather than a layer
-     * of this drawable.** A layer would be registered to the artwork for free and would need no
-     * second view — and it is drawn *inside* the view, so it would rotate with the rock and ride the
-     * entrance too, and the lettering does neither. The character is what reacts to a press: a
-     * caption swinging along reads as the whole picture wobbling. Two views laid on the same box
+     * **the lettering takes no part in this, which is why it is a sibling view rather than a layer
+     * of this drawable.** a layer would be registered to the artwork for free and would need no
+     * second view -- and it is drawn *inside* the view, so it would rotate with the rock and ride the
+     * entrance too, and the lettering does neither. the character is what reacts to a press: a
+     * caption swinging along reads as the whole picture wobbling. two views laid on the same box
      * cost a comment instead, and buy animations that move only what is meant to move.
      *
-     * **The face is swapped outright rather than crossfaded**, and it is the same drawing with a
-     * different expression on it — same size, same outline, same everything but the eyes and the
-     * mouth. A dissolve between two of those reads as an image loading; a cut reads as somebody
+     * **the face is swapped outright rather than crossfaded**, and it is the same drawing with a
+     * different expression on it -- same size, same outline, same everything but the eyes and the
+     * mouth. a dissolve between two of those reads as an image loading; a cut reads as somebody
      * reacting, which is what is being drawn.
      *
-     * **The face outlasts both the rock and the departure, and `onResume` is what puts it back.**
-     * The rock is over in [WIGGLE_MS] and the expression is worth more than that — but the way to
-     * spend it is not to make anybody wait for it. The browser is asked for the moment the rock
+     * **the face outlasts both the rock and the departure, and `onResume` is what puts it back.**
+     * the rock is over in [WIGGLE_MS] and the expression is worth more than that -- but the way to
+     * spend it is not to make anybody wait for it. the browser is asked for the moment the rock
      * settles, exactly as it would be with one face; what changes is only that the drawing is still
      * pulling the other one as the screen is taken away, and is composed again when it comes back.
      *
-     * **Nothing opening is the one case that has to put the face back itself**, since there is then
+     * **nothing opening is the one case that has to put the face back itself**, since there is then
      * no browser to cover the screen and no return to be resumed from. [FACE_HELD_MS] is how long it
      * sits there first, so a failed link still reads as the drawing having answered the press.
      *
-     * The pivot is the bottom edge, so it rocks where it is sitting rather than spinning about its
+     * the pivot is the bottom edge, so it rocks where it is sitting rather than spinning about its
      * middle, and [leaving] is what stops a second tap queueing a second departure.
      */
     private fun wiggleThenOpen(drawing: ImageView, url: String) {
@@ -278,15 +278,15 @@ class AboutActivity : AppCompatActivity() {
     }
 
     /**
-     * Hands [url] to whatever can open it, and says whether anything took it.
+     * hands [url] to whatever can open it, and says whether anything took it.
      *
-     * **A device with nothing that can is a real state here** — a handheld set up to run games and
-     * nothing else has no browser — so every link on this screen fails the same way and none of them
-     * takes the app with it. The answer is what the drawing needs: a link that opened is a screen
+     * **a device with nothing that can is a real state here** -- a handheld set up to run games and
+     * nothing else has no browser -- so every link on this screen fails the same way and none of them
+     * takes the app with it. the answer is what the drawing needs: a link that opened is a screen
      * about to be covered and later resumed, and a link that did not is a screen that stays where it
      * is, with whatever the press changed still on it.
      *
-     * The five links that are text ignore it, which is right rather than an oversight — the toast
+     * the five links that are text ignore it, which is right rather than an oversight -- the toast
      * is the whole of what a failure owes them.
      */
     private fun open(url: String): Boolean {
@@ -310,22 +310,22 @@ class AboutActivity : AppCompatActivity() {
         const val REPOSITORY = "https://github.com/sharpemu-android/sharpemu-android"
         const val DONATE = "https://support.mircowuffwuff.com/"
 
-        /** The licence text this app is itself under, which ships beside the guest libraries. */
+        /** the licence text this app is itself under, which ships beside the guest libraries. */
         const val GPL = "GPL-2"
 
-        /** Long enough to read as a reaction, short enough that nobody waits on it to leave. */
+        /** long enough to read as a reaction, short enough that nobody waits on it to leave. */
         const val WIGGLE_MS = 620L
 
         /**
-         * How long the pulled face stays on when nothing opens, in milliseconds.
+         * how long the pulled face stays on when nothing opens, in milliseconds.
          *
-         * **It is the failure path's number and no other.** A link that opens spends the face on the
+         * **it is the failure path's number and no other.** a link that opens spends the face on the
          * departure and gets it back on the return, so this stands in for a browser that never
-         * arrives — measured from the end of the rock, which keeps it independent of [WIGGLE_MS].
+         * arrives -- measured from the end of the rock, which keeps it independent of [WIGGLE_MS].
          */
         const val FACE_HELD_MS = 1000L
 
-        /** How far below its resting place the drawing starts, in pixels. */
+        /** how far below its resting place the drawing starts, in pixels. */
         const val ENTRANCE_RISE = 20f
     }
 }

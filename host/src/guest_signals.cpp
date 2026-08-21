@@ -55,8 +55,8 @@ const Arm64FPSimdContext* FindFPSimdContext(const ucontext_t* Context) {
 }
 
 // x86 trap numbers, as they appear in ucontext_t::uc_mcontext::gregs[REG_TRAPNO]. a guest fault
-// handler that inspects this — and SharpEmu's does, to tell a page fault from an illegal
-// instruction — gets a wrong answer if we leave it at the signal number.
+// handler that inspects this -- and SharpEmu's does, to tell a page fault from an illegal
+// instruction -- gets a wrong answer if we leave it at the signal number.
 constexpr uint64_t X86_TRAPNO_UD = 6;  // invalid opcode
 constexpr uint64_t X86_TRAPNO_DE = 0;  // divide error
 constexpr uint64_t X86_TRAPNO_BP = 3;  // breakpoint
@@ -77,7 +77,7 @@ uint64_t TrapNumberForSignal(int Signal, const siginfo_t* Info) {
 }
 
 // what a signal does when the guest has installed no handler for it. only the "and nothing
-// happens" cases are listed — everything else terminates the process, which is what linux does
+// happens" cases are listed -- everything else terminates the process, which is what linux does
 // for the real-time signals .NET raises among others.
 bool DefaultIsIgnore(int Signal) {
   switch (Signal) {
@@ -173,7 +173,7 @@ void GuestSignals::SetPending(GuestThread& T, int Signal) {
 
 bool GuestSignals::HasDeliverablePending(const GuestThread& T) const {
   // the blocked mask is read without a lock, and can only be written by T's own thread. a sender
-  // asking this question can therefore see a stale answer — which is harmless in both directions:
+  // asking this question can therefore see a stale answer -- which is harmless in both directions:
   // a signal that looks blocked stays pending and is picked up when the mask next changes, and one
   // that looks deliverable costs at most a host signal that finds nothing to do.
   return (T.PendingSignals.load(std::memory_order_acquire) & ~T.BlockedMask) != 0;
@@ -233,8 +233,8 @@ void GuestSignals::ReconstructGuestState(GuestThread& T, void* HostUContext) {
         XMM[i] = FPSimd->VRegs[HostReg];
       }
     }
-    // the low 128 bits only. passing nullptr for YMM_High is not "there is no upper half" — since
-    // AVX was turned on there is — it is "we did not recover one, so leave CPUState's alone". on the AVX128 path
+    // the low 128 bits only. passing nullptr for YMM_High is not "there is no upper half" -- since
+    // AVX was turned on there is -- it is "we did not recover one, so leave CPUState's alone". on the AVX128 path
     // FEX takes without SVE256, the upper halves live in CPUState.avx_high rather than in the 16
     // SRA-mapped host vector registers, so what is in the signal context is genuinely just the low
     // halves and this is the honest thing to write back.
@@ -248,8 +248,8 @@ void GuestSignals::ReconstructGuestState(GuestThread& T, void* HostUContext) {
   // block metadata.
   State.rip = CTX->RestoreRIPFromHostPC(Thread, HostPC);
 
-  // write the reconstructed flags back into CPUState. everything downstream — the frame we are
-  // about to build, and the dispatcher we re-enter afterwards — reads them from there.
+  // write the reconstructed flags back into CPUState. everything downstream -- the frame we are
+  // about to build, and the dispatcher we re-enter afterwards -- reads them from there.
   CTX->SetFlagsFromCompactedEFLAGS(Thread, EFlags);
 }
 
@@ -260,7 +260,7 @@ uint64_t GuestSignals::GuestRestorerTrampoline() {
     return Existing;
   }
   // glibc and bionic both set SA_RESTORER on x86-64, so this is a fallback rather than the usual
-  // path — but a guest that installs a handler without one would otherwise return from it into
+  // path -- but a guest that installs a handler without one would otherwise return from it into
   // whatever happened to be on the stack. eight bytes of guest code costs nothing and turns that
   // into correct behaviour.
   //
@@ -282,7 +282,7 @@ uint64_t GuestSignals::GuestRestorerTrampoline() {
     ::munmap(Page, 4096);
     return Expected;
   }
-  // guest code, so the VMA tracker has to know it is executable — otherwise the decoder refuses
+  // guest code, so the VMA tracker has to know it is executable -- otherwise the decoder refuses
   // the moment a handler without SA_RESTORER returns, which is the one case this page exists for.
   VMA::Record(reinterpret_cast<uint64_t>(Page), 4096, PROT_READ | PROT_EXEC);
   return reinterpret_cast<uint64_t>(Page);
@@ -357,7 +357,7 @@ void GuestSignals::DeliverToGuest(GuestThread& T, int Signal, const siginfo_t* H
 
   if (HostSigInfo) {
     // siginfo_t happens to have the same layout on x86-64 and arm64, so it copies verbatim. the
-    // fields the guest cares about here — si_signo, si_code, si_addr — all land correctly.
+    // fields the guest cares about here -- si_signo, si_code, si_addr -- all land correctly.
     std::memcpy(GuestSI, HostSigInfo, sizeof(siginfo_t));
   } else {
     // a fault the JIT generated: there is no host siginfo to copy, so synthesise the one the
@@ -394,8 +394,8 @@ void GuestSignals::DeliverToGuest(GuestThread& T, int Signal, const siginfo_t* H
   // one greg holds four selectors, and not in the order the name suggests.
   GRegs[GuestABI::REG_CSGSFS] = (static_cast<uint64_t>(State.ss_idx) << 48) | (static_cast<uint64_t>(State.fs_idx) << 32) |
                                 (static_cast<uint64_t>(State.gs_idx) << 16) | static_cast<uint64_t>(State.cs_idx);
-  // a guest fault handler that inspects TRAPNO — and SharpEmu's does, to tell an invalid opcode
-  // from a page fault — gets a wrong answer if this is left at the signal number.
+  // a guest fault handler that inspects TRAPNO -- and SharpEmu's does, to tell an invalid opcode
+  // from a page fault -- gets a wrong answer if this is left at the signal number.
   GRegs[GuestABI::REG_TRAPNO] = T.Generated.Pending ? T.Generated.TrapNo : TrapNumberForSignal(Signal, HostSigInfo);
   GRegs[GuestABI::REG_ERR] = T.Generated.Pending ? T.Generated.ErrCode : 0;
   GRegs[GuestABI::REG_OLDMASK] = 0;
@@ -412,7 +412,7 @@ void GuestSignals::DeliverToGuest(GuestThread& T, int Signal, const siginfo_t* H
                  (State.flags[FEXCore::X86State::X87FLAG_C1_LOC] << 9) | (State.flags[FEXCore::X86State::X87FLAG_C2_LOC] << 10) |
                  (State.flags[FEXCore::X86State::X87FLAG_C3_LOC] << 14) | State.flags[FEXCore::X86State::X87FLAG_IE_LOC];
   // the x87 stack is stored in physical register order, so the logical registers have to be
-  // rotated by TOP on the way out — and rotated back on the way in.
+  // rotated by TOP on the way out -- and rotated back on the way in.
   const uint16_t Top = State.flags[FEXCore::X86State::X87FLAG_TOP_LOC];
   for (size_t i = 0; i < FEXCore::Core::CPUState::NUM_MMS; ++i) {
     std::memcpy(&GuestFP->st[i], &State.mm[(i + Top) % 8], sizeof(State.mm[0]));
@@ -432,7 +432,7 @@ void GuestSignals::DeliverToGuest(GuestThread& T, int Signal, const siginfo_t* H
 
   // finally, aim the guest at its handler.
   //
-  // RAX is zeroed because that is what the kernel does — a variadic handler reads it as the
+  // RAX is zeroed because that is what the kernel does -- a variadic handler reads it as the
   // count of vector registers used, and a stale value there makes badly written ones misbehave.
   State.gregs[FEXCore::X86State::REG_RAX] = 0;
   State.gregs[FEXCore::X86State::REG_RDI] = Signal;
@@ -477,7 +477,7 @@ void GuestSignals::RestoreFromFrame(GuestThread& T) {
     State.gregs[Pair[1]] = GRegs[Pair[0]];
   }
 
-  // a handler is entitled to have edited RIP in the frame — stepping over a faulting instruction
+  // a handler is entitled to have edited RIP in the frame -- stepping over a faulting instruction
   // is the whole point of a #UD handler, and is exactly what SharpEmu's SSE4a emulation does.
   State.rip = GRegs[GuestABI::REG_RIP];
 

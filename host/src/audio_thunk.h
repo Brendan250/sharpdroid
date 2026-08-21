@@ -1,18 +1,18 @@
-// sharpemu-android host layer — guest x86-64 AAudio onto the host's AAudio, in-process.
+// sharpemu-android host layer -- guest x86-64 AAudio onto the host's AAudio, in-process.
 //
 // this is the vulkan thunk again with two orders of magnitude less surface: 72 entry points
 // instead of 623, the same 16-byte guest stub shape, the same one-template marshaller, and the
-// same reason it can be that small — guest and host share one address space 1:1, so there is no
+// same reason it can be that small -- guest and host share one address space 1:1, so there is no
 // pointer translation anywhere. AAudioStream_write reads the guest's PCM buffer in place, and
 // AAudio_createStreamBuilder writes a host pointer into guest memory that the guest then carries
 // around opaquely, exactly as it carries a VkInstance.
 //
-// the trap is a syscall with a magic number, "SA" in the top 16 bits — one range along from
+// the trap is a syscall with a magic number, "SA" in the top 16 bits -- one range along from
 // vulkan's "VK", deliberately distinct so the two stay decodable apart in a trace and in a crash.
 // the guest side is host/thunks/audio/generated/aaudio_stubs.S built into an x86-64 libaaudio.so staged
 // in guest-libs/, where every entry point is the same 16 bytes but for one immediate:
 //
-//     movq %rcx, %r10           ; the syscall instruction destroys RCX, which holds C arg 3 —
+//     movq %rcx, %r10           ; the syscall instruction destroys RCX, which holds C arg 3 --
 //                               ; AAudioStream_write's timeout, as it happens
 //     movl $0x5341'00nn, %eax   ; "SA" << 16 | command id
 //     syscall
@@ -26,13 +26,13 @@
 //     the entire mechanism.
 //   - **no window system to invent.** nothing here is answered by the host layer instead of being
 //     forwarded, except the refusals below.
-//   - **nothing at all from the java side.** AAudio is a pure NDK C API — no JNI, no looper, and
+//   - **nothing at all from the java side.** AAudio is a pure NDK C API -- no JNI, no looper, and
 //     no permission, because RECORD_AUDIO gates input and this only ever plays. so the app never
 //     learns audio exists.
 //
 // **the three callback setters are refused rather than forwarded**, and that refusal is the
 // documented boundary of the thunk. setDataCallback, setErrorCallback and setPresentationEndCallback
-// each take a guest function pointer that a driver-owned host thread would call — which would mean
+// each take a guest function pointer that a driver-owned host thread would call -- which would mean
 // a host thread entering FEXCore to execute x86-64 code, a reverse path the vulkan thunk never
 // needed and nothing in the host layer is built for. every guest thread reaches the host through a
 // syscall trap it made itself, and that stays true.
@@ -43,7 +43,7 @@
 //
 // **but the guest must not ask AAudio to do that waiting, and that is the hardest-won line in this
 // file.** parking the guest thread inside a blocking AAudioStream_write stopped playback dead
-// partway into 29% of runs — the thread stopped coming back, the audio server saw a client that had
+// partway into 29% of runs -- the thread stopped coming back, the audio server saw a client that had
 // gone quiet, and the stream was suspended with nothing anywhere returning an error. the fork now
 // passes a zero timeout and paces itself with a bounded sleep instead, which brings it to about 6%.
 // that is a mitigation and not a cure: **the bug is open**, and its mechanism is not in the audio
@@ -86,7 +86,7 @@ void SetTrace(bool Enabled);
 // audio does**; this only makes it chatty, reporting every second instead of only on a stall.
 //
 // it exists because the periodic report on the write path is blind to the one failure that
-// actually happens — the guest stopping — since no write means no report, and a log that simply
+// actually happens -- the guest stopping -- since no write means no report, and a log that simply
 // goes quiet cannot tell "the guest stopped calling" from "our write is stuck inside AAudio" from
 // "the stream died underneath". it counts writes on both sides of the host call and asks procfs
 // about the submitting thread, which separates all three.
@@ -110,7 +110,7 @@ uint64_t Handle(FEXCore::Core::CpuStateFrame* Frame, FEXCore::HLE::SyscallArgume
 // this is a guard rather than a nice-to-have: a stream that opens and plays nothing looks *exactly*
 // like a stream that works. AAudioStream_getFramesRead climbing at the stream's sample rate is the
 // only thing that distinguishes them. it is the same shape as a GPU driver package that fails to
-// load and falls back to the platform's own — every call succeeds and the measurement is of
+// load and falls back to the platform's own -- every call succeeds and the measurement is of
 // something else entirely.
 void ReportStreams();
 

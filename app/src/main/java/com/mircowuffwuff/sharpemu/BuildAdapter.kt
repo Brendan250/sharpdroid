@@ -7,24 +7,24 @@ import androidx.recyclerview.widget.RecyclerView
 import com.mircowuffwuff.sharpemu.databinding.ItemManagerCardBinding
 
 /**
- * Draws the build list: the bundled build pinned at the top, then every build on the device.
+ * draws the build list: the bundled build pinned at the top, then every build on the device.
  *
- * **The manager card, which the GPU driver manager draws too** — a radio down the left, the name, the
- * version under it, a line of description under that, a badge above and a trash can on the right. The
+ * **the manager card, which the GPU driver manager draws too** -- a radio down the left, the name, the
+ * version under it, a line of description under that, a badge above and a trash can on the right. the
  * layout and the three things every card does to itself are `item_manager_card.xml` and [ManagerCard];
- * what is here is what a *build* has to say on those four lines. No *Fetch*: there is no index to
+ * what is here is what a *build* has to say on those four lines. no *Fetch*: there is no index to
  * fetch from, and a build arrives as a zip.
  *
- * **Every card is four lines, and every line has something true on it.** Two cards sharing a grid row
- * are each as tall as their own content, so a card missing a line does not read as shorter — it reads
+ * **every card is four lines, and every line has something true on it.** two cards sharing a grid row
+ * are each as tall as their own content, so a card missing a line does not read as shorter -- it reads
  * as empty, next to a full one. [bind] is where each of the four is guaranteed.
  *
- * **The bundled build is drawn through the same binding as any other**, unlike the driver manager's
- * system card. It *is* a build — it has a `meta.json`, a version and a commit — so a row type of its
- * own would be a second place for one identity to be drawn, and the two would drift. It is pinned
+ * **the bundled build is drawn through the same binding as any other**, unlike the driver manager's
+ * system card. it *is* a build -- it has a `meta.json`, a version and a commit -- so a row type of its
+ * own would be a second place for one identity to be drawn, and the two would drift. it is pinned
  * only in the sense that the activity puts it first and no sort touches it.
  *
- * **The badges are handed in, not computed.** [BuildLibrary] works them out from the same functions
+ * **the badges are handed in, not computed.** [BuildLibrary] works them out from the same functions
  * the launcher resolves with, so a badge cannot disagree with what a launch does.
  */
 class BuildAdapter(
@@ -33,7 +33,7 @@ class BuildAdapter(
     private val onDelete: (BuildLibrary.Entry) -> Unit,
 ) : RecyclerView.Adapter<BuildAdapter.Holder>() {
 
-    /** One card. [bundled] is the pinned one, which shipped inside the app. */
+    /** one card. [bundled] is the pinned one, which shipped inside the app. */
     data class Item(val entry: BuildLibrary.Entry, val bundled: Boolean = false)
 
     fun submit(newItems: List<Item>) {
@@ -56,9 +56,9 @@ class BuildAdapter(
 
     private companion object {
         /**
-         * Handed to every redraw that keeps the same cards.
+         * handed to every redraw that keeps the same cards.
          *
-         * **What it is does not matter and that it is there does**: RecyclerView reuses a holder
+         * **what it is does not matter and that it is there does**: RecyclerView reuses a holder
          * rather than replacing it for any change that carries a payload, and reuse is what keeps
          * the pressed view attached and its ripple alive.
          */
@@ -83,7 +83,7 @@ class BuildAdapter(
             // **where it came from, which is the one claim about a build that cannot be faked and
             // the one with a different answer per card.** there are three provenances: it shipped
             // inside the app, adb staged it from a PC, or it was imported from a zip. the staged one
-            // is dev-facing and is the quiet badge — nothing is ever copied, so it says which volume
+            // is dev-facing and is the quiet badge -- nothing is ever copied, so it says which volume
             // the build runs from and nothing else.
             when {
                 bundled -> badge(R.string.build_badge_bundled,
@@ -101,7 +101,7 @@ class BuildAdapter(
             // **the second badge says the one thing neither provenance nor the order can**: this
             // build is a SharpEmu version behind the one that shipped inside the app, and the fix is
             // one tap on the pinned card. it is absent on a healthy device, which is what makes it
-            // worth reading — where "the newest one you happen to have" is the top card and needs no
+            // worth reading -- where "the newest one you happen to have" is the top card and needs no
             // badge to say so.
             //
             // **neutral rather than the error colour.** running an older build deliberately is half
@@ -112,21 +112,21 @@ class BuildAdapter(
 
             // **every card draws the name its `meta.json` carries, the pinned one included.** the
             // build that ships is named at the moment it is bundled, so the name is a fact about the
-            // build rather than a case in the list — and every other place one is named, the row in
+            // build rather than a case in the list -- and every other place one is named, the row in
             // Settings among them, says the same thing without knowing about this screen.
             binding.name.text = build.name
             // **the commit rather than the build number, wherever there is one.** sharpemuVersion
             // is upstream's tag and our fork moves faster than upstream, so two builds of one tag
-            // are routine and look identical without it. the build number is bookkeeping — ours is
-            // when it was packaged — so it is the fallback for a build that recorded no commit.
+            // are routine and look identical without it. the build number is bookkeeping -- ours is
+            // when it was packaged -- so it is the fallback for a build that recorded no commit.
             val version = if (build.commit.isEmpty()) {
                 context.getString(R.string.build_version, build.sharpemuVersion, build.packagedAt)
             } else {
                 context.getString(R.string.version_commit, build.sharpemuVersion, build.shortCommit())
             }
             // **whoever produced it goes on the version line, where a driver card puts the same
-            // claim.** it is a build's second identity — two zips of one commit differ by who made
-            // them and by nothing else a person can see — and it takes no line of its own, because
+            // claim.** it is a build's second identity -- two zips of one commit differ by who made
+            // them and by nothing else a person can see -- and it takes no line of its own, because
             // there is no fifth line to take. absent on a build packaged before the field existed
             // and on the one that shipped with the app, and the line is then what it always was.
             binding.version.text = if (build.author.isEmpty()) {
@@ -136,7 +136,7 @@ class BuildAdapter(
             }
 
             // **a build this app cannot run is drawn and marked, not hidden.** an import refuses one,
-            // so the only way it reaches the list is by having been staged — and the screen it shows
+            // so the only way it reaches the list is by having been staged -- and the screen it shows
             // up on is where somebody should find out why. it takes the fourth line rather than
             // adding a fifth: why a build cannot run outranks what its packager wrote about it.
             val runnable = build.runnable()
@@ -167,7 +167,7 @@ class BuildAdapter(
 
             // **the bundled build has no delete button**, exactly as the system GPU driver has none.
             // it comes back with the next launch of the app, so a delete would be a button that
-            // undoes itself — and there would then be no build at all until one was imported.
+            // undoes itself -- and there would then be no build at all until one was imported.
             binding.delete.visibility = if (bundled) View.GONE else View.VISIBLE
             binding.delete.setOnClickListener { onDelete(entry) }
             ManagerCard.scrollLongLines(

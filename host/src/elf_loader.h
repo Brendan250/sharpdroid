@@ -1,9 +1,9 @@
-// sharpemu-android host layer — x86-64 ELF loader.
+// sharpemu-android host layer -- x86-64 ELF loader.
 //
 // maps a static x86-64 ELF into the guest address space and builds the initial stack the
 // SysV x86-64 ABI hands to _start: argc, argv, envp and the auxiliary vector.
 //
-// guest and host share one address space 1:1 — FEX does not translate guest addresses — so
+// guest and host share one address space 1:1 -- FEX does not translate guest addresses -- so
 // "mapping into the guest address space" is just mmap, and a guest pointer is a host pointer.
 
 #pragma once
@@ -19,7 +19,7 @@ struct LoadedELF {
 
   uint64_t Entry {};    // guest RIP to begin execution at
   uint64_t LoadBias {}; // 0 for ET_EXEC; the chosen base for ET_DYN
-  uint64_t PhdrAddr {}; // AT_PHDR — the program headers as seen *in the guest mapping*
+  uint64_t PhdrAddr {}; // AT_PHDR -- the program headers as seen *in the guest mapping*
   uint64_t PhEnt {};
   uint64_t PhNum {};
 

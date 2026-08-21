@@ -13,19 +13,19 @@ import com.mircowuffwuff.sharpemu.databinding.DialogColourPickerBinding
 import java.io.File
 
 /**
- * One section's rows.
+ * one section's rows.
  *
- * One activity for every section rather than one per section, because the rows differ and nothing
- * else does — the toolbar, the list, the store and the "Use default" long press are the same screen
+ * one activity for every section rather than one per section, because the rows differ and nothing
+ * else does -- the toolbar, the list, the store and the "Use default" long press are the same screen
  * four times over.
  *
- * **And one activity for the global scene and for a game's own**, which is the stronger half of the
+ * **and one activity for the global scene and for a game's own**, which is the stronger half of the
  * same argument: named a game, this screen writes that game's store instead of the app's and draws
- * the *Use global value* button on any row overriding it, and nothing else about it moves. So a row
+ * the *Use global value* button on any row overriding it, and nothing else about it moves. so a row
  * added to Emulation, Graphics or Controls appears in both the day it is written, rather than the day
  * somebody remembers a second copy exists.
  *
- * **A subsection is a label above a run of rows, not another button press.** Eden's *Advanced
+ * **a subsection is a label above a run of rows, not another button press.** Eden's *Advanced
  * settings → Graphics* is the shape.
  */
 class SettingsSectionActivity : AppCompatActivity() {
@@ -37,31 +37,31 @@ class SettingsSectionActivity : AppCompatActivity() {
     private lateinit var drawnWith: String
 
     /**
-     * The game this screen answers for, as [Game.configKey] names it, or null for the app's own.
+     * the game this screen answers for, as [Game.configKey] names it, or null for the app's own.
      *
-     * It is carried rather than looked up: the scene that opened this screen already read the dump,
+     * it is carried rather than looked up: the scene that opened this screen already read the dump,
      * and reading it again here would be a second answer to a question with one right answer.
      */
     private var game: String? = null
 
     /**
-     * Whether a Custom theme was chosen when this screen was built, and therefore whether the seed
+     * whether a Custom theme was chosen when this screen was built, and therefore whether the seed
      * colour row was in the list.
      *
-     * **The store cannot answer this after the fact**: choosing a theme writes it and then restarts
-     * the screen, so by the time anything asks, the new choice is the only one recorded. This is read
+     * **the store cannot answer this after the fact**: choosing a theme writes it and then restarts
+     * the screen, so by the time anything asks, the new choice is the only one recorded. this is read
      * once, on the way in, while it is still true.
      */
     private var builtWithColourRow = false
 
     /**
-     * What the seed colour row is doing on this screen's first layout, carried across the restart a
+     * what the seed colour row is doing on this screen's first layout, carried across the restart a
      * theme change causes.
      *
-     * **The restart is why this has to be carried at all.** A palette is resolved when views are
+     * **the restart is why this has to be carried at all.** a palette is resolved when views are
      * inflated, so a theme cannot be swapped underneath a screen that is already drawn and the
-     * activity is rebuilt instead — and the instance that comes back has no idea a theme just
-     * changed, let alone whether the row it is about to draw was on the screen a moment ago. One
+     * activity is rebuilt instead -- and the instance that comes back has no idea a theme just
+     * changed, let alone whether the row it is about to draw was on the screen a moment ago. one
      * value in the saved state is the whole of what it needs.
      */
     private var colourRowArrival = COLOUR_ROW_STILL
@@ -108,7 +108,7 @@ class SettingsSectionActivity : AppCompatActivity() {
         // **one layout later, because a row cannot animate into a list that has not been drawn
         // yet.** the adapter is set during onCreate and nothing is measured until after it returns,
         // so an insert asked for here would be part of the first layout rather than a change to it,
-        // and would simply appear — which is the thing being fixed.
+        // and would simply appear -- which is the thing being fixed.
         if (colourRowArrival != COLOUR_ROW_STILL) {
             val at = rows(colourRow = true).indexOfFirst { it.key == Settings.KEY_CUSTOM_COLOUR }
             binding.settings.post {
@@ -122,7 +122,7 @@ class SettingsSectionActivity : AppCompatActivity() {
     }
 
     /**
-     * **The one value that has to outlive the restart a theme change causes**, and it is written
+     * **the one value that has to outlive the restart a theme change causes**, and it is written
      * here rather than when the theme is chosen because that is when the restart takes it.
      */
     override fun onSaveInstanceState(out: Bundle) {
@@ -131,16 +131,16 @@ class SettingsSectionActivity : AppCompatActivity() {
     }
 
     /**
-     * Redraws after a write.
+     * redraws after a write.
      *
-     * **The theme is the one row that changes the screen it is on**, so it restarts the activity
-     * rather than redrawing a list — a palette applied at inflation cannot be swapped underneath
+     * **the theme is the one row that changes the screen it is on**, so it restarts the activity
+     * rather than redrawing a list -- a palette applied at inflation cannot be swapped underneath
      * views that have already been inflated with the old one.
      */
     private fun changed(row: SettingRow) {
         if (row.key == Settings.KEY_THEME || row.key == Settings.KEY_CUSTOM_COLOUR) {
             // **the seed colour row comes and goes with the Custom theme, and the screen it is on is
-            // about to be rebuilt** — so what it is doing is worked out here, while both answers are
+            // about to be rebuilt** -- so what it is doing is worked out here, while both answers are
             // still knowable, and handed to the instance that comes back. a seed colour that changed
             // leaves the row exactly where it was, which is the common case and moves nothing.
             val nowCustom = Theme.chosen(this) == Settings.THEME_CUSTOM
@@ -184,17 +184,17 @@ class SettingsSectionActivity : AppCompatActivity() {
     // the rows
 
     /**
-     * The rows, for this section and for whichever store this screen was opened against.
+     * the rows, for this section and for whichever store this screen was opened against.
      *
-     * **Two sections have nothing to say about one game and answer with nothing when named one.** App
-     * is the look and behaviour of the app itself, and Game files is which folders it may read — both
+     * **two sections have nothing to say about one game and answer with nothing when named one.** App
+     * is the look and behaviour of the app itself, and Game files is which folders it may read -- both
      * belong to the install rather than to a title, so a per-game copy would be a screen offering to
-     * set something that could only ever be set once. Nothing in the app opens either that way; a
+     * set something that could only ever be set once. nothing in the app opens either that way; a
      * hand-written intent still can, and an empty list is the same answer the section guard in
      * [onCreate] gives a name that is not a section at all.
      *
      * [colourRow] is whether the seed colour row is wanted, and defaults to what the stored theme
-     * says — which is the right answer everywhere except the one layout a theme change is being
+     * says -- which is the right answer everywhere except the one layout a theme change is being
      * animated across, where the list has to be built as it stood before the change so that the
      * difference is something a viewer can watch happen.
      */
@@ -241,7 +241,7 @@ class SettingsSectionActivity : AppCompatActivity() {
                 summary = R.string.setting_custom_colour_summary,
                 // **the accent rather than the seed, and taken from the theme rather than computed.**
                 // this screen is already wearing the scheme the seed generated, so its colorPrimary
-                // *is* the accent — no generator call, no chance of the row and the theme disagreeing.
+                // *is* the accent -- no generator call, no chance of the row and the theme disagreeing.
                 // it needs no live updating either: a colour change restarts the screen.
                 colour = themeColour(com.google.android.material.R.attr.colorPrimary),
             ) { pickColour() }
@@ -265,17 +265,17 @@ class SettingsSectionActivity : AppCompatActivity() {
     }
 
     /**
-     * A manager screen, told which store it is choosing for.
+     * a manager screen, told which store it is choosing for.
      *
-     * **The extras are forwarded rather than rebuilt**, so a build or a driver picked from a per-game
-     * section is written to that game's store. Without this the manager would write the app's row
-     * while the row that opened it showed a game's — a screen saying one thing while a launch does
+     * **the extras are forwarded rather than rebuilt**, so a build or a driver picked from a per-game
+     * section is written to that game's store. without this the manager would write the app's row
+     * while the row that opened it showed a game's -- a screen saying one thing while a launch does
      * another, which is the failure the whole precedence design exists to avoid.
      */
     private fun manager(screen: Class<out AppCompatActivity>): Intent =
         Intent(this, screen).putExtra(EXTRA_GAME, game)
 
-    /** A colour out of the theme this screen was inflated with. */
+    /** a colour out of the theme this screen was inflated with. */
     private fun themeColour(attr: Int): Int {
         val typed = android.util.TypedValue()
         theme.resolveAttribute(attr, typed, true)
@@ -283,17 +283,17 @@ class SettingsSectionActivity : AppCompatActivity() {
     }
 
     /**
-     * The Emulation section.
+     * the Emulation section.
      *
-     * **The build row has no toggle above it.** Exactly one build ships per APK, so there is no
-     * recommendation to follow and nothing for a switch to govern — the row simply names what a
-     * launch will run, and tapping it opens the manager. A toggle there would need a constant, a
+     * **the build row has no toggle above it.** exactly one build ships per APK, so there is no
+     * recommendation to follow and nothing for a switch to govern -- the row simply names what a
+     * launch will run, and tapping it opens the manager. a toggle there would need a constant, a
      * stored key and a badge behind it, and every one of those is a way for the screen to say one
      * thing while the launch does another.
      */
     private fun emulationRows(): List<SettingRow> = listOf(
         // **no strict dynlib resolution row.** the payload parses `--strict` and carries it as far as
-        // the options the dispatcher is handed, and nothing reads it from there — so a switch here
+        // the options the dispatcher is handed, and nothing reads it from there -- so a switch here
         // would promise that a launch fails on an unresolved import when a launch does no such thing.
         // it is also a diagnostic rather than a setting: what it offers a user is a game that refuses
         // to start. the flag stays reachable, and `--ez strict true` on a launch still passes it,
@@ -313,8 +313,8 @@ class SettingsSectionActivity : AppCompatActivity() {
         SettingRow.Header(R.string.settings_group_fexcore),
         // **a slider rather than a list, because these are a ladder and not alternatives.** each rung
         // trades faithfulness for speed against the one before it, and a control with an order in it
-        // says so without the row having to. it also makes the middle — which is FEXCore's own
-        // defaults — somewhere a user can aim rather than a position they have to count out.
+        // says so without the row having to. it also makes the middle -- which is FEXCore's own
+        // defaults -- somewhere a user can aim rather than a position they have to count out.
         SettingRow.Slider(
             key = Settings.KEY_FEX_PRESET,
             title = R.string.setting_fex_preset,
@@ -339,23 +339,23 @@ class SettingsSectionActivity : AppCompatActivity() {
     )
 
     /**
-     * What the build row shows underneath itself.
+     * what the build row shows underneath itself.
      *
-     * **It always names a concrete build**, which is what shipping exactly one buys: nothing stored
-     * means the bundled build, so the row reads its name rather than describing a rule. A subtitle
+     * **it always names a concrete build**, which is what shipping exactly one buys: nothing stored
+     * means the bundled build, so the row reads its name rather than describing a rule. a subtitle
      * along the lines of "none chosen, the most recent is used" would explain the launcher instead
      * of answering the question the row is there to answer.
      *
-     * **The name alone, without the SharpEmu version beside it.** Every row on this screen answers
+     * **the name alone, without the SharpEmu version beside it.** every row on this screen answers
      * with one thing, and a version is a second: it is what tells two builds of one name apart, which
-     * is a question the manager behind this row exists for and this row cannot answer anyway — it has
+     * is a question the manager behind this row exists for and this row cannot answer anyway -- it has
      * room for one line and there may be several.
      *
-     * **A build that is not there says so rather than showing its name.** A folder can go —
-     * deleted from a PC, or the external volume wiped — and a row that went on naming it would leave
+     * **a build that is not there says so rather than showing its name.** a folder can go --
+     * deleted from a PC, or the external volume wiped -- and a row that went on naming it would leave
      * the game failing to start as the only place a user could find out.
      *
-     * It reads a `meta.json` on the main thread, which is one small file: the alternative is a row
+     * it reads a `meta.json` on the main thread, which is one small file: the alternative is a row
      * that draws empty and fills in a frame later, on a screen that is otherwise synchronous.
      */
     private fun chosenBuildLabel(): String {
@@ -409,16 +409,16 @@ class SettingsSectionActivity : AppCompatActivity() {
     )
 
     /**
-     * What the driver row shows underneath itself.
+     * what the driver row shows underneath itself.
      *
-     * **It always names something concrete**, because the system driver is always there — so the row
+     * **it always names something concrete**, because the system driver is always there -- so the row
      * reads a name rather than describing what happens when nothing is chosen.
      *
-     * **A package that is not there says so rather than showing its name.** A staged directory can go
-     * — deleted from a PC, or the external volume wiped — and a row that went on naming it would
+     * **a package that is not there says so rather than showing its name.** a staged directory can go
+     * -- deleted from a PC, or the external volume wiped -- and a row that went on naming it would
      * leave a launch quietly falling back to the system driver as the only place to find out.
      *
-     * It reads a `meta.json`, which is one small file, on the main thread: the alternative is a row
+     * it reads a `meta.json`, which is one small file, on the main thread: the alternative is a row
      * that draws empty and fills in a frame later on a screen that is otherwise synchronous.
      */
     private fun chosenDriverLabel(): String {
@@ -432,39 +432,39 @@ class SettingsSectionActivity : AppCompatActivity() {
     }
 
     /**
-     * The Game files section: where games are read from, and how.
+     * the Game files section: where games are read from, and how.
      *
-     * **All-files access is here rather than in App**: App is the look and behaviour of the app, and
-     * how it reaches a game's files is a data concern. The folder manager is the other half of that
-     * same question — which folders the app may read — so the two belong together.
+     * **all-files access is here rather than in App**: App is the look and behaviour of the app, and
+     * how it reaches a game's files is a data concern. the folder manager is the other half of that
+     * same question -- which folders the app may read -- so the two belong together.
      *
-     * **Everything here is about files somebody else already owns**, living elsewhere on the device
-     * and reached by a grant that can be revoked. What the emulator itself writes is User data, which
+     * **everything here is about files somebody else already owns**, living elsewhere on the device
+     * and reached by a grant that can be revoked. what the emulator itself writes is User data, which
      * is a section of its own for that reason.
      *
-     * **No subsection label.** Every row in the section is the section's own subject now, and a
+     * **no subsection label.** every row in the section is the section's own subject now, and a
      * heading repeating the screen's title above the only group on it labels nothing.
      *
-     * **The folder row is unconditional and the all-files row is not, and that ordering is the point.**
+     * **the folder row is unconditional and the all-files row is not, and that ordering is the point.**
      * `MANAGE_EXTERNAL_STORAGE` needs API 30 and `minSdk` is 28, so this section builds a list rather
      * than returning one: an early return on the permission would take the folder manager with it, and
      * on a device below 30 that is a device with no way to add a game at all.
      *
-     * The all-files row is an [SettingRow.External] rather than a [SettingRow.Switch] because this app
+     * the all-files row is an [SettingRow.External] rather than a [SettingRow.Switch] because this app
      * cannot set it: it is granted in android's own settings and nowhere else, so the row shows the
      * state and a tap opens the screen that changes it.
      */
     /**
-     * The Controls section.
+     * the Controls section.
      *
-     * **Both rows are on by default, and both are read by the process that runs the guest rather than
-     * turned into a launch argument.** That is the difference between these and every row in Emulation:
+     * **both rows are on by default, and both are read by the process that runs the guest rather than
+     * turned into a launch argument.** that is the difference between these and every row in Emulation:
      * a build, a preset or a resolution has to reach the payload's command line, while these two govern
-     * what this app does with events it receives and with a request it is handed — so nothing is passed,
+     * what this app does with events it receives and with a request it is handed -- so nothing is passed,
      * and a launch that names no extras is the argument vector it has always been.
      *
-     * **There are no port rows under the mapping switch yet**, which is why that switch is currently
-     * the whole of controller input rather than a choice between mappings. The row's own summary says
+     * **there are no port rows under the mapping switch yet**, which is why that switch is currently
+     * the whole of controller input rather than a choice between mappings. the row's own summary says
      * so; a switch that silently meant something other than its label is what a settings screen must
      * never be.
      */
@@ -523,18 +523,18 @@ class SettingsSectionActivity : AppCompatActivity() {
     }
 
     /**
-     * The colour picker behind the Custom theme's swatch.
+     * the colour picker behind the Custom theme's swatch.
      *
-     * **One rectangle: hue across, chroma down, at a pinned tone.** Three sliders were the first
-     * version, a shade square with a hue bar the second, hue and *saturation* the third. These are
-     * the generator's own axes rather than a conversion into them — [HctColour] has why that matters
+     * **one rectangle: hue across, chroma down, at a pinned tone.** three sliders were the first
+     * version, a shade square with a hue bar the second, hue and *saturation* the third. these are
+     * the generator's own axes rather than a conversion into them -- [HctColour] has why that matters
      * and what it cost to make the vertical one behave.
      *
-     * **The preview beside it is the generated scheme, live** — [SchemePreview] asks the same
+     * **the preview beside it is the generated scheme, live** -- [SchemePreview] asks the same
      * generator the theme is built with, so it is the theme drawn small rather than an impression of
-     * it. The screens *around* the dialog cannot repaint as the knob moves: a scheme is resolved
+     * it. the screens *around* the dialog cannot repaint as the knob moves: a scheme is resolved
      * while a hierarchy is inflated, so repainting them means recreating the activity, which would
-     * close the dialog doing the picking. Saving does exactly that, which is the same path a theme
+     * close the dialog doing the picking. saving does exactly that, which is the same path a theme
      * change already takes.
      */
     private fun pickColour() {
@@ -550,7 +550,7 @@ class SettingsSectionActivity : AppCompatActivity() {
 
         fun chosen(): Int = HctColour.colour(picker.field.hue, picker.field.chroma())
 
-        /** Redraws the swatch, the hex and the whole preview from whatever is picked right now. */
+        /** redraws the swatch, the hex and the whole preview from whatever is picked right now. */
         fun redraw() {
             val colour = chosen()
             // **the preview is the generated scheme rather than the seed painted about.** the roles
@@ -593,21 +593,21 @@ class SettingsSectionActivity : AppCompatActivity() {
         const val EXTRA_SECTION = "section"
 
         /**
-         * The game whose store this screen writes, as [Game.configKey] names it. Absent for the app's
+         * the game whose store this screen writes, as [Game.configKey] names it. absent for the app's
          * own settings, which is what every screen reached from the cog sends.
          */
         const val EXTRA_GAME = "game"
 
-        /** Where [colourRowArrival] is kept while a theme change rebuilds this screen. */
+        /** where [colourRowArrival] is kept while a theme change rebuilds this screen. */
         private const val STATE_COLOUR_ROW = "colourRow"
 
-        /** The seed colour row is where it was: a first visit, or a change that did not move it. */
+        /** the seed colour row is where it was: a first visit, or a change that did not move it. */
         private const val COLOUR_ROW_STILL = 0
 
-        /** A Custom theme was just chosen and the row is coming in under the one that chose it. */
+        /** a Custom theme was just chosen and the row is coming in under the one that chose it. */
         private const val COLOUR_ROW_ARRIVING = 1
 
-        /** A Custom theme was just left and the row is going out. */
+        /** a Custom theme was just left and the row is going out. */
         private const val COLOUR_ROW_LEAVING = 2
     }
 }

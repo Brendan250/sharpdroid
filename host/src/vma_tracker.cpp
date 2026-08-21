@@ -24,7 +24,7 @@ uint64_t PageSize() {
   // the device is a 4k-page kernel and FEXCore's FEX_PAGE_SIZE is 4096, so these agree today. they
   // are asked separately on purpose: FEXCore marks and invalidates in *its* page units, and the
   // host layer has to mprotect in the *kernel's*. on a 16k-page device the seal would cover four
-  // FEX pages, which is coarse but not wrong — it seals more than asked, never less.
+  // FEX pages, which is coarse but not wrong -- it seals more than asked, never less.
   static const uint64_t Size = static_cast<uint64_t>(::sysconf(_SC_PAGESIZE));
   return Size;
 }
@@ -43,7 +43,7 @@ struct Entry {
 };
 
 // keyed by base address; entries never overlap, and adjacent entries with the same protection are
-// merged. merging is not just tidiness — Query hands the range straight to the decoder, which
+// merged. merging is not just tidiness -- Query hands the range straight to the decoder, which
 // caches it and only re-asks when decoding walks out of it, so a fragmented map means a syscall
 // handler's worth of work per block boundary.
 std::map<uint64_t, Entry> VMAs;
@@ -53,7 +53,7 @@ std::map<uint64_t, Entry> VMAs;
 // **the lock order is code-invalidation before VMA, never the other way round.** FEXCore calls
 // MarkGuestExecutableRange from inside block compilation, where it may already hold the code
 // invalidation mutex, and that call takes this lock. so every path here that has to invalidate
-// releases this lock first and takes it again afterwards if it still needs it — which is exactly
+// releases this lock first and takes it again afterwards if it still needs it -- which is exactly
 // what FEX's own SyscallsSMCTracking.cpp does, and for the same reason.
 std::shared_mutex MapLock;
 
@@ -122,8 +122,8 @@ void RecordLocked(uint64_t Base, uint64_t End, int Prot) {
   VMAs.emplace(NewBase, Entry {NewEnd - NewBase, Prot});
 }
 
-// drop every translation FEXCore holds for a range, and — while still holding the invalidation
-// mutex — optionally put a protection back.
+// drop every translation FEXCore holds for a range, and -- while still holding the invalidation
+// mutex -- optionally put a protection back.
 //
 // the two have to happen together. unsealing after releasing the mutex leaves a window in which
 // another thread compiles the page, seals it again, and then has its seal removed by us: the
@@ -146,7 +146,7 @@ bool InvalidateAndRestore(FEXCore::Core::InternalThreadState* Thread, uint64_t B
   // and every thread's own lookup cache: a block lives in the shared code buffers *and* in the
   // cache of whichever thread compiled it, and dropping only the first leaves the second pointing
   // at host code that is about to be reused for something else. the registry lock is taken inside
-  // the invalidation mutex and is a leaf — nothing is ever acquired while holding it.
+  // the invalidation mutex and is a leaf -- nothing is ever acquired while holding it.
   Threads::ForEachLive(
     [](GuestThread& T, void* User) {
       const auto* Which = static_cast<const Range*>(User);
@@ -202,7 +202,7 @@ void Forget(uint64_t Base, uint64_t Length) {
   }
 
   // after the map says the range is gone, not before: a thread compiling out of these pages
-  // between the two would put the block back. the map is what stops it — Query now refuses.
+  // between the two would put the block back. the map is what stops it -- Query now refuses.
   InvalidateAndRestore(Threads::Current() ? Threads::Current()->Thread : nullptr, Begin, End - Begin, -1);
 }
 
@@ -265,7 +265,7 @@ void MarkExecutable(uint64_t Base, uint64_t Length) {
 
   std::shared_lock Lock {MapLock};
 
-  // FindLocked answers "which entry contains Begin", and returns end() when nothing does — which
+  // FindLocked answers "which entry contains Begin", and returns end() when nothing does -- which
   // is not the same as "no entry overlaps the range", since one may start partway into it.
   auto First = FindLocked(Begin);
   if (First == VMAs.end()) {
@@ -274,7 +274,7 @@ void MarkExecutable(uint64_t Base, uint64_t Length) {
 
   for (auto It = First; It != VMAs.end() && It->first < End; ++It) {
     if (!(It->second.Prot & PROT_WRITE)) {
-      // read-only guest text — the common case for a normal ELF. nothing can rewrite it without
+      // read-only guest text -- the common case for a normal ELF. nothing can rewrite it without
       // an mprotect first, and mprotect invalidates.
       continue;
     }
@@ -310,9 +310,9 @@ WriteFault HandleWriteFault(FEXCore::Core::InternalThreadState* Thread, uint64_t
 
   // a write spanning two pages faults once per page, and each is handled on its own.
   //
-  // the return value is the guard against looping here forever. everything above is inference —
+  // the return value is the guard against looping here forever. everything above is inference --
   // "the guest asked for this to be writable, so the only thing that can have taken the
-  // permission away is us" — and if that inference is wrong, handing back a protection the kernel
+  // permission away is us" -- and if that inference is wrong, handing back a protection the kernel
   // refuses is the one place it shows. resuming then would re-fault at the same instruction
   // immediately, and again, inside a signal handler, with nothing to break the cycle.
   if (!InvalidateAndRestore(Thread, FaultBase, Page, HostProt(Prot))) {
@@ -321,7 +321,7 @@ WriteFault HandleWriteFault(FEXCore::Core::InternalThreadState* Thread, uint64_t
   SMCFaults.fetch_add(1, std::memory_order_relaxed);
 
   // if the guest is rewriting code inside the block it is currently executing, re-running the
-  // faulting instruction is not enough — the rest of that block is the translation we have just
+  // faulting instruction is not enough -- the rest of that block is the translation we have just
   // dropped, and control would run straight into it. the caller re-enters the dispatcher asking
   // for a single-instruction block, so any further modification is picked up immediately.
   if (CTX && CTX->IsAddressInCodeBuffer(Thread, HostPC) && !CTX->IsCurrentBlockSingleInst(Thread) &&
