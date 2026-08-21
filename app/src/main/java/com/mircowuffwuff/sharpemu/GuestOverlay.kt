@@ -42,7 +42,7 @@ import com.google.android.material.button.MaterialButton
  * palette; the window under them is not involved. **That is also what makes the panel a layout rather
  * than views assembled in code**: a themed context has the Material attributes an inflation asks for.
  *
- * **The panel is two fifths of the width and it is a weight rather than a measurement.** Dividing the
+ * **The panel is 44% of the width and it is a weight rather than a measurement.** Dividing the
  * screen in pixels would be the same answer on this device and a wrong one on a panel of another
  * shape, and the layout already has a mechanism for a proportion.
  */
@@ -256,14 +256,18 @@ class GuestOverlay(private val context: Context, private val onExit: Runnable) {
         const val SCRIM = 0x99000000.toInt()
 
         /**
-         * Two fifths of the width against three, **and the pair is what says it rather than either
-         * number**. A log line carries a level, a category and a source position before its message
-         * begins, so the panel that used to be a third of the screen is now the width of the thing on
-         * it — while the game behind stays the larger half, since the dim is what makes this legible
-         * and it is cast over somebody's picture.
+         * 44 against 56, **and the pair is what says it rather than either number**. A log line
+         * carries a level, a category and a source position before its message begins, so the panel
+         * that used to be a third of the screen is now the width of the thing on it — while the game
+         * behind stays the larger share, since the dim is what makes this legible and it is cast over
+         * somebody's picture.
+         *
+         * They are written as the percentage rather than reduced to 11 against 14, because what is
+         * being chosen here is how much of the screen the panel takes and the reduced pair does not
+         * say that to anybody reading it.
          */
-        const val PANEL = 2f
-        const val BESIDE = 3f
+        const val PANEL = 44f
+        const val BESIDE = 56f
 
         /** The settings list's own padding, which is what the panel is inset by. */
         const val PAD = 10

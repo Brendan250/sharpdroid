@@ -4,7 +4,7 @@
 
   **it wraps, where the desktop log viewer does not, and that is the one deliberate departure from
   it.** a log line here carries a level, a category and a source position before the message even
-  starts, and this panel is two fifths of a handheld panel wide - so a line that did not wrap would
+  starts, and this panel is 44% of a handheld panel wide - so a line that did not wrap would
   need dragging sideways to be read, once per line, with a finger, over somebody's game. wrapping
   costs the column alignment a wide window buys and buys back the only reading posture this one has.
 
