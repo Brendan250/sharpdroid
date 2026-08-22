@@ -6,13 +6,6 @@
 
 this is an unofficial android port of SharpEmu, a PS5 emulator for Windows and Linux on x86-64. sharpemu-android focuses on low overhead, mergeability, and modularity.
 
-<!--
-<p float="left">
-    <img width=32% src="https://github.com/user-attachments/assets/e0716f00-56ea-4d28-b991-99cd7751b2f1" />
-    <img width=32% src="https://github.com/user-attachments/assets/962597b8-6d85-44fe-bb63-45a519a900ab" />
-    <img width=32% src="https://github.com/user-attachments/assets/b8f55845-b9d1-4037-8aec-e3f1868874f3" />
-</p>
--->
 <table>
     <tr>
         <td>
@@ -113,9 +106,6 @@ this means, there is almost nothing in the way of sharpemu-android receiving ver
 
 perhaps the most exciting benefit of this architecture has to be, that it is extremely cheap, to design the app to allow for modular SharpEmu builds. so thats what we have done! sharpemu-android sports a SharpEmu build manager, that allows importing different SharpEmu payloads, similar to how turnip drivers work on other emulators.
 
-<!--
-<img width="1920" height="962" src="https://github.com/user-attachments/assets/1fdfdce0-1db3-4ca4-900e-e95bbabf95ce" />
--->
 <table>
     <tr>
         <td>
