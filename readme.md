@@ -232,8 +232,9 @@ for other users, to be able to import your unique SharpEmu payload, the whole bu
 ### how to commit and push
 
 > [!WARNING]
-> **AI assisted** contributions are strictly required to carry a functional **`Co-Authored-By: ...` trailer** as the very last line of their commit messages, so that commits correctly display involvement by claude or Gemini in GitHub's user interface.
-> <!-- TODO: example image of how it should look -->
+> **AI assisted** contributions are strictly required to carry a functional **`Co-Authored-By: ...` trailer** as the very last line of their commit messages, so that commits correctly display involvement by claude or Gemini in GitHub's user interface.<br/>
+> <img height="38" src="https://github.com/user-attachments/assets/8bf9e89c-a8b3-4af2-81ef-78d4f90a7703" />
+
 
 1. add all files, that are relevant to your changes, to git via `git add path/to/file`.
    1. to see a list of unstaged files with changes run `git status`
