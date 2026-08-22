@@ -6,20 +6,6 @@
 
 this is an unofficial android port of [SharpEmu](https://github.com/sharpemu/sharpemu), a PS5 emulator for Windows and Linux on x86-64. sharpdroid focuses on low overhead, mergeability, and modularity.
 
-<table>
-    <tr>
-        <td>
-            <img src="https://github.com/user-attachments/assets/e0716f00-56ea-4d28-b991-99cd7751b2f1" />
-        </td>
-        <td>
-            <img src="https://github.com/user-attachments/assets/962597b8-6d85-44fe-bb63-45a519a900ab" />
-        </td>
-        <td>
-            <img src="https://github.com/user-attachments/assets/b8f55845-b9d1-4037-8aec-e3f1868874f3" />
-        </td>
-    </tr>
-</table>
-
 like the fruit of my latest software engineering obsession? click the dumb dog below to support development!
 
 <p align="center">
@@ -105,14 +91,6 @@ this means, there is almost nothing in the way of sharpdroid receiving very freq
 ### modular SharpEmu builds
 
 perhaps the most exciting benefit of this architecture has to be, that it is extremely cheap, to design the app to allow for modular SharpEmu builds. so thats what we have done! sharpdroid sports a SharpEmu build manager, that allows importing different SharpEmu payloads, similar to how turnip drivers work on other emulators.
-
-<table>
-    <tr>
-        <td>
-            <img src="https://github.com/user-attachments/assets/1fdfdce0-1db3-4ca4-900e-e95bbabf95ce" />
-        </td>
-    </tr>
-</table>
 
 > [!CAUTION]
 > **do not** import and run any SharpEmu builds whose authors you dont trust. if their sharpemu fork is open source, it might be worth cloning, reading through the source, and finally building and packaging yourself, to avoid harm.
