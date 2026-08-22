@@ -4,7 +4,7 @@
 
 # sharpemu-android
 
-this is an unofficial android port of SharpEmu, a PS5 emulator for Windows and Linux on x86-64. sharpemu-android focuses on low overhead, mergeability, and modularity.
+this is an unofficial android port of [SharpEmu](https://github.com/sharpemu/sharpemu), a PS5 emulator for Windows and Linux on x86-64. sharpemu-android focuses on low overhead, mergeability, and modularity.
 
 <table>
     <tr>
@@ -60,7 +60,7 @@ sharpemu-android
 
 **SharpEmu** has no CPU emulator. instead, it executes x86-64 PS5 guest code natively on an x86-64 host CPU. there is simply nothing there, to port to arm64 android.
 
-thats where FEX comes in. we use the x86-64 to arm64 translator it ships, **FEXCore**, to read x86-64 and emit arm64, as SharpEmu runs.
+thats where [FEX](https://github.com/FEX-Emu/FEX) comes in. we use the x86-64 to arm64 translator it ships, **FEXCore**, to read x86-64 and emit arm64, as SharpEmu runs.
 
 on arm64 Linux, which is FEX's intended usage environment, FEX also ships what it calls its frontend; a Linux program that loads the guest, answers its syscalls, and delivers its signals. FEX's frontend is a program. we need a library. which is why we implement an analogue that works as such: our **host layer**.
 
