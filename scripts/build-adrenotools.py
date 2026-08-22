@@ -23,10 +23,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import native, paths
-from sharpemu import toolchain as tc
-from sharpemu.shell import Refusal, ensure, main, produced, say, step, wipe
-from sharpemu.vocabulary import Parser
+from sharpdroid import native, paths
+from sharpdroid import toolchain as tc
+from sharpdroid.shell import Refusal, ensure, main, produced, say, step, wipe
+from sharpdroid.vocabulary import Parser
 
 # the API level the host layer and everything it links are built at.
 API_LEVEL = 28

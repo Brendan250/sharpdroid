@@ -31,5 +31,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "sharpemu-android"
+rootProject.name = "sharpdroid"
 include(":app")

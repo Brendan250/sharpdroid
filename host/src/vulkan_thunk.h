@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- guest x86-64 vulkan onto the host's arm64 vulkan, in-process.
+// sharpdroid host layer -- guest x86-64 vulkan onto the host's arm64 vulkan, in-process.
 //
 // this is route B's central claim made concrete: the guest's vulkan calls do not cross a socket,
 // a process boundary or a protocol. they arrive here, and here calls the real driver on the same

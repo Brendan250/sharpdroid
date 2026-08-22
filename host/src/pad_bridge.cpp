@@ -14,7 +14,7 @@ namespace {
 
 // the java side of rumble. it holds the Vibrator and the activity that owns it; nothing below this
 // line knows what a VibrationEffect is.
-constexpr const char* HelperClass = "com/mircowuffwuff/sharpemu/PadRumble";
+constexpr const char* HelperClass = "com/mircowuffwuff/sharpdroid/PadRumble";
 
 JavaVM* VM {};
 jclass Helper {};
@@ -60,7 +60,7 @@ void DeliveryThread() {
   // there is nothing to keep in a thread_local and no guest thread to detach on an exit path this
   // file cannot see.
   JNIEnv* E {};
-  JavaVMAttachArgs Args {JNI_VERSION_1_6, "sharpemu-rumble", nullptr};
+  JavaVMAttachArgs Args {JNI_VERSION_1_6, "sharpdroid-rumble", nullptr};
   if (!VM || VM->AttachCurrentThread(&E, &Args) != JNI_OK) {
     std::printf("[pad] the rumble thread could not attach to the runtime; rumble is dropped\n");
     std::fflush(stdout);

@@ -17,10 +17,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import native, paths
-from sharpemu import toolchain as tc
-from sharpemu.shell import Refusal, ensure, main, produced, run, say, step, wipe, write_text
-from sharpemu.vocabulary import Parser
+from sharpdroid import native, paths
+from sharpdroid import toolchain as tc
+from sharpdroid.shell import Refusal, ensure, main, produced, run, say, step, wipe, write_text
+from sharpdroid.vocabulary import Parser
 
 # the minimum android the app supports, and what everything native is built against.
 API_LEVEL = 28

@@ -17,10 +17,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import paths
-from sharpemu import toolchain as tc
-from sharpemu.shell import Refusal, capture, ensure, main, produced, run, say, step
-from sharpemu.vocabulary import Parser
+from sharpdroid import paths
+from sharpdroid import toolchain as tc
+from sharpdroid.shell import Refusal, capture, ensure, main, produced, run, say, step
+from sharpdroid.vocabulary import Parser
 
 # the guests are glibc-linked or nothing-linked, so this only chooses a compiler wrapper.
 API_LEVEL = 21

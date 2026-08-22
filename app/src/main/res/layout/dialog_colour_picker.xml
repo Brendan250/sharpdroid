@@ -31,7 +31,7 @@
     android:paddingHorizontal="24dp"
     android:paddingTop="20dp">
 
-    <com.mircowuffwuff.sharpemu.HueChromaField
+    <com.mircowuffwuff.sharpdroid.HueChromaField
         android:id="@+id/field"
         android:layout_width="0dp"
         android:layout_height="match_parent"

@@ -53,16 +53,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import builds, device, paths, resolve, vocabulary
-from sharpemu import toolchain as tc
-from sharpemu.shell import Refusal, ensure, main, read_text, say, size, step, write_text
-from sharpemu.vocabulary import Parser
+from sharpdroid import builds, device, paths, resolve, vocabulary
+from sharpdroid import toolchain as tc
+from sharpdroid.shell import Refusal, ensure, main, read_text, say, size, step, write_text
+from sharpdroid.vocabulary import Parser
 
 HERE = Path(__file__).resolve().parent
 
 # the log tags a run is followed by: this project's own, plus the three the platform reports a crash
 # through. anything else is the system's, and burying the emulator's output in it helps nobody.
-LOG_TAGS = ["sharpemu:V", "AndroidRuntime:E", "DEBUG:E", "libc:E", "*:S"]
+LOG_TAGS = ["sharpdroid:V", "AndroidRuntime:E", "DEBUG:E", "libc:E", "*:S"]
 
 
 def entry():

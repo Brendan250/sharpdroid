@@ -37,11 +37,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import builds, paths
-from sharpemu import toolchain as tc
-from sharpemu.shell import (Refusal, capture, ensure, fresh, main, produced, run, say, size, step,
+from sharpdroid import builds, paths
+from sharpdroid import toolchain as tc
+from sharpdroid.shell import (Refusal, capture, ensure, fresh, main, produced, run, say, size, step,
                             tree_size, warn, wipe, write_text)
-from sharpemu.vocabulary import Parser
+from sharpdroid.vocabulary import Parser
 
 # the launcher-to-payload interface generation. the build format document is where this is defined;
 # the number is here because packaging is what stamps it.

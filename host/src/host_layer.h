@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- the entry point, as a call rather than as a process.
+// sharpdroid host layer -- the entry point, as a call rather than as a process.
 //
 // the very first build glue predicted this, and the app is where it happens: the host layer stops being an
 // executable and becomes a library the app links. nothing inside it had to change to allow that,

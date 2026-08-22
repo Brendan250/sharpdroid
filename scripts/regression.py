@@ -19,10 +19,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import device, paths, vocabulary
-from sharpemu import toolchain as tc
-from sharpemu.shell import main, say, step
-from sharpemu.vocabulary import Parser
+from sharpdroid import device, paths, vocabulary
+from sharpdroid import toolchain as tc
+from sharpdroid.shell import main, say, step
+from sharpdroid.vocabulary import Parser
 
 HERE = Path(__file__).resolve().parent
 

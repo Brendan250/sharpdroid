@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- a /proc/self that describes the guest.
+// sharpdroid host layer -- a /proc/self that describes the guest.
 //
 // this is the first place the host layer stops being a pass-through. everywhere else, forwarding a
 // guest syscall to bionic gives an honest answer, because the guest really does live in this

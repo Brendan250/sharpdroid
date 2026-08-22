@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- timestamping what the guest prints.
+// sharpdroid host layer -- timestamping what the guest prints.
 //
 // the reason this exists is a comparison rather than a feature. the prebuilt Windows release logs
 // through a launcher that stamps every line of SharpEmu's stdout with a millisecond time of day,

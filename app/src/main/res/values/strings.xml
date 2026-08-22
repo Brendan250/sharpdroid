@@ -12,7 +12,7 @@
 
     <!-- the app's own name rather than what the screen holds. it is the first screen, so it carries
          the app's name; every screen behind it is named for its contents. -->
-    <string name="game_list_title">SharpEmu</string>
+    <string name="game_list_title">SharpDroid</string>
 
     <!-- **it names no button and no gesture**, because the button is drawn directly underneath it and
          says its own name. it is the folder manager's empty line as well, the two screens having the
@@ -212,7 +212,7 @@
     <string name="user_data_import_title">Import this archive?</string>
     <!-- **the refusal names what the file is, not what the button wanted.** somebody who picked the
          wrong archive is trying to work out which one they picked. -->
-    <string name="user_data_import_not_ours">That is not a SharpEmu export</string>
+    <string name="user_data_import_not_ours">That is not a SharpDroid export</string>
     <string name="user_data_import_wrong_kind">That is a %1$s export. Import it from the %1$s card.</string>
     <string name="user_data_import_everything_message">Everything on this device is replaced by what the archive holds; your saves, your shader cache, your imported builds and drivers, and every setting.\n%1$s</string>
     <string name="user_data_import_saves_message">A title in the archive replaces the same title on this device. Titles the archive does not mention are left alone.\n%1$s</string>
@@ -591,7 +591,7 @@
     <!-- the project's own name, and it is lower case because that is how it is written, as yuzu is,
          and for the same reason. it is deliberately not the app's launcher label: a credits page is
          about the thing that was made rather than about which of its identities is installed. -->
-    <string name="about_title">sharpemu-android</string>
+    <string name="about_title">sharpdroid</string>
 
     <!-- **the drawing's description, and it appears nowhere on the screen.** the page names what this
          app is built on and does not sign itself: an attribution line under the title is the one thing

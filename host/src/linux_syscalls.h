@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- guest linux x86-64 syscalls onto bionic/android.
+// sharpdroid host layer -- guest linux x86-64 syscalls onto bionic/android.
 //
 // FEX's JIT hands us the guest's RAX/RDI/RSI/RDX/R10/R8/R9 in SyscallArguments::Argument[0..6]
 // and puts our return value back in guest RAX. everything else is ours to do.

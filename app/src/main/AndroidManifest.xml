@@ -48,7 +48,7 @@
     <application
         android:label="@string/app_name"
         android:hardwareAccelerated="true"
-        android:theme="@style/Theme.SharpEmu">
+        android:theme="@style/Theme.SharpDroid">
 
         <!-- the game list, and what the launcher icon opens. -->
         <activity
@@ -163,7 +163,7 @@
           per run: a library is loaded once per process, so a process per run is the only place a
           different one could be loaded.
 
-          the leading colon makes it private to this app: com.mircowuffwuff.sharpemu:guest, its own
+          the leading colon makes it private to this app: com.mircowuffwuff.sharpdroid:guest, its own
           address space under the same uid. the uid is what matters for everything the guest reaches
           - the app's own directories are the same directories, and a folder grant is held by the
           package rather than by the process that asked for it, so a game inside one is reachable
@@ -175,7 +175,7 @@
 
           **exported with no intent filter, and both halves of that are deliberate.** it is no
           longer the launcher activity, so nothing resolves it implicitly; it stays exported
-          because `am start -n <application id>/com.mircowuffwuff.sharpemu.MainActivity` is how
+          because `am start -n <application id>/com.mircowuffwuff.sharpdroid.MainActivity` is how
           every script in this repository launches a guest, and how a run gets its driver, its
           build and its diagnostic flags named per launch. that path has to keep working
           independently of the list, so that a game which boots by intent and not by tap says

@@ -79,7 +79,7 @@
                 android:layout_gravity="center_horizontal"
                 android:contentDescription="@null"
                 android:scaleType="fitCenter"
-                app:shapeAppearanceOverlay="@style/ShapeAppearance.SharpEmu.Card" />
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.SharpDroid.Card" />
 
             <!-- **as wide as the artwork and centred under it**, rather than as wide as the column.
                  these are facts about the thing above them, so they read as a caption when they sit

@@ -6,4 +6,4 @@
 	url = https://github.com/bylaws/libadrenotools.git
 [submodule "external/sharpemu"]
 	path = external/sharpemu
-	url = https://github.com/sharpemu-android/sharpemu.git
+	url = https://github.com/mircowuffwuff/sharpemu.git

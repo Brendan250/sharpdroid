@@ -2,7 +2,7 @@
 <!--
   the app's themes, and none of them is the emulator's.
 
-  Theme.SharpEmu is the application theme: Material3 following the platform between light and dark.
+  Theme.SharpDroid is the application theme: Material3 following the platform between light and dark.
   it is **not offered in the list** - an explicit Light and an explicit Dark cover it - but it stays,
   because the manifest names it and because it is what an activity wears for the moment before
   Theme.kt sets the chosen one. MainActivity
@@ -51,7 +51,7 @@
       one carrying too little reads as a square in a rounded box. change either number and this is
       the other one.
     -->
-    <style name="ShapeAppearance.SharpEmu.Tile" parent="">
+    <style name="ShapeAppearance.SharpDroid.Tile" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">8dp</item>
     </style>
@@ -65,7 +65,7 @@
       would read as thicker than the border around it; this one has no container, so it *is* the
       card, and matching the grid it came from is what keeps the scene looking like the app.
     -->
-    <style name="ShapeAppearance.SharpEmu.Card" parent="">
+    <style name="ShapeAppearance.SharpDroid.Card" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">16dp</item>
     </style>
@@ -83,7 +83,7 @@
       not a reference to another shape. so the two are kept in step by hand, and this comment is the
       only thing that says so.
     -->
-    <style name="ShapeAppearance.SharpEmu.LoadingArt" parent="">
+    <style name="ShapeAppearance.SharpDroid.LoadingArt" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSizeTopLeft">28dp</item>
         <item name="cornerSizeBottomLeft">28dp</item>
@@ -102,7 +102,7 @@
       than alone on an empty screen, so it takes the height and the text of a dense control and drops
       the minimum width, which is otherwise wide enough to hold far more than three words.
     -->
-    <style name="Widget.SharpEmu.Button.UseGlobal" parent="Widget.Material3.Button">
+    <style name="Widget.SharpDroid.Button.UseGlobal" parent="Widget.Material3.Button">
         <item name="android:minWidth">0dp</item>
         <item name="android:minHeight">0dp</item>
         <item name="android:insetTop">0dp</item>
@@ -191,13 +191,13 @@
         <item name="android:textColor">?attr/colorPrimary</item>
     </style>
 
-    <style name="Theme.SharpEmu" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.SharpDroid" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:statusBarColor">?attr/colorSurface</item>
         <item name="android:navigationBarColor">?attr/colorSurface</item>
     </style>
 
     <!-- "SharpEmu PC UI inspired colors". dark only, because the desktop UI is. -->
-    <style name="Theme.SharpEmu.Desktop" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.SharpDroid.Desktop" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#8F73FF</item>
         <item name="colorOnPrimary">#0B0E14</item>
         <item name="colorSecondary">#58A6FF</item>
@@ -237,7 +237,7 @@
          **what leaks is always a role nothing here mentions**, so a new widget can reintroduce a
          hue without a line of this file changing: the container pairs arrived that way, by way of an
          extended FAB and a badge. -->
-    <style name="Theme.SharpEmu.Dark" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.SharpDroid.Dark" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#E6E6E6</item>
         <item name="colorOnPrimary">#000000</item>
         <item name="colorSecondary">#C7C7C7</item>
@@ -302,7 +302,7 @@
          **the two windowLight* flags are not decoration.** they are what turns the *system's* own
          status and navigation bar contents dark, and without them a white bar draws white icons on
          white and the clock simply disappears. -->
-    <style name="Theme.SharpEmu.Light" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.SharpDroid.Light" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">#1A1A1A</item>
         <item name="colorOnPrimary">#FFFFFF</item>
         <item name="colorSecondary">#3D3D3D</item>

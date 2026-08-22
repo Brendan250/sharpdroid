@@ -229,7 +229,7 @@ void _start(void) {
   VkApplicationInfo Application;
   memset(&Application, 0, sizeof(Application));
   Application.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  Application.pApplicationName = "sharpemu-android render";
+  Application.pApplicationName = "sharpdroid render";
   Application.apiVersion = VK_API_VERSION_1_1;
 
   VkInstanceCreateInfo InstanceInfo;

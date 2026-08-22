@@ -6,9 +6,9 @@
 
     .text
     .balign 16
-    .globl __sharpemu_aaudio_stubs
-    .hidden __sharpemu_aaudio_stubs
-__sharpemu_aaudio_stubs:
+    .globl __sharpdroid_aaudio_stubs
+    .hidden __sharpdroid_aaudio_stubs
+__sharpdroid_aaudio_stubs:
     .balign 16
     .globl AAudio_convertResultToText
     .type AAudio_convertResultToText,@function

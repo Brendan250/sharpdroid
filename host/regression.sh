@@ -1,7 +1,7 @@
 #!/system/bin/sh
 # the host layer's regression set.
 #
-# pushed to /data/local/tmp/sharpemu/ and run there, because that is where the guests, the staged
+# pushed to /data/local/tmp/sharpdroid/ and run there, because that is where the guests, the staged
 # x86-64 glibc set and the host's own libc++_shared.so live.
 #
 # **every mode is one lowercase token** -- `smc-full`, `asyncsig-safepoint`, `vulkan-off` -- so a
@@ -13,7 +13,7 @@
 # are what say the positive ones are testing anything at all: if `vulkan` passed because something
 # other than the thunk provided libvulkan.so.1, `vulkan-off` failing to fail is the only thing that
 # would notice. they are modes in their own right and are counted like the rest.
-cd /data/local/tmp/sharpemu || exit 1
+cd /data/local/tmp/sharpdroid || exit 1
 export LD_LIBRARY_PATH=.
 
 FAILED=0
@@ -27,7 +27,7 @@ report() {
 run() {
   NAME=$1
   shift
-  ./sharpemu-host-layer "$@" >./last-run.log 2>&1
+  ./sharpdroid-host-layer "$@" >./last-run.log 2>&1
   STATUS=$?
   if [ "$STATUS" -eq 0 ]; then
     report PASS "$NAME" ""
@@ -45,7 +45,7 @@ run_fails() {
   NAME=$1
   WHY=$2
   shift 2
-  ./sharpemu-host-layer "$@" >./last-run.log 2>&1
+  ./sharpdroid-host-layer "$@" >./last-run.log 2>&1
   if [ $? -ne 0 ]; then
     report PASS "$NAME" "fails as it should"
   else

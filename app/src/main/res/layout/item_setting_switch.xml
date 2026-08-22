@@ -60,7 +60,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/useGlobal"
-        style="@style/Widget.SharpEmu.Button.UseGlobal"
+        style="@style/Widget.SharpDroid.Button.UseGlobal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"

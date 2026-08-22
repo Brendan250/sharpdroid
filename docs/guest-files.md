@@ -4,7 +4,7 @@ a game the user granted rather than staged, answered file by file underneath a g
 
 android does not hand an app a path to a directory the user picked. it hands it a **grant on a tree**, and everything behind that grant is a document reached through a content provider, across binder, by document id. that is fine for a program that owns its own file class — it branches inside it, once. SharpEmu is guest x86-64 .NET: `File.Open` becomes guest libc, becomes `openat`, becomes a syscall on an ordinary string, and there is no call site of ours anywhere in it.
 
-so the branch goes where the host layer does own one. `host/src/guest_files.{h,cpp}` sits in the syscall dispatcher beside the `/proc/self` substitution [`host-layer.md`](host-layer.md) describes, and answers the path-taking calls itself. `host/src/saf_bridge.{h,cpp}` is the JNI half, and `app/src/main/java/com/mircowuffwuff/sharpemu/GuestFiles.kt` is the java one. this document is here because **this part's cost is a design choice rather than a measurement**, and where the milliseconds are should be readable without reverse-engineering it from the source.
+so the branch goes where the host layer does own one. `host/src/guest_files.{h,cpp}` sits in the syscall dispatcher beside the `/proc/self` substitution [`host-layer.md`](host-layer.md) describes, and answers the path-taking calls itself. `host/src/saf_bridge.{h,cpp}` is the JNI half, and `app/src/main/java/com/mircowuffwuff/sharpdroid/GuestFiles.kt` is the java one. this document is here because **this part's cost is a design choice rather than a measurement**, and where the milliseconds are should be readable without reverse-engineering it from the source.
 
 ## the shape of the problem, in one table
 

@@ -1172,7 +1172,7 @@ void DescribeHostAddress(uint64_t Addr) {
       std::printf(" %s+0x%llX", Info.dli_sname, static_cast<unsigned long long>(Addr - reinterpret_cast<uint64_t>(Info.dli_saddr)));
     }
     // and the link-time address, which is what llvm-addr2line wants. our own binary is a PIE with
-    // static FEXCore inside it, so "in sharpemu-host-layer" spans everything from the syscall
+    // static FEXCore inside it, so "in sharpdroid-host-layer" spans everything from the syscall
     // table to the JIT's compiler and is not on its own an answer.
     std::printf(" (file offset 0x%llX)\n", static_cast<unsigned long long>(Addr - reinterpret_cast<uint64_t>(Info.dli_fbase)));
     return;

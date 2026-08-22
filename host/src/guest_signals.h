@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- delivering signals to the guest.
+// sharpdroid host layer -- delivering signals to the guest.
 //
 // the ELF loader's fault handling caught guest faults and reported them. this is the other half:
 // building the x86-64 signal

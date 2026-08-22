@@ -38,10 +38,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import paths, vocabulary
-from sharpemu import toolchain as tc
-from sharpemu.shell import Refusal, Timer, main, say, step, wipe
-from sharpemu.vocabulary import Parser
+from sharpdroid import paths, vocabulary
+from sharpdroid import toolchain as tc
+from sharpdroid.shell import Refusal, Timer, main, say, step, wipe
+from sharpdroid.vocabulary import Parser
 
 HERE = Path(__file__).resolve().parent
 

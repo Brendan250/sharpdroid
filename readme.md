@@ -2,9 +2,9 @@
     <img width=27% height=27% src="https://github.com/user-attachments/assets/820482ef-6ca7-4d30-be54-d220faa1378f" />
 </p>
 
-# sharpemu-android
+# sharpdroid
 
-this is an unofficial android port of [SharpEmu](https://github.com/sharpemu/sharpemu), a PS5 emulator for Windows and Linux on x86-64. sharpemu-android focuses on low overhead, mergeability, and modularity.
+this is an unofficial android port of [SharpEmu](https://github.com/sharpemu/sharpemu), a PS5 emulator for Windows and Linux on x86-64. sharpdroid focuses on low overhead, mergeability, and modularity.
 
 <table>
     <tr>
@@ -36,14 +36,14 @@ although the development hardware is not as modest; the project is built to work
 
 ## getting it
 
-download the latest rolling release [here](https://github.com/sharpemu-android/sharpemu-android/releases/latest). an archive of previously bundled SharpEmu builds can be found [here](https://github.com/sharpemu-android/sharpemu/releases). sharpemu-android does not ship any games, firmware, or other proprietary PlayStation assets.
+download the latest rolling release [here](https://github.com/mircowuffwuff/sharpdroid/releases/latest). an archive of previously bundled SharpEmu builds can be found [here](https://github.com/mircowuffwuff/sharpemu/releases). sharpdroid does not ship any games, firmware, or other proprietary PlayStation assets.
 
 ## how it works
 
-tl;dr: sharpemu-android is a compatibility layer purpose-built to run SharpEmu's x64 Linux build on arm64 android.
+tl;dr: sharpdroid is a compatibility layer purpose-built to run SharpEmu's x64 Linux build on arm64 android.
 
 ```
-sharpemu-android
+sharpdroid
 ├── user interface
 └── host layer
     ├── ELF loader
@@ -74,9 +74,9 @@ similarly, a decoy `libaaudio.so` driver reroutes audio API calls from SharpEmu 
 
 ### versus Windows emulation
 
-on paper, sharpemu-android carries much less overhead than Windows emulation on android does. though that isnt worth much, until upstream SharpEmu matures enough. but once it does, sharpemu-android has serious potential to become the most performant and efficient way to play games on android, that are available on both PS5 and Windows.
+on paper, sharpdroid carries much less overhead than Windows emulation on android does. though that isnt worth much, until upstream SharpEmu matures enough. but once it does, sharpdroid has serious potential to become the most performant and efficient way to play games on android, that are available on both PS5 and Windows.
 
-| layers of Windows emulation on android, running a Windows game | layers of sharpemu-android, running a PS5 game |
+| layers of Windows emulation on android, running a Windows game | layers of sharpdroid, running a PS5 game |
 | ------------------------------------------------------------ | ---------------------------------------------- |
 | a container                                                  | our host layer                                 |
 | wine                                                         |                                                |
@@ -90,21 +90,21 @@ Windows emulation's **container** is replaced by our much more lightweight **hos
 
 Windows emulation's **wine**/Proton falls away entirely, because we are building our SharpEmu payloads for Linux. thus, the Windows API and everything Windows-specific is completely out of the picture.
 
-likewise, something like Windows emulation's **X server** is not necessary at all on sharpemu-android, since the picture is drawn into android's ANativeWindow directly.
+likewise, something like Windows emulation's **X server** is not necessary at all on sharpdroid, since the picture is drawn into android's ANativeWindow directly.
 
-both Windows emulation on android and sharpemu-android translate graphics to vulkan. the former through **DXVK**, the latter through **SharpEmu's graphics** translation.
+both Windows emulation on android and sharpdroid translate graphics to vulkan. the former through **DXVK**, the latter through **SharpEmu's graphics** translation.
 
-the one honest cost of sharpemu-android's architecture over Windows emulation on android's is **the rest of SharpEmu**, of course. both translate x86-64 to arm64 using FEX, but only sharpemu-android also emulates a PS5 underneath.
+the one honest cost of sharpdroid's architecture over Windows emulation on android's is **the rest of SharpEmu**, of course. both translate x86-64 to arm64 using FEX, but only sharpdroid also emulates a PS5 underneath.
 
 ### upstream mergeability
 
-very handily, our architecture allows for minimal modification to upstream code. as of writing, [our sharpemu fork](https://github.com/sharpemu-android/sharpemu/)'s android branch needs just [a few commits](https://github.com/sharpemu-android/sharpemu/compare/main...android) to fully support the android platform.
+very handily, our architecture allows for minimal modification to upstream code. as of writing, [our sharpemu fork](https://github.com/mircowuffwuff/sharpemu/)'s android branch needs just [a few commits](https://github.com/mircowuffwuff/sharpemu/compare/main...android) to fully support the android platform.
 
-this means, there is almost nothing in the way of sharpemu-android receiving very frequent upstream updates, as evidenced by the fact that merging upstream `v0.0.3-release.2` into our `v0.0.3-hotfix-2` based fork, resulted in *one* merge conflict. thats `124` changed upstream files, `+13,871` and `-2,445` lines of code, that nearly entirely automerged into our fork.
+this means, there is almost nothing in the way of sharpdroid receiving very frequent upstream updates, as evidenced by the fact that merging upstream `v0.0.3-release.2` into our `v0.0.3-hotfix-2` based fork, resulted in *one* merge conflict. thats `124` changed upstream files, `+13,871` and `-2,445` lines of code, that nearly entirely automerged into our fork.
 
 ### modular SharpEmu builds
 
-perhaps the most exciting benefit of this architecture has to be, that it is extremely cheap, to design the app to allow for modular SharpEmu builds. so thats what we have done! sharpemu-android sports a SharpEmu build manager, that allows importing different SharpEmu payloads, similar to how turnip drivers work on other emulators.
+perhaps the most exciting benefit of this architecture has to be, that it is extremely cheap, to design the app to allow for modular SharpEmu builds. so thats what we have done! sharpdroid sports a SharpEmu build manager, that allows importing different SharpEmu payloads, similar to how turnip drivers work on other emulators.
 
 <table>
     <tr>
@@ -117,7 +117,7 @@ perhaps the most exciting benefit of this architecture has to be, that it is ext
 > [!CAUTION]
 > **do not** import and run any SharpEmu builds whose authors you dont trust. if their sharpemu fork is open source, it might be worth cloning, reading through the source, and finally building and packaging yourself, to avoid harm.
 
-theres a fork of upstream SharpEmu that specialises in compatibility with a specific game? merge [the few necessary android platform support commits](https://github.com/sharpemu-android/sharpemu/compare/main...android) into it, package it as a SharpEmu build for sharpemu-android, import it in the app's build manager, and set it as the SharpEmu build to use for that specific game in its per-game settings!
+theres a fork of upstream SharpEmu that specialises in compatibility with a specific game? merge [the few necessary android platform support commits](https://github.com/mircowuffwuff/sharpemu/compare/main...android) into it, package it as a SharpEmu build for sharpdroid, import it in the app's build manager, and set it as the SharpEmu build to use for that specific game in its per-game settings!
 
 ## history
 
@@ -125,7 +125,7 @@ a few weeks ago, i woke up, caked in sweat. "what if... PS5 on android?", i aske
 
 when i woke up the next morning, i was infatuated with the idea of a PS5 emulator on android. i tried suppressing my burning curiosity for the topic, but i was hardly able to. later that fateful day, i gave in. together with claude, i might just be able to produce a proof of concept, i thought.
 
-hours of discussion later, sharpemu-android's architecture was decided upon.
+hours of discussion later, sharpdroid's architecture was decided upon.
 
 two days later, Dreaming Sarah successfully booted to the main menu headlessly.
 
@@ -146,7 +146,7 @@ i have a decade of programming experience myself, but in this project, claude Op
 
 i regularly spend *entire sessions* just discussing implementations out with claude, to ensure we can build the best app possible together.
 
-that being said, there is one part of this project, i can hardly scrutinize: claude's [host layer](https://github.com/sharpemu-android/sharpemu-android/tree/main/host) code. the concept is sound, but i am neither a low level programmer, nor an emulator developer. so, i have entrusted claude with the implementation of said host layer. i invite anyone with the appropriate experience to properly review it. i am sure, there are improvements to be made!
+that being said, there is one part of this project, i can hardly scrutinize: claude's [host layer](https://github.com/mircowuffwuff/sharpdroid/tree/main/host) code. the concept is sound, but i am neither a low level programmer, nor an emulator developer. so, i have entrusted claude with the implementation of said host layer. i invite anyone with the appropriate experience to properly review it. i am sure, there are improvements to be made!
 
 ## documentation
 
@@ -169,7 +169,7 @@ im happy you want to help! below are the steps to get a development environment,
 ### how to fork
 
 1. log in to your GitHub account
-2. press the fork button on the top right of [this page](https://github.com/sharpemu-android/sharpemu-android)
+2. press the fork button on the top right of [this page](https://github.com/mircowuffwuff/sharpdroid)
 3. keep the predefined name
 
 ### how to clone
@@ -178,8 +178,8 @@ im happy you want to help! below are the steps to get a development environment,
 2. [install git](https://git-scm.com/downloads), if you havent yet
 3. [install Python](https://www.python.org/downloads/), if you havent yet
 4. navigate to your projects folder using `cd`
-5. replace `YOUR_NAME` with your GitHub handle and clone your fork via `git clone --recurse-submodules https://github.com/YOUR_NAME/sharpemu-android`
-6. run `cd sharpemu-android` to navigate into your fresh clone
+5. replace `YOUR_NAME` with your GitHub handle and clone your fork via `git clone --recurse-submodules https://github.com/YOUR_NAME/sharpdroid`
+6. run `cd sharpdroid` to navigate into your fresh clone
 7. run `py scripts/fetch-toolchain.py --install` to download the remaining dependencies into `toolchain/`; `android-sdk`, `dotnet-sdk`, `jdk-21-temurin`.
 
 ### how to build and run
@@ -201,12 +201,12 @@ im happy you want to help! below are the steps to get a development environment,
 
 ### how to work on a SharpEmu build
 
-most contributors will probably want to work on sharpemu-android, not the SharpEmu payload itself. but if you want to work on the SharpEmu build, that sharpemu-android runs, this is how:
+most contributors will probably want to work on sharpdroid, not the SharpEmu payload itself. but if you want to work on the SharpEmu build, that sharpdroid runs, this is how:
 
-1. **do not** develop in `external/sharpemu`. the submodule is pinned at one commit and only exists for easy cloning + building of sharpemu-android.
-2. fork [sharpemu-android/sharpemu](https://github.com/sharpemu-android/sharpemu)
+1. **do not** develop in `external/sharpemu`. the submodule is pinned at one commit and only exists for easy cloning + building of sharpdroid.
+2. fork [mircowuffwuff/sharpemu](https://github.com/mircowuffwuff/sharpemu)
 3. clone your fork into your projects folder
-4. run `$Env:SHARPEMU_ANDROID_FORK = "C:/projects/sharpemu"` in a powershell to point the environment variable `SHARPEMU_ANDROID_FORK` at your local sharpemu fork clone
+4. run `$Env:SHARPDROID_SHARPEMU = "C:/projects/sharpemu"` in a powershell to point the environment variable `SHARPDROID_SHARPEMU` at your local sharpemu fork clone
 5. make changes to sharpemu
 6. run `py scripts/run.py --sharpemu build` to build sharpemu with your recent changes, bundle it in the apk, and run it on your device
 
@@ -214,7 +214,7 @@ most contributors will probably want to work on sharpemu-android, not the SharpE
 
 for other users, to be able to import your unique SharpEmu payload, the whole build has to be thrown into a zip, which needs a meta.json in its root.
 
-1. make sure `SHARPEMU_ANDROID_FORK` points at the local sharpemu fork clone, that you intend to package. run `$Env:SHARPEMU_ANDROID_FORK` in a powershell to test that.
+1. make sure `SHARPDROID_SHARPEMU` points at the local sharpemu fork clone, that you intend to package. run `$Env:SHARPDROID_SHARPEMU` in a powershell to test that.
 2. run `py scripts/package-build.py` to build the fork and package it into `build/builds/`. to set an id, author, display name, notes, etcetera, either:
    - edit the meta.json inside the generated zip archive
    - or pass the appropriate arguments to the Python script. see `py scripts/package-build.py --help`
@@ -229,7 +229,7 @@ for other users, to be able to import your unique SharpEmu payload, the whole bu
 1. add all files, that are relevant to your changes, to git via `git add path/to/file`.
    1. to see a list of unstaged files with changes run `git status`
    2. to simply add all unstaged files with changes listed there, enter `git add -u`
-2. run `git commit -m "<type>(<scope>): <subject>"`. [example commit messages](https://github.com/sharpemu-android/sharpemu-android/commits/main/):
+2. run `git commit -m "<type>(<scope>): <subject>"`. [example commit messages](https://github.com/mircowuffwuff/sharpdroid/commits/main/):
    - `fix(app): redraw a manager's cards in place so a press still ripples`
    - `feat(host): track a guest boot's progress through a checkpoint table`
 3. make sure nothing unintended has been committed via `git show`. exit the interface by hitting `q`
@@ -237,8 +237,8 @@ for other users, to be able to import your unique SharpEmu payload, the whole bu
 
 ### how to open a pull request
 
-1. make sure you have thoroughly tested all of your changes and that they are ready to be merged into the main sharpemu-android repository!
-2. navigate to your forked sharpemu-android repository on GitHub
+1. make sure you have thoroughly tested all of your changes and that they are ready to be merged into the main sharpdroid repository!
+2. navigate to your forked sharpdroid repository on GitHub
 3. hit the contribute button above source
 4. hit the open pull request button
 5. follow the prompts

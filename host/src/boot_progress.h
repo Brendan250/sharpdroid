@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- where a boot has got to, for something that wants to draw it.
+// sharpdroid host layer -- where a boot has got to, for something that wants to draw it.
 //
 // a guest takes several seconds to reach its first frame and the picture is black for all of it.
 // the emulator says a great deal about what it is doing during that time, on stdout, and this is

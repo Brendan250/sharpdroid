@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- x86-64 ELF loader.
+// sharpdroid host layer -- x86-64 ELF loader.
 //
 // maps a static x86-64 ELF into the guest address space and builds the initial stack the
 // SysV x86-64 ABI hands to _start: argc, argv, envp and the auxiliary vector.

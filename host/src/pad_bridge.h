@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- android gamepad state and rumble, across the guest boundary.
+// sharpdroid host layer -- android gamepad state and rumble, across the guest boundary.
 //
 // this rides the same syscall boundary the vulkan and audio thunks do, in a magic range one along
 // again, and it is **not** a thunk in the sense either of those is: there is no NDK library at the

@@ -18,5 +18,5 @@ version = 1
 [[annotations]]
 path = ["**", "*"]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "sharpemu-android contributors"
+SPDX-FileCopyrightText = "sharpdroid contributors"
 SPDX-License-Identifier = "GPL-2.0-or-later"

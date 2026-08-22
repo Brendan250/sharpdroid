@@ -30,11 +30,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import builds, device, paths, vocabulary
-from sharpemu import toolchain as tc
-from sharpemu.shell import (Refusal, capture, ensure, fresh, main, produced, run, say, size, step,
+from sharpdroid import builds, device, paths, vocabulary
+from sharpdroid import toolchain as tc
+from sharpdroid.shell import (Refusal, capture, ensure, fresh, main, produced, run, say, size, step,
                             tree_size, wipe, write_text)
-from sharpemu.vocabulary import Parser
+from sharpdroid.vocabulary import Parser
 
 # what the app's own asset packer silently drops out of `assets/`. they are dropped here instead, so
 # that the listing the app walks describes the tree the APK actually carries -- a name in the listing
@@ -419,7 +419,7 @@ def write_contents(asset):
 # then linked into nothing, one is header-only and never instantiated, and the allocator is a stub
 # whose real implementation is not compiled. a notice for a library a recipient did not receive is
 # noise in a list whose whole value is that every line of it is true, so each entry here was checked
-# against the symbols in `libsharpemu-host-layer.so` rather than against the CMake graph.
+# against the symbols in `libsharpdroid-host-layer.so` rather than against the CMake graph.
 #
 # the identifiers are SPDX where an SPDX identifier is accurate. `cephes` is deliberately not one: its
 # terms are a relicensing permission rather than a standard text, so the name says BSD and the
@@ -673,7 +673,7 @@ def guest_preamble(name, block, applicable):
         "the complete corresponding source of this binary is kept at\n"
         "  {url}\n"
         "\n"
-        "this library is not part of sharpemu-android and nothing in the application links against\n"
+        "this library is not part of sharpdroid and nothing in the application links against\n"
         "it -- the application is arm64 and this is x86-64, searched by the guest's own dynamic\n"
         "linker under emulation. the directory holding it can be replaced with any compatible set:\n"
         "it is a plain directory of files searched by name, a set placed on the application's\n"
@@ -881,10 +881,10 @@ def keystore(toolchain):
         return
     say("generating a debug keystore")
     run([toolchain.jdk / "bin" / ("keytool.exe" if tc.IS_WINDOWS else "keytool"),
-         "-genkeypair", "-keystore", str(path), "-alias", "sharpemu",
+         "-genkeypair", "-keystore", str(path), "-alias", "sharpdroid",
          "-storepass", "android", "-keypass", "android",
          "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
-         "-dname", "CN=sharpemu-android"])
+         "-dname", "CN=sharpdroid"])
     produced(path, "the debug keystore")
 
 
@@ -922,13 +922,13 @@ def build_with_gradle(toolchain, package, label, offline):
     # unstated, the APK is packaged by a revision this repository never asked for and the fetched one
     # sits unused.
     arguments = [str(launcher), ":app:assembleDebug",
-                 "-PsharpemuStlSo=" + str(stl),
-                 "-PsharpemuBuildTools=" + toolchain.build_tools_version,
-                 "-PsharpemuBundleAssets=" + str(paths.BUILD_BUNDLE),
-                 "-PsharpemuApplicationId=" + package,
-                 "-PsharpemuAppLabel=" + label,
-                 "-PsharpemuCommit=" + repository_commit(),
-                 "-PsharpemuFexVersion=" + fex_version()]
+                 "-PsharpdroidStlSo=" + str(stl),
+                 "-PsharpdroidBuildTools=" + toolchain.build_tools_version,
+                 "-PsharpdroidBundleAssets=" + str(paths.BUILD_BUNDLE),
+                 "-PsharpdroidApplicationId=" + package,
+                 "-PsharpdroidAppLabel=" + label,
+                 "-PsharpdroidCommit=" + repository_commit(),
+                 "-PsharpdroidFexVersion=" + fex_version()]
     if offline:
         arguments.append("--offline")
 
@@ -1043,7 +1043,7 @@ def verify(apk, bundled, guest_libraries, notices):
         sizes = {entry.filename: entry.file_size for entry in archive.infolist()}
 
     required = ["classes.dex",
-                "lib/arm64-v8a/libsharpemu-host-layer.so",
+                "lib/arm64-v8a/libsharpdroid-host-layer.so",
                 "lib/arm64-v8a/libc++_shared.so",
                 "lib/arm64-v8a/libmain_hook.so",
                 "lib/arm64-v8a/libhook_impl.so"]

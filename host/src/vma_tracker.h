@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- guest VMA tracking, and self-modifying code.
+// sharpdroid host layer -- guest VMA tracking, and self-modifying code.
 //
 // FEXCore asks the host layer two questions about guest memory and expects to be told when the
 // answers change:

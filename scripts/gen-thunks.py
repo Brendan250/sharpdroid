@@ -28,10 +28,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import paths
-from sharpemu import toolchain as tc
-from sharpemu.shell import Refusal, ensure, main, read_text, say, step, write_text
-from sharpemu.vocabulary import Parser
+from sharpdroid import paths
+from sharpdroid import toolchain as tc
+from sharpdroid.shell import Refusal, ensure, main, read_text, say, step, write_text
+from sharpdroid.vocabulary import Parser
 
 # the magic syscall numbers. two bytes of tag in the top half, the command id in the bottom -- see
 # the thunk headers beside the generated files for why a syscall is the trap and why this range is
@@ -212,29 +212,29 @@ _STUB = """    .balign 16
     .size {name}, .-{name}"""
 
 _VULKAN_PREAMBLE = """// each stub is exactly 16 bytes and they are emitted in command-id order, so the host layer
-// resolves any guest entry point as __sharpemu_vk_stubs + 16 * id. that is what lets
+// resolves any guest entry point as __sharpdroid_vk_stubs + 16 * id. that is what lets
 // vkGetInstanceProcAddr return an address the guest may actually call.
 
     .text
     .balign 16
-    .globl __sharpemu_vk_stubs
-    .hidden __sharpemu_vk_stubs
-__sharpemu_vk_stubs:"""
+    .globl __sharpdroid_vk_stubs
+    .hidden __sharpdroid_vk_stubs
+__sharpdroid_vk_stubs:"""
 
 _VULKAN_ATTACH_STUB = """    .balign 16
-    .globl __sharpemu_vk_attach
-    .hidden __sharpemu_vk_attach
-    .type __sharpemu_vk_attach,@function
-__sharpemu_vk_attach:
-    leaq __sharpemu_vk_stubs(%rip), %rdi
+    .globl __sharpdroid_vk_attach
+    .hidden __sharpdroid_vk_attach
+    .type __sharpdroid_vk_attach,@function
+__sharpdroid_vk_attach:
+    leaq __sharpdroid_vk_stubs(%rip), %rdi
     movl ${magic}, %eax
     syscall
     ret
-    .size __sharpemu_vk_attach, .-__sharpemu_vk_attach
+    .size __sharpdroid_vk_attach, .-__sharpdroid_vk_attach
 
     .section .init_array,"aw",@init_array
     .balign 8
-    .quad __sharpemu_vk_attach
+    .quad __sharpdroid_vk_attach
 
     .section .note.GNU-stack,"",@progbits"""
 
@@ -248,9 +248,9 @@ _AUDIO_PREAMBLE = """// the stubs are emitted in command-id order and each is ex
 
     .text
     .balign 16
-    .globl __sharpemu_aaudio_stubs
-    .hidden __sharpemu_aaudio_stubs
-__sharpemu_aaudio_stubs:"""
+    .globl __sharpdroid_aaudio_stubs
+    .hidden __sharpdroid_aaudio_stubs
+__sharpdroid_aaudio_stubs:"""
 
 
 def _stub(name, magic):

@@ -9,8 +9,8 @@ everything is Python 3 and there is no build system on top of it. every script i
 **you need Python and git. that is the whole list.** everything else — the JDK, the android SDK, the NDK, the .NET SDK — is fetched into this repository's own `toolchain/` by the first command below.
 
 ```
-git clone --recurse-submodules https://github.com/sharpemu-android/sharpemu-android
-cd sharpemu-android
+git clone --recurse-submodules https://github.com/mircowuffwuff/sharpdroid
+cd sharpdroid
 py scripts/fetch-toolchain.py --install
 py scripts/run.py --sharpemu build --game "D:/games/Dreaming Sarah"
 ```
@@ -35,7 +35,7 @@ py scripts/run.py --game existing      launch what is already on the device
 
 **do the first one before the first `build.py`.** exactly one emulator build ships inside each APK, so the APK step needs one to bundle — and it **refuses** rather than quietly producing an APK with nothing in it. that refusal names these same commands.
 
-`fetch-toolchain.py` never touches a machine-wide install and never modifies `PATH`. already have your own JDK, android SDK, NDK or .NET SDK? point `SHARPEMU_ANDROID_JDK`, `SHARPEMU_ANDROID_SDK`, `SHARPEMU_ANDROID_NDK` or `SHARPEMU_ANDROID_DOTNET` at it and that piece is left alone. run it with no arguments to see what it would fetch without fetching anything.
+`fetch-toolchain.py` never touches a machine-wide install and never modifies `PATH`. already have your own JDK, android SDK, NDK or .NET SDK? point `SHARPDROID_JDK`, `SHARPDROID_SDK`, `SHARPDROID_NDK` or `SHARPDROID_DOTNET` at it and that piece is left alone. run it with no arguments to see what it would fetch without fetching anything.
 
 **no fork checkout, or no .NET SDK?** `py scripts/package-build.py --from-archive <a linux-x64 release archive> --id android` gives any published SharpEmu tree an identity, and needs neither.
 
@@ -57,7 +57,7 @@ staging does not do this and neither does the regression set — copying files n
 
 ### which app you are building
 
-**every script here works against the debug app by default** — application id `com.mircowuffwuff.sharpemu.debug`, labelled *SharpEmu Debug*. that is a different app to android: its own internal storage, its own external files directory, its own save data, installed beside a release SharpEmu. so **nothing you do while developing can disturb a personal install on the same phone**, and you have to ask for the release identity rather than remember to ask for the debug one.
+**every script here works against the debug app by default** — application id `com.mircowuffwuff.sharpdroid.debug`, labelled *SharpDroid Debug*. that is a different app to android: its own internal storage, its own external files directory, its own save data, installed beside a release SharpDroid. so **nothing you do while developing can disturb a personal install on the same phone**, and you have to ask for the release identity rather than remember to ask for the debug one.
 
 `--release` builds and acts on the manifest's own identity. `--package <application id>` names a third one. the two are mutually exclusive, and every script that acts on an *app* takes both.
 
@@ -145,7 +145,7 @@ it produces a **directory and a zip** under `build/builds/` and stops. producing
 
 **`--from-archive` needs no fork checkout, no .NET SDK and no git.** that is the path a third party takes, and the one any automated job would take. what it cannot do is record a commit, so the build's `commit` is empty and its `source` names the archive instead.
 
-the fork checkout is resolved by **`SHARPEMU_ANDROID_FORK`**, falling back to the `external/sharpemu` submodule and to nothing else. the submodule is a pin, nothing develops in it, and a checkout beside this repository is deliberately not in the order — if it were, the pin would be the one path no machine ever took and would go stale with nothing to notice.
+the fork checkout is resolved by **`SHARPDROID_SHARPEMU`**, falling back to the `external/sharpemu` submodule and to nothing else. the submodule is a pin, nothing develops in it, and a checkout beside this repository is deliberately not in the order — if it were, the pin would be the one path no machine ever took and would go stale with nothing to notice.
 
 [`build-format.md`](build-format.md) is what a build is.
 
@@ -175,7 +175,7 @@ both identities refuse a build whose contract generation the app does not speak,
 
 ## the shared package
 
-`scripts/sharpemu/` is the half every entry point shares, eight modules: `shell` is how a script talks, runs things and refuses; `paths` is where every artefact in this repository is; `toolchain` resolves the compilers and SDKs; `native` is the cmake build both native steps use; `vocabulary` is the argument scheme; `device` is `adb` and the app's identity; `builds` reads the build format; and `resolve` turns one of the vocabulary's values into a thing on a device.
+`scripts/sharpdroid/` is the half every entry point shares, eight modules: `shell` is how a script talks, runs things and refuses; `paths` is where every artefact in this repository is; `toolchain` resolves the compilers and SDKs; `native` is the cmake build both native steps use; `vocabulary` is the argument scheme; `device` is `adb` and the app's identity; `builds` reads the build format; and `resolve` turns one of the vocabulary's values into a thing on a device.
 
 **one rule lives in one place** is the whole organising idea — the app's identity, an artefact's path, a build's on-device name and what each argument accepts are each resolved by one function every caller shares.
 

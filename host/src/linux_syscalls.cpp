@@ -1141,7 +1141,7 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
     std::strcpy(Guest[0], "Linux");
     std::strcpy(Guest[1], "localhost");
     std::strcpy(Guest[2], "6.6.0");
-    std::strcpy(Guest[3], "#1 SMP sharpemu-android");
+    std::strcpy(Guest[3], "#1 SMP sharpdroid");
     std::strcpy(Guest[4], "x86_64");
     std::strcpy(Guest[5], "(none)");
     return 0;

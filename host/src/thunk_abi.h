@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- reading a guest x86-64 call's arguments out of the spilled state.
+// sharpdroid host layer -- reading a guest x86-64 call's arguments out of the spilled state.
 //
 // this is the piece both thunks stand on, and it is here rather than in either of them because
 // there is exactly one right answer and two copies of it would be two chances to be wrong.

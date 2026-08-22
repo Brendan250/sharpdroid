@@ -48,9 +48,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import paths
-from sharpemu.shell import Refusal, ensure, main, produced, say, size, step, wipe, write_text
-from sharpemu.vocabulary import Parser
+from sharpdroid import paths
+from sharpdroid.shell import Refusal, ensure, main, produced, say, size, step, wipe, write_text
+from sharpdroid.vocabulary import Parser
 
 # a file, by its SHA-1. that is snapshot's own address for one, so the URL and the integrity check
 # are the same fact -- and the SHA-256 beside it is what says the archive handed back what debian
@@ -63,7 +63,7 @@ SNAPSHOT_PACKAGE = "https://snapshot.debian.org/package/{}/{}/"
 
 # where this project's own source is, named in the notice because that is the other half of what a
 # GPL notice is for: the recipient of an APK has to be able to get at what built it.
-HOME = "https://github.com/sharpemu-android/sharpemu-android"
+HOME = "https://github.com/mircowuffwuff/sharpdroid"
 
 # snapshot is an archive rather than a CDN and can be slow to first byte. the whole set is under
 # 6 MB, so a generous ceiling costs nothing and a stall that hangs a clone build forever costs a lot.
@@ -297,7 +297,7 @@ def write_notice(output, texts):
         "the x86-64 shared objects in this directory are what the guest's own dynamic linker",
         "searches. most of them are unmodified binaries from debian 12, redistributed unchanged.",
         "",
-        "they are not part of sharpemu-android. the emulator and the game it runs link against them",
+        "they are not part of sharpdroid. the emulator and the game it runs link against them",
         "at runtime the way any linux program links against a system library; nothing in the",
         "application itself links against them, and nothing could -- the application is arm64 code",
         "and these are x86-64.",
@@ -342,7 +342,7 @@ def write_notice(output, texts):
         "",
         "libvulkan.so, libvulkan.so.1 and libaaudio.so are not debian's. they are the guest halves",
         "of this project's own thunks, generated from the android NDK's headers by",
-        "scripts/gen-thunks.py, and they are GPL-2.0-or-later like the rest of sharpemu-android.",
+        "scripts/gen-thunks.py, and they are GPL-2.0-or-later like the rest of sharpdroid.",
         "its source, including scripts/fetch-guest-libs.py, which writes this file and holds the",
         "pins above:",
         "",

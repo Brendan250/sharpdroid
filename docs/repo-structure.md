@@ -1,6 +1,6 @@
 # repository structure
 
-why sharpemu-android is two repositories, what lives in each, and where every artefact is built.
+why sharpdroid is two repositories, what lives in each, and where every artefact is built.
 
 **this file describes the repository as it is.** it is not a plan and carries nothing that has not been done; where it is out of date, it is wrong and should be corrected.
 
@@ -8,8 +8,8 @@ why sharpemu-android is two repositories, what lives in each, and where every ar
 
 | repository | what it is | cadence |
 | --- | --- | --- |
-| [`sharpemu-android/sharpemu`](https://github.com/sharpemu-android/sharpemu) | our fork of [SharpEmu](https://github.com/sharpemu/sharpemu), the PS5 emulator itself. `main` mirrors upstream and `android` carries everything android needs to be *correct*, which is the only maintained branch and the one that ships. localized performance work lives on `perf/` topic branches and goes upstream as pull requests | follows upstream, which moves fast. absorbs upstream releases |
-| **sharpemu-android** | **this tree.** the android app, the host layer it runs SharpEmu inside, the thunks, the test guests and the build tooling | follows android and our own work. releases an APK |
+| [`mircowuffwuff/sharpemu`](https://github.com/mircowuffwuff/sharpemu) | our fork of [SharpEmu](https://github.com/sharpemu/sharpemu), the PS5 emulator itself. `main` mirrors upstream and `android` carries everything android needs to be *correct*, which is the only maintained branch and the one that ships. localized performance work lives on `perf/` topic branches and goes upstream as pull requests | follows upstream, which moves fast. absorbs upstream releases |
+| **sharpdroid** | **this tree.** the android app, the host layer it runs SharpEmu inside, the thunks, the test guests and the build tooling | follows android and our own work. releases an APK |
 
 **the rule that drew that line is release cadence, not architecture.** two things belong in one repository when they must change in the same commit; they belong apart when they are released independently. the fork tracks somebody else's project and must be rebasable against it, so it is separate. everything here ships as one APK and versions together, so it is one.
 
@@ -63,7 +63,7 @@ a repository boundary there would buy an independent version number nobody would
 │   ├── build.gradle.kts      the APK: AGP, kotlin, androidx, Material3
 │   └── src/main/
 │       ├── AndroidManifest.xml
-│       ├── java/com/mircowuffwuff/sharpemu/   java and kotlin, side by side
+│       ├── java/com/mircowuffwuff/sharpdroid/   java and kotlin, side by side
 │       └── res/
 │
 ├── guests/                   x86-64 test guests the host layer is exercised against
@@ -104,7 +104,7 @@ three **git submodules under `external/`**, each pinned to an exact commit:
 | --- | --- | --- | --- |
 | [FEX](https://github.com/FEX-Emu/FEX) | tag `FEX-2607`, `1cc4b93e7` | MIT | the x86-64 translation core the host layer links |
 | [libadrenotools](https://github.com/bylaws/libadrenotools) | `8fae8ce` | BSD-2-Clause | custom GPU driver loading |
-| [the SharpEmu fork](https://github.com/sharpemu-android/sharpemu) | the `android` commit a bundled build is cut from | GPL-2.0-or-later | the emulator itself |
+| [the SharpEmu fork](https://github.com/mircowuffwuff/sharpemu) | the `android` commit a bundled build is cut from | GPL-2.0-or-later | the emulator itself |
 
 **FEX and libadrenotools are never modified**, and their submodules enforce that for free: a patched FEX shows dirty in `git status` the moment it happens, where a checkout beside the tree would go unnoticed. FEX bans AI-generated contributions, so a patch of ours could never go upstream and would become a permanent private delta against a fast-moving project.
 
@@ -118,7 +118,7 @@ three **git submodules under `external/`**, each pinned to an exact commit:
 
 **the pointer names what ships** — the `android` commit the bundled build comes from — and nothing else. it does not constrain what anyone checks out: a `perf/` topic branch is checked out inside the submodule and packaged by hand like any other build, and the pointer is left where it is. so a single pointer describing a fork that is developed across several branches is not the contradiction it looks like. it is not describing the fork; it is describing the one branch that ships.
 
-**it is not where the fork is developed.** the toolchain resolver resolves `SHARPEMU_ANDROID_FORK` first and the submodule second, so a checkout you commit in is reached by pointing that variable at it — the shape `go mod replace` uses, where the pin is what builds unless a local checkout is declared in writing. **the pin is the default rather than the fallback on purpose**: a pin no ordinary build ever takes is one nothing notices has gone stale, and the first person to find out would be somebody cloning this repository.
+**it is not where the fork is developed.** the toolchain resolver resolves `SHARPDROID_SHARPEMU` first and the submodule second, so a checkout you commit in is reached by pointing that variable at it — the shape `go mod replace` uses, where the pin is what builds unless a local checkout is declared in writing. **the pin is the default rather than the fallback on purpose**: a pin no ordinary build ever takes is one nothing notices has gone stale, and the first person to find out would be somebody cloning this repository.
 
 **`android`'s history is load-bearing.** every tag here names a commit in the fork, so an upstream release is merged into `android` and never rebased onto it. rewriting that history orphans the pointer in every earlier tag, and the symptom is a `git submodule update` failing on a fetch rather than anything visible in this tree.
 
@@ -128,21 +128,21 @@ three **git submodules under `external/`**, each pinned to an exact commit:
 
 **`scripts/run.py` does all of it in one command** — build, stage, launch, follow the log, and it needs no arguments. [`scripts.md`](scripts.md) documents every script and its arguments.
 
-**development happens on the debug app, and that is the default everywhere.** `scripts/build-apk.py` and `scripts/build.py` rename the application id to **`com.mircowuffwuff.sharpemu.debug`** and the launcher label to *SharpEmu Debug*; `run.py`, `stage.py` and `regression.py` all drive that same id. android treats it as a separate app with its own storage and save data, so **nothing done while developing can reach a personal install of the release build on the same device**.
+**development happens on the debug app, and that is the default everywhere.** `scripts/build-apk.py` and `scripts/build.py` rename the application id to **`com.mircowuffwuff.sharpdroid.debug`** and the launcher label to *SharpDroid Debug*; `run.py`, `stage.py` and `regression.py` all drive that same id. android treats it as a separate app with its own storage and save data, so **nothing done while developing can reach a personal install of the release build on the same device**.
 
-**`--release` builds under the manifest's own id and label**, `--package` and `--name` override the id and the label, and `--package` aims any of the other scripts elsewhere. `scripts/sharpemu/device.py` holds the rules — which app a script talks to, what it is labelled, and the component name a launch has to spell in full — so no two scripts can disagree about any of them.
+**`--release` builds under the manifest's own id and label**, `--package` and `--name` override the id and the label, and `--package` aims any of the other scripts elsewhere. `scripts/sharpdroid/device.py` holds the rules — which app a script talks to, what it is labelled, and the component name a launch has to spell in full — so no two scripts can disagree about any of them.
 
 **that last one is why the JNI note above matters in the tooling too.** an activity is `<application id>/<java package>.MainActivity` and the two halves move independently: the id is renamed per build, the java package never is. renaming the java package would break the native link, the two JNI symbols, the `-Wl,-u` in `host/CMakeLists.txt` **and** every launch command — which is why the component name is built in one place rather than spelled out in each script.
 
-**`scripts/build.py` runs the whole pipeline in dependency order** — `--list` prints the steps and which of them are up to date, `--install` puts the APK on the device. the ordering is real rather than editorial: `host/CMakeLists.txt` refuses to configure without `build/adrenotools/libadrenotools.a`, `scripts/build-apk.py` refuses without `libsharpemu-host-layer.so`, and `scripts/build-guests.py` refuses without the generated guest-side `libvulkan.so.1` and `libaaudio.so`. every step asserts the artefact it was supposed to produce rather than trusting that it returned quietly.
+**`scripts/build.py` runs the whole pipeline in dependency order** — `--list` prints the steps and which of them are up to date, `--install` puts the APK on the device. the ordering is real rather than editorial: `host/CMakeLists.txt` refuses to configure without `build/adrenotools/libadrenotools.a`, `scripts/build-apk.py` refuses without `libsharpdroid-host-layer.so`, and `scripts/build-guests.py` refuses without the generated guest-side `libvulkan.so.1` and `libaaudio.so`. every step asserts the artefact it was supposed to produce rather than trusting that it returned quietly.
 
 **`scripts/stage.py` puts things on a device** — a build, a game, the guest libraries, a driver, the shell binary, any number of them in one command — and verifies what landed rather than trusting the push. it takes `--package <application id>` and defaults to the debug app like everything else; the shell binary is the exception, because the directory it goes to belongs to no app.
 
 | artefact | built by | from |
 | --- | --- | --- |
-| a SharpEmu payload (the `android` branch, linux-x64) | `dotnet publish`, driven by `scripts/package-build.py` | `external/sharpemu`, or the checkout `SHARPEMU_ANDROID_FORK` names |
+| a SharpEmu payload (the `android` branch, linux-x64) | `dotnet publish`, driven by `scripts/package-build.py` | `external/sharpemu`, or the checkout `SHARPDROID_SHARPEMU` names |
 | a build directory and zip — payload, `plugins/`, `meta.json` | `scripts/package-build.py` | that publish output, **or `--from-archive <path\|url>`**, which needs no fork, no .NET SDK and no git |
-| `libFEXCore.a`, `libsharpemu-host-layer.so`, the `sharpemu-host-layer` shell binary | `scripts/build-host.py` (NDK, cmake, ninja) | this tree + the FEX checkout |
+| `libFEXCore.a`, `libsharpdroid-host-layer.so`, the `sharpdroid-host-layer` shell binary | `scripts/build-host.py` (NDK, cmake, ninja) | this tree + the FEX checkout |
 | the adrenotools hooks and static archives | `scripts/build-adrenotools.py` | the libadrenotools checkout |
 | the guest-side `libvulkan.so.1` and `libaaudio.so` | `scripts/build-thunks.py` | generated stubs |
 | the APK — `build/apk/<application id>.apk` | `scripts/build-apk.py`, driving gradle | the host layer's `.so`, the STL, the adrenotools hooks |
@@ -168,19 +168,19 @@ the *workspace* — the directory this tree sits in — is searched as well, whi
 
 ```
 workspace/
-├── sharpemu-android/     this tree
+├── sharpdroid/           this tree
 ├── sharpemu/             a fork checkout of your own, if you keep one. reached by
-│                       SHARPEMU_ANDROID_FORK,
+│                       SHARPDROID_SHARPEMU,
 │                         never found here -- external/sharpemu is what a build resolves to
 ├── FEX/  libadrenotools/ only consulted if external/ is empty
 └── android-sdk/  jdk-*/  dotnet-sdk/, driver packages, games
 ```
 
-set **`SHARPEMU_ANDROID_WORKSPACE`** to point that elsewhere.
+set **`SHARPDROID_WORKSPACE`** to point that elsewhere.
 
 ### finding a toolchain
 
-**`toolchain.json`** declares every required version in one place, and **`scripts/sharpemu/toolchain.py`** resolves them. no build script contains a version number or a toolchain path of its own; each piece is found when it is first used, so a missing JDK cannot break the native build:
+**`toolchain.json`** declares every required version in one place, and **`scripts/sharpdroid/toolchain.py`** resolves them. no build script contains a version number or a toolchain path of its own; each piece is found when it is first used, so a missing JDK cannot break the native build:
 
 ```python
 from sharpemu import toolchain as tc
@@ -192,12 +192,12 @@ per tool, first hit wins, and there are only two:
 
 | | |
 | --- | --- |
-| 1 | **`SHARPEMU_ANDROID_SDK`, `SHARPEMU_ANDROID_NDK`, `SHARPEMU_ANDROID_CMAKE`, `SHARPEMU_ANDROID_JDK`, `SHARPEMU_ANDROID_DOTNET`, `SHARPEMU_ANDROID_FORK`, `SHARPEMU_ANDROID_WORKSPACE`** — project-scoped, so pointing one at your own copy disturbs nothing else on the machine |
+| 1 | **`SHARPDROID_SDK`, `SHARPDROID_NDK`, `SHARPDROID_CMAKE`, `SHARPDROID_JDK`, `SHARPDROID_DOTNET`, `SHARPDROID_SHARPEMU`, `SHARPDROID_WORKSPACE`** — project-scoped, so pointing one at your own copy disturbs nothing else on the machine |
 | 2 | **`toolchain/`** in this repository — where `fetch-toolchain.py` installs |
 
 **`ANDROID_HOME`, `JAVA_HOME`, `DOTNET_ROOT` and `PATH` are deliberately not among them.** a resolver that falls back to whatever the machine happens to have is a resolver that quietly builds against something other than the pinned version — and gradle finding its own SDK that way is the exact disagreement this exists to prevent. a machine that would rather use its own says so in writing, through the variables above.
 
-**the SharpEmu fork has an order of its own**: `SHARPEMU_ANDROID_FORK`, then `external/sharpemu`, then a checkout beside this tree. it is never fetched into `toolchain/`, because it is a source repository rather than a toolchain. every build says which of the two it resolved, unlike the other components, because two checkouts of one fork on a machine is the ordinary arrangement and which one a build came from has to be answerable from the log.
+**the SharpEmu fork has an order of its own**: `SHARPDROID_SHARPEMU`, then `external/sharpemu`, then a checkout beside this tree. it is never fetched into `toolchain/`, because it is a source repository rather than a toolchain. every build says which of the two it resolved, unlike the other components, because two checkouts of one fork on a machine is the ordinary arrangement and which one a build came from has to be answerable from the log.
 
 a working tree with `external/sharpemu` uninitialised is an error rather than a fallback, and the message names the way out — `git submodule update --init --recursive`.
 
@@ -253,7 +253,7 @@ that row is the project rather than one library out of it, because more than one
 | libadrenotools | BSD-2-Clause |
 | LLVM | Apache-2.0 WITH LLVM-exception, as `libc++_shared.so` and the compiler builtins every NDK link puts in the host layer |
 
-**membership is decided by what is in the binary rather than by what the build configures.** FEX's `External/` holds several more than this and four of them reach no APK — two are built and linked into nothing, one is header-only and never instantiated, and the allocator is a stub whose real implementation is not compiled. each entry above was checked against the symbols in `libsharpemu-host-layer.so`. a notice for a library a recipient did not receive is noise in a list whose whole value is that every line of it is true.
+**membership is decided by what is in the binary rather than by what the build configures.** FEX's `External/` holds several more than this and four of them reach no APK — two are built and linked into nothing, one is header-only and never instantiated, and the allocator is a stub whose real implementation is not compiled. each entry above was checked against the symbols in `libsharpdroid-host-layer.so`. a notice for a library a recipient did not receive is noise in a list whose whole value is that every line of it is true.
 
 **SoftFloat is the one that cannot be copied from a file**: the vendored copy carries no licence document, stating its terms in a header block at the top of every source file instead, so the notice is lifted out of one and the extraction refuses rather than shipping something shorter than the terms it claims to be.
 

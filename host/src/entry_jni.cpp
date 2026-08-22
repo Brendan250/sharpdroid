@@ -25,7 +25,7 @@
 
 namespace {
 
-constexpr const char* LogTag = "sharpemu";
+constexpr const char* LogTag = "sharpdroid";
 
 ANativeWindow* Window {};
 
@@ -135,7 +135,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* VM, void*) {
 // the panel; the thunk is also where the surface *size* now comes from, so that the extent the
 // guest is told about and the buffer it ends up in cannot disagree. that disagreement is the
 // bug, and the constant that papered over it is what this retires.
-JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetSurface(JNIEnv* Env, jclass, jobject Surface) {
+JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeSetSurface(JNIEnv* Env, jclass, jobject Surface) {
   ANativeWindow* Next = Surface ? ::ANativeWindow_fromSurface(Env, Surface) : nullptr;
   HostLayer::VulkanThunk::SetAndroidWindow(Next);
   if (Window) {
@@ -152,7 +152,7 @@ JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetSurfac
 // **cheap enough to call on every event.** it takes one uncontended lock and copies twelve bytes; the
 // guest's poll takes the same lock. nothing here allocates, throws or blocks, which is what lets it be
 // called straight from the input dispatch on the UI thread.
-JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetPadState(
+JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeSetPadState(
   JNIEnv*, jclass, jint Buttons, jint LeftX, jint LeftY, jint RightX, jint RightY, jint LeftTrigger,
   jint RightTrigger, jboolean Connected) {
   HostLayer::PadBridge::WireState State {};
@@ -177,7 +177,7 @@ JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeSetPadSta
 //
 // the two strings outlive the call because the thunk keeps the pointers rather than copying them, and
 // RunMain later sets the same two from its own argument vector.
-JNIEXPORT jboolean JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeDriverLoads(
+JNIEXPORT jboolean JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeDriverLoads(
   JNIEnv* Env, jclass, jstring Driver, jstring Hooks) {
   static std::string DriverPath;
   static std::string HookLibDir;
@@ -199,7 +199,7 @@ JNIEXPORT jboolean JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeDrive
 // an id to whatever it draws for that phase, one it has never heard of changes nothing on screen,
 // and an entry that disappears from here takes its own text with it. an index would make adding a
 // checkpoint a change to two files that must be made in the same breath.
-JNIEXPORT jobjectArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeBootCheckpointIds(
+JNIEXPORT jobjectArray JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeBootCheckpointIds(
   JNIEnv* Env, jclass) {
   const jint Count = HostLayer::BootProgress::Count();
   jclass StringClass = Env->FindClass("java/lang/String");
@@ -216,7 +216,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeB
 // how many checkpoints the run has passed, 0 up to the table's length. **the one call meant to be
 // made repeatedly**: it is a single relaxed load behind the JNI boundary, which is what lets a
 // caller ask once per drawn frame rather than arranging to be told.
-JNIEXPORT jint JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeBootCheckpointsReached(
+JNIEXPORT jint JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeBootCheckpointsReached(
   JNIEnv*, jclass) {
   return HostLayer::BootProgress::Reached();
 }
@@ -227,7 +227,7 @@ JNIEXPORT jint JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeBootCheck
 // **-1 is a real answer and not a zero.** an entry that no line matched and an entry reached in the
 // same instant as its neighbour would otherwise be indistinguishable, and a caller averaging the
 // second into its record would be averaging in a table that has stopped working.
-JNIEXPORT jlongArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeBootCheckpointTimes(
+JNIEXPORT jlongArray JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeBootCheckpointTimes(
   JNIEnv* Env, jclass) {
   const jint Count = HostLayer::BootProgress::Count();
   std::vector<jlong> Times(static_cast<size_t>(Count));
@@ -242,13 +242,13 @@ JNIEXPORT jlongArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeBoo
 // the sequence one past the newest line the process has printed. **the repeatedly-made call of this
 // group**, and it is a lock and a load: a caller polls it while it is showing the log and asks for
 // nothing at all the rest of the time.
-JNIEXPORT jlong JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogNext(JNIEnv*, jclass) {
+JNIEXPORT jlong JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeLogNext(JNIEnv*, jclass) {
   return HostLayer::LogRing::Next();
 }
 
 // the sequence of the oldest line still held. a caller opening a viewer starts here; one that has
 // been away compares this against what it last saw to learn whether anything was dropped meanwhile.
-JNIEXPORT jlong JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogOldest(JNIEnv*, jclass) {
+JNIEXPORT jlong JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeLogOldest(JNIEnv*, jclass) {
   return HostLayer::LogRing::Oldest();
 }
 
@@ -257,7 +257,7 @@ JNIEXPORT jlong JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogOldes
 // **the copy out of the ring is the whole of what the pump can be made to wait for**, which is why
 // the range is the caller's to choose rather than "everything new": a viewer that polls asks for the
 // handful of lines that arrived since it last looked, and only an opening viewer asks for thousands.
-JNIEXPORT jobjectArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogRange(
+JNIEXPORT jobjectArray JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeLogRange(
   JNIEnv* Env, jclass, jlong From, jlong To) {
   std::vector<std::string> Held;
   HostLayer::LogRing::Range(From, To, Held);
@@ -278,7 +278,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeL
 // **it is not written to logcat here**, because the caller has already written it there -- this puts
 // it in the one place it would otherwise be missing from. the app's lines never touch the pipe under
 // fds 1 and 2: java logging is the platform's own channel and does not pass through stdout.
-JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogLine(
+JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeLogLine(
   JNIEnv* Env, jclass, jstring Line) {
   if (!Line) {
     return;
@@ -295,9 +295,9 @@ JNIEXPORT void JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeLogLine(
 // safe answer once the other guest threads are inside translated code. that is the process this
 // library was loaded into, so a caller that has anything to lose runs a guest in a process it is
 // willing to lose; the app gives one to each run.
-JNIEXPORT jint JNICALL Java_com_mircowuffwuff_sharpemu_HostLayer_nativeRun(JNIEnv* Env, jclass, jobjectArray Args) {
+JNIEXPORT jint JNICALL Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeRun(JNIEnv* Env, jclass, jobjectArray Args) {
   std::vector<std::string> Storage;
-  Storage.emplace_back("sharpemu-host-layer");
+  Storage.emplace_back("sharpdroid-host-layer");
   const jsize Count = Args ? Env->GetArrayLength(Args) : 0;
   for (jsize i = 0; i < Count; ++i) {
     auto Text = static_cast<jstring>(Env->GetObjectArrayElement(Args, i));

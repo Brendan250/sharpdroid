@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- a game directory the guest reaches by path, on a volume android
+// sharpdroid host layer -- a game directory the guest reaches by path, on a volume android
 // will not open by path.
 //
 // android hands an app a *grant* on a directory the user picked, never a path to it. everything

@@ -13,7 +13,7 @@ namespace {
 
 // the java side of the file layer. it holds the tree grant and turns a relative path into a document
 // id; nothing below this line knows what a URI is.
-constexpr const char* HelperClass = "com/mircowuffwuff/sharpemu/GuestFiles";
+constexpr const char* HelperClass = "com/mircowuffwuff/sharpdroid/GuestFiles";
 
 JavaVM* VM {};
 jclass Helper {};
@@ -61,7 +61,7 @@ JNIEnv* Env() {
   }
   // a guest thread. named so that a thread dump during a boot says which threads are guest ones,
   // since by then there are a dozen of them and the runtime would otherwise call them all Thread-N.
-  JavaVMAttachArgs Args {JNI_VERSION_1_6, "sharpemu-guest", nullptr};
+  JavaVMAttachArgs Args {JNI_VERSION_1_6, "sharpdroid-guest", nullptr};
   if (VM->AttachCurrentThread(&Found, &Args) != JNI_OK) {
     return nullptr;
   }

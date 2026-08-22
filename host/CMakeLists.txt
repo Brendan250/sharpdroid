@@ -79,7 +79,7 @@ set(ENABLE_LTO FALSE CACHE BOOL "" FORCE)
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 set(BUILD_STEAM_SUPPORT FALSE CACHE BOOL "" FORCE)
 set(OVERRIDE_VERSION "FEX-2607" CACHE STRING "" FORCE)
-set(OVERRIDE_HASH "sharpemu-android" CACHE STRING "" FORCE)
+set(OVERRIDE_HASH "sharpdroid" CACHE STRING "" FORCE)
 
 # vixl: we only ever emit aarch64, and its tests/tools pull in host-only deps.
 set(VIXL_TARGET_AARCH64 ON CACHE BOOL "" FORCE)
@@ -132,10 +132,10 @@ target_link_libraries(FEXCore INTERFACE FEXCore_Base)
 # shell binary. everything the host layer does is in the static library; the two things on top of
 # it are entry points and nothing else:
 #
-#   sharpemu-host-layer         an executable. every measurement taken before the app came through it,
+#   sharpdroid-host-layer         an executable. every measurement taken before the app came through it,
 #                               regression.sh runs it, and it is a far better place to bisect a
 #                               JIT problem from than an activity is.
-#   libsharpemu-host-layer.so   the JNI surface the APK loads.
+#   libsharpdroid-host-layer.so   the JNI surface the APK loads.
 #
 # the host layer itself never assumed it was a process, which is why this is a build change and
 # an entry file rather than a rewrite.
@@ -209,19 +209,19 @@ target_include_directories(host-layer-core PUBLIC
   # __INTRODUCED_IN(29..36) and this builds at API 28.
   "${CMAKE_CURRENT_SOURCE_DIR}/thunks/audio/generated")
 
-add_executable(sharpemu-host-layer "${CMAKE_CURRENT_SOURCE_DIR}/src/entry_exe.cpp")
-target_link_libraries(sharpemu-host-layer PRIVATE host-layer-core)
+add_executable(sharpdroid-host-layer "${CMAKE_CURRENT_SOURCE_DIR}/src/entry_exe.cpp")
+target_link_libraries(sharpdroid-host-layer PRIVATE host-layer-core)
 
-add_library(sharpemu-host-layer-jni SHARED "${CMAKE_CURRENT_SOURCE_DIR}/src/entry_jni.cpp")
-target_link_libraries(sharpemu-host-layer-jni PRIVATE host-layer-core)
-# so the APK loads it as System.loadLibrary("sharpemu-host-layer"). the cmake target has to be
+add_library(sharpdroid-host-layer-jni SHARED "${CMAKE_CURRENT_SOURCE_DIR}/src/entry_jni.cpp")
+target_link_libraries(sharpdroid-host-layer-jni PRIVATE host-layer-core)
+# so the APK loads it as System.loadLibrary("sharpdroid-host-layer"). the cmake target has to be
 # named differently from the executable's; the file on disk does not.
-set_target_properties(sharpemu-host-layer-jni PROPERTIES OUTPUT_NAME "sharpemu-host-layer")
+set_target_properties(sharpdroid-host-layer-jni PROPERTIES OUTPUT_NAME "sharpdroid-host-layer")
 # the JNI entry point is reached by name from the java side, and nothing in the link graph refers
 # to it. without this the linker's --gc-sections drops both symbols and the app dies at
 # UnsatisfiedLinkError with the library sitting right there.
-target_link_options(sharpemu-host-layer-jni PRIVATE "-Wl,-u,Java_com_mircowuffwuff_sharpemu_HostLayer_nativeRun")
+target_link_options(sharpdroid-host-layer-jni PRIVATE "-Wl,-u,Java_com_mircowuffwuff_sharpdroid_HostLayer_nativeRun")
 # and JNI_OnLoad, for exactly the same reason and with a worse failure: the runtime looks it up by
 # name at load time, nothing in the link graph refers to it either, and dropping it costs no error
 # at all -- the library loads, and the file layer simply never has a class to call.
-target_link_options(sharpemu-host-layer-jni PRIVATE "-Wl,-u,JNI_OnLoad")
+target_link_options(sharpdroid-host-layer-jni PRIVATE "-Wl,-u,JNI_OnLoad")

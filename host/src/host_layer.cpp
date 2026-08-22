@@ -1,12 +1,12 @@
-// sharpemu-android host layer.
+// sharpdroid host layer.
 //
 // two modes:
 //
-//   sharpemu-host-layer --spike               24 bytes of hand-assembled x86-64. no loader, no
+//   sharpdroid-host-layer --spike               24 bytes of hand-assembled x86-64. no loader, no
 //                                             syscall table. this is the smoke test:
 //                                             it proves the JIT still translates, executes and
 //                                             faults on this device.
-//   sharpemu-host-layer [--trace] <elf> [..]  load an x86-64 ELF and run it.
+//   sharpdroid-host-layer [--trace] <elf> [..]  load an x86-64 ELF and run it.
 //
 // the spike came first on purpose. android enforces W^X far more strictly than desktop linux
 // and a JIT must write memory then execute it; Dispatcher::Create() allocating buffers was not
@@ -742,8 +742,8 @@ int HostLayer::RunMain(int argc, char** argv) {
   }
 
   if (!SpikeMode && ArgIndex >= argc) {
-    std::fprintf(stderr, "usage: sharpemu-host-layer [--smc none|mtrack|full] --spike\n"
-                         "       sharpemu-host-layer [--trace] [--trace-signals] [--trace-files <prefix>] [--timestamps] "
+    std::fprintf(stderr, "usage: sharpdroid-host-layer [--smc none|mtrack|full] --spike\n"
+                         "       sharpdroid-host-layer [--trace] [--trace-signals] [--trace-files <prefix>] [--timestamps] "
                          "[--boot-progress] "
                          "[--smc none|mtrack|full] "
                          "[--asyncsig syscall|safepoint|block] [--vulkan] [--vulkan-lib <so>] "

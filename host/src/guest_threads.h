@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- guest threads.
+// sharpdroid host layer -- guest threads.
 //
 // the host layer began single-threaded, and not incidentally: FEXCore's thread state, the
 // GDT, the call-return shadow stack, the signal mask and the setjmp escape hatch were all file

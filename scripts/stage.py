@@ -28,10 +28,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import builds, device, paths, vocabulary
-from sharpemu import toolchain as tc
-from sharpemu.shell import Refusal, fresh, main, read_text, say, size, step, tree_size, wipe
-from sharpemu.vocabulary import Parser
+from sharpdroid import builds, device, paths, vocabulary
+from sharpdroid import toolchain as tc
+from sharpdroid.shell import Refusal, fresh, main, read_text, say, size, step, tree_size, wipe
+from sharpdroid.vocabulary import Parser
 
 
 def entry():
@@ -358,10 +358,10 @@ def stage_shell(attached, toolchain):
             if path.is_file():
                 pushed += attached.push_quietly(path, target + "/")
 
-    attached.shell("chmod 755 {0}/sharpemu-host-layer {0}/regression.sh".format(target))
+    attached.shell("chmod 755 {0}/sharpdroid-host-layer {0}/regression.sh".format(target))
     attached.shell("sync")
 
-    if attached.size_of(target + "/sharpemu-host-layer") != paths.HOST_SHELL.stat().st_size:
+    if attached.size_of(target + "/sharpdroid-host-layer") != paths.HOST_SHELL.stat().st_size:
         raise Refusal("the shell binary on the device is not the one that was just built")
     say("  {} guests, {} libraries, {} in all -> {}".format(
         len(guests), len(libraries), size(pushed), target))

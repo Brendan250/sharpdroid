@@ -36,11 +36,11 @@ every stub is identical but for one immediate, and that is the entire point:
 
 `0x564B0000` is the magic, `0xFFFF` is reserved for attach, and the top 16 bits are what make a thunk call unmistakable: real linux x86-64 syscall numbers are all below 1000, and this FEXCore has no table indexed by syscall number, so the whole upper range is free and an unrecognised number can never be mistaken for one of ours.
 
-**the stubs are emitted 16 bytes apart in command-id order**, so the host resolves any guest entry point as `__sharpemu_vk_stubs + 16 * id`. that is what lets `vkGetInstanceProcAddr` return an address the guest may actually call — see [below](#the-two-commands-that-return-an-address).
+**the stubs are emitted 16 bytes apart in command-id order**, so the host resolves any guest entry point as `__sharpdroid_vk_stubs + 16 * id`. that is what lets `vkGetInstanceProcAddr` return an address the guest may actually call — see [below](#the-two-commands-that-return-an-address).
 
 ### attach
 
-**only the guest knows where its dynamic linker put the stub table**, so the guest tells the host. `__sharpemu_vk_attach` is registered in `.init_array` and runs as soon as the library is mapped; it passes the table's address through the reserved id.
+**only the guest knows where its dynamic linker put the stub table**, so the guest tells the host. `__sharpdroid_vk_attach` is registered in `.init_array` and runs as soon as the library is mapped; it passes the table's address through the reserved id.
 
 the host **checks the table's shape rather than trusting it**: every entry is verified byte for byte against the four instructions above and against its own expected immediate. a silently misaligned table would send every call to the wrong entry point, which is the kind of failure that surfaces nowhere near its cause.
 

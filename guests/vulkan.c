@@ -95,9 +95,9 @@ void _start(void) {
   //    whole 1:1 address space argument in one call: no copy, no translation, no shadow.
   VkApplicationInfo Application = {
     .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-    .pApplicationName = "sharpemu-android guest",
+    .pApplicationName = "sharpdroid guest",
     .applicationVersion = 1,
-    .pEngineName = "sharpemu-android",
+    .pEngineName = "sharpdroid",
     .engineVersion = 1,
     .apiVersion = VK_API_VERSION_1_1,
   };

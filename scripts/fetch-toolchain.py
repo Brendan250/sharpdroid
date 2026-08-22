@@ -8,8 +8,8 @@
 # **nothing here is installed machine-wide and `PATH` is never modified.** everything lands under
 # `toolchain/`, which is what makes two checkouts on one machine independent and what makes the
 # versions in `toolchain.json` mean something. a machine that would rather use a JDK, an android SDK,
-# an NDK or a .NET SDK it already has points `SHARPEMU_ANDROID_JDK`, `SHARPEMU_ANDROID_SDK`,
-# `SHARPEMU_ANDROID_NDK` or `SHARPEMU_ANDROID_DOTNET` at it, and this script leaves that piece alone.
+# an NDK or a .NET SDK it already has points `SHARPDROID_JDK`, `SHARPDROID_SDK`,
+# `SHARPDROID_NDK` or `SHARPDROID_DOTNET` at it, and this script leaves that piece alone.
 #
 # **the only prerequisite is Python itself.** it has to be, since something has to run this -- which
 # is also why the download path here is `urllib` rather than anything fetched first.
@@ -24,9 +24,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sharpemu import paths, toolchain as tc
-from sharpemu.shell import Refusal, ensure, main, run, say, size, step, warn, wipe
-from sharpemu.vocabulary import Parser
+from sharpdroid import paths, toolchain as tc
+from sharpdroid.shell import Refusal, ensure, main, run, say, size, step, warn, wipe
+from sharpdroid.vocabulary import Parser
 
 _WINDOWS = platform.system() == "Windows"
 
@@ -172,7 +172,7 @@ def _install_dotnet(toolchain, force):
     if not _WINDOWS:
         raise Refusal(
             "installing the .NET SDK is only wired up for Windows here. fetch it yourself and "
-            "point SHARPEMU_ANDROID_DOTNET at it")
+            "point SHARPDROID_DOTNET at it")
     installer = _download(toolchain.source("dotnetInstall"), "dotnet-install")
     run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(installer),
          "-Version", toolchain.dotnet_version, "-InstallDir", str(target), "-NoPath"])
@@ -246,7 +246,7 @@ def _download(url, label):
     suffix = "".join(Path(url.split("?")[0]).suffixes[-1:])
     target = Path(tempfile.gettempdir()) / "sharpemu-{}{}".format(label, suffix)
     context = ssl.create_default_context()
-    request = urllib.request.Request(url, headers={"User-Agent": "sharpemu-android"})
+    request = urllib.request.Request(url, headers={"User-Agent": "sharpdroid"})
     with urllib.request.urlopen(request, context=context) as response:
         total = int(response.headers.get("Content-Length") or 0)
         written = 0

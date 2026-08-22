@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- guest x86-64 AAudio onto the host's AAudio, in-process.
+// sharpdroid host layer -- guest x86-64 AAudio onto the host's AAudio, in-process.
 //
 // this is the vulkan thunk again with two orders of magnitude less surface: 72 entry points
 // instead of 623, the same 16-byte guest stub shape, the same one-template marshaller, and the

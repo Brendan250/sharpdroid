@@ -24,7 +24,7 @@
   own edges.** artwork inset inside a card, at the size of a line of type, reads as a row in a list;
   artwork that *is* one end of the card reads as a piece of the design, and it is what gives the card
   a reason to be wide rather than merely being wide. the shape at that end is the card's own - see
-  ShapeAppearance.SharpEmu.LoadingArt, which rounds the two corners it shares with the card and
+  ShapeAppearance.SharpDroid.LoadingArt, which rounds the two corners it shares with the card and
   squares the two in the middle.
 
   **the card is filled with the container role rather than the dialog's, and that is a change of what
@@ -90,7 +90,7 @@
                 android:importantForAccessibility="no"
                 android:scaleType="centerCrop"
                 android:visibility="gone"
-                app:shapeAppearanceOverlay="@style/ShapeAppearance.SharpEmu.LoadingArt"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.SharpDroid.LoadingArt"
                 tools:src="@drawable/ic_game_placeholder"
                 tools:visibility="visible" />
 

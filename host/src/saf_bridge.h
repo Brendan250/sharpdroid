@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- the first call that goes *up* into java.
+// sharpdroid host layer -- the first call that goes *up* into java.
 //
 // everything else here is one-way. the app calls down through entry_jni.cpp and the host layer never
 // calls back: vulkan is handed a native ANativeWindow*, and audio is pure NDK AAudio with no java

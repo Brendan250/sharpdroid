@@ -1,4 +1,4 @@
-// sharpemu-android host layer -- the last lines this process printed, for something that wants to
+// sharpdroid host layer -- the last lines this process printed, for something that wants to
 // show them.
 //
 // **everything the emulator prints and everything the host layer prints is already one stream**, and

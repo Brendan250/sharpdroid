@@ -64,9 +64,9 @@ int main(int argc, char **argv) {
 
   VkApplicationInfo app = {
       .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      .pApplicationName = "sharpemu-android probe",
+      .pApplicationName = "sharpdroid probe",
       .applicationVersion = 1,
-      .pEngineName = "sharpemu-android",
+      .pEngineName = "sharpdroid",
       .engineVersion = 1,
       .apiVersion = loader_version,
   };

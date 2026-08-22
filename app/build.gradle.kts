@@ -17,8 +17,8 @@ plugins {
 
 // the identity, as scripts/build-apk.py resolved it. absent means the manifest's own -- which is what
 // asking for the release identity gets -- so these are properties rather than defaults with a value.
-val identityApplicationId: String? = (findProperty("sharpemuApplicationId") as String?)?.takeIf { it.isNotBlank() }
-val identityAppLabel: String = (findProperty("sharpemuAppLabel") as String?)?.takeIf { it.isNotBlank() } ?: "SharpEmu"
+val identityApplicationId: String? = (findProperty("sharpdroidApplicationId") as String?)?.takeIf { it.isNotBlank() }
+val identityAppLabel: String = (findProperty("sharpdroidAppLabel") as String?)?.takeIf { it.isNotBlank() } ?: "SharpDroid"
 
 // where the APK's asset trees were staged: the guest's x86-64 libraries, and the bundled SharpEmu
 // build when one is being bundled at all.
@@ -26,7 +26,7 @@ val identityAppLabel: String = (findProperty("sharpemuAppLabel") as String?)?.ta
 // **it is a generated directory and never a source one.** scripts/build-apk.py populates it under
 // build/ and empties it first, so "what is in this APK" is answered by one command rather than by
 // whatever happens to be sitting in app/src/main/assets.
-val bundleAssets: String? = (findProperty("sharpemuBundleAssets") as String?)?.takeIf { it.isNotBlank() }
+val bundleAssets: String? = (findProperty("sharpdroidBundleAssets") as String?)?.takeIf { it.isNotBlank() }
 
 // the commit this APK is built from, as scripts/build-apk.py resolved it, short and with a marker
 // when the tree it was built from had uncommitted changes in it.
@@ -34,13 +34,13 @@ val bundleAssets: String? = (findProperty("sharpemuBundleAssets") as String?)?.t
 // **empty is a state the About screen is written for.** a build from a source archive or from a
 // checkout with no git in it cannot know its commit, and there is no answer to invent: a placeholder
 // on that line is a string somebody then quotes into a bug report and tries to resolve.
-val identityCommit: String = (findProperty("sharpemuCommit") as String?)?.takeIf { it.isNotBlank() } ?: ""
+val identityCommit: String = (findProperty("sharpdroidCommit") as String?)?.takeIf { it.isNotBlank() } ?: ""
 
 // the FEXCore the host layer is linked against, as scripts/build-apk.py described it out of the
 // pinned submodule. empty is a supported state for the same reason it is above, and the About screen
 // simply omits the line.
 val identityFexVersion: String =
-    (findProperty("sharpemuFexVersion") as String?)?.takeIf { it.isNotBlank() } ?: ""
+    (findProperty("sharpdroidFexVersion") as String?)?.takeIf { it.isNotBlank() } ?: ""
 
 // the build-tools revision, as scripts/build-apk.py resolved it out of toolchain.json.
 //
@@ -49,14 +49,14 @@ val identityFexVersion: String =
 // build-tools that nothing in this repository declares, package the APK with it, and leave the
 // declared one fetched and unused. that also breaks --offline for anyone whose only build-tools is
 // the one fetch-toolchain.py installed.
-val buildTools: String? = (findProperty("sharpemuBuildTools") as String?)?.takeIf { it.isNotBlank() }
+val buildTools: String? = (findProperty("sharpdroidBuildTools") as String?)?.takeIf { it.isNotBlank() }
 
 android {
     // **the java package, and it does not move.** the JNI entry points are named
-    // Java_com_mircowuffwuff_sharpemu_HostLayer_*, host/CMakeLists.txt has a -Wl,-u keeping them
+    // Java_com_mircowuffwuff_sharpdroid_HostLayer_*, host/CMakeLists.txt has a -Wl,-u keeping them
     // from being garbage-collected, and every launch command spells it out in full. renaming this
     // breaks the native link and every am start at once.
-    namespace = "com.mircowuffwuff.sharpemu"
+    namespace = "com.mircowuffwuff.sharpdroid"
     compileSdk = 35
     buildTools?.let { buildToolsVersion = it }
 
@@ -65,8 +65,8 @@ android {
         // moves.** a renamed id installs beside the release app as a separate app to android, with
         // its own internal storage, its own external files directory and its own save data -- which
         // is what keeps a deploy loop away from a personal install. the activity is then
-        // <application id>/com.mircowuffwuff.sharpemu.MainActivity, because only half of it moved.
-        applicationId = identityApplicationId ?: "com.mircowuffwuff.sharpemu"
+        // <application id>/com.mircowuffwuff.sharpdroid.MainActivity, because only half of it moved.
+        applicationId = identityApplicationId ?: "com.mircowuffwuff.sharpdroid"
         minSdk = 28
         targetSdk = 35
         // **the version is the release counter and nothing else.** a release is tagged wuff-1,
@@ -84,7 +84,7 @@ android {
         versionName = "1"
 
         // the label, which a renamed build has to change too: two entries in the launcher both
-        // called "SharpEmu" and no way to tell which is which is the failure this avoids.
+        // called "SharpDroid" and no way to tell which is which is the failure this avoids.
         resValue("string", "app_name", identityAppLabel)
 
         // what the About screen puts beside the version, and what a bug report is worth having.
@@ -109,7 +109,7 @@ android {
         getByName("debug") {
             storeFile = file("debug.keystore")
             storePassword = "android"
-            keyAlias = "sharpemu"
+            keyAlias = "sharpdroid"
             keyPassword = "android"
         }
     }
@@ -206,7 +206,7 @@ dependencies {
 // back to the stock driver quietly, so a driver comparison would silently measure the same driver
 // twice.
 
-val hostLayerSo = rootProject.file("build/host/libsharpemu-host-layer.so")
+val hostLayerSo = rootProject.file("build/host/libsharpdroid-host-layer.so")
 val adrenotoolsHookSos = listOf(
     rootProject.file("build/adrenotools/src/hook/libmain_hook.so"),
     rootProject.file("build/adrenotools/src/hook/libhook_impl.so"),
@@ -220,7 +220,7 @@ val adrenotoolsHookSos = listOf(
 // hitting build, and it deliberately globs every installed NDK rather than asking for
 // android.ndkVersion -- that property answers with AGP's own default when nothing set it, which is
 // an NDK that is not installed here.
-val stlSo: File? = (findProperty("sharpemuStlSo") as String?)
+val stlSo: File? = (findProperty("sharpdroidStlSo") as String?)
     ?.takeIf { it.isNotBlank() }
     ?.let { File(it) }
     ?.takeIf { it.isFile }
