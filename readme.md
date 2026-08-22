@@ -1,13 +1,39 @@
-<!-- TODO: handdrawn sharpemu.png -->
+<p align="center">
+    <img width=27% height=27% src="https://github.com/user-attachments/assets/820482ef-6ca7-4d30-be54-d220faa1378f" />
+</p>
 
 # sharpemu-android
 
 this is an unofficial android port of SharpEmu, a PS5 emulator for Windows and Linux on x86-64. sharpemu-android focuses on low overhead, mergeability, and modularity.
 
-<!-- TODO: three screenshots side-by-side taken from Dreaming Sarah, Dead Cells, and Void Terriarium main menus -->
+<!--
+<p float="left">
+    <img width=32% src="https://github.com/user-attachments/assets/e0716f00-56ea-4d28-b991-99cd7751b2f1" />
+    <img width=32% src="https://github.com/user-attachments/assets/962597b8-6d85-44fe-bb63-45a519a900ab" />
+    <img width=32% src="https://github.com/user-attachments/assets/b8f55845-b9d1-4037-8aec-e3f1868874f3" />
+</p>
+-->
+<table>
+    <tr>
+        <td>
+            <img src="https://github.com/user-attachments/assets/e0716f00-56ea-4d28-b991-99cd7751b2f1" />
+        </td>
+        <td>
+            <img src="https://github.com/user-attachments/assets/962597b8-6d85-44fe-bb63-45a519a900ab" />
+        </td>
+        <td>
+            <img src="https://github.com/user-attachments/assets/b8f55845-b9d1-4037-8aec-e3f1868874f3" />
+        </td>
+    </tr>
+</table>
 
-<!-- click the dumb dog below to support development!
-TODO: mirco.png that hrefs to support.mircowuffwuff.com -->
+like the fruit of my latest software engineering obsession? click the dumb dog below to support development!
+
+<p align="center">
+    <a target="_blank" rel="noopener noreferrer" href="https://support.mircowuffwuff.com">
+        <img width=30% height=30% src="https://github.com/user-attachments/assets/a9e90563-125b-4dad-9efc-85b58850f0c8" />
+    </a>
+</p>
 
 ## requirements
 
@@ -87,10 +113,19 @@ this means, there is almost nothing in the way of sharpemu-android receiving ver
 
 perhaps the most exciting benefit of this architecture has to be, that it is extremely cheap, to design the app to allow for modular SharpEmu builds. so thats what we have done! sharpemu-android sports a SharpEmu build manager, that allows importing different SharpEmu payloads, similar to how turnip drivers work on other emulators.
 
-<!-- TODO: screenshot of the SharpEmu builds screen with bundled, outdated and Flip snapshot pool builds installed -->
+<!--
+<img width="1920" height="962" src="https://github.com/user-attachments/assets/1fdfdce0-1db3-4ca4-900e-e95bbabf95ce" />
+-->
+<table>
+    <tr>
+        <td>
+            <img src="https://github.com/user-attachments/assets/1fdfdce0-1db3-4ca4-900e-e95bbabf95ce" />
+        </td>
+    </tr>
+</table>
 
 > [!CAUTION]
-> **do not** import and run any SharpEmu builds whose authors you dont trust. if their sharpemu fork is open source, it might be worth cloning, reading through the source, and finally building and packaging yourself, to avoid harm. sharpemu-android ships without any warranty and its contributors are not liable for any harm caused by imported SharpEmu payloads.
+> **do not** import and run any SharpEmu builds whose authors you dont trust. if their sharpemu fork is open source, it might be worth cloning, reading through the source, and finally building and packaging yourself, to avoid harm.
 
 theres a fork of upstream SharpEmu that specialises in compatibility with a specific game? merge [the few necessary android platform support commits](https://github.com/sharpemu-android/sharpemu/compare/main...android) into it, package it as a SharpEmu build for sharpemu-android, import it in the app's build manager, and set it as the SharpEmu build to use for that specific game in its per-game settings!
 
@@ -197,7 +232,7 @@ for other users, to be able to import your unique SharpEmu payload, the whole bu
 ### how to commit and push
 
 > [!WARNING]
-> **AI-assisted** contributions are strictly required to carry a functional **`Co-Authored-By: ...` trailer** as the very last line of their commit messages, so that commits correctly display involvement by claude or Gemini in GitHub's user interface.
+> **AI assisted** contributions are strictly required to carry a functional **`Co-Authored-By: ...` trailer** as the very last line of their commit messages, so that commits correctly display involvement by claude or Gemini in GitHub's user interface.
 > <!-- TODO: example image of how it should look -->
 
 1. add all files, that are relevant to your changes, to git via `git add path/to/file`.
