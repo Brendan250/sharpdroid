@@ -1,5 +1,5 @@
 <p align="center">
-    <img width=27% height=27% src="https://github.com/user-attachments/assets/820482ef-6ca7-4d30-be54-d220faa1378f" />
+    <img width=27% height=27% src=".github/images/sharpemu.png" />
 </p>
 
 # sharpdroid
@@ -10,7 +10,7 @@ like the fruit of my latest software engineering obsession? click the dumb dog b
 
 <p align="center">
     <a target="_blank" rel="noopener noreferrer" href="https://support.mircowuffwuff.com">
-        <img width=30% height=30% src="https://github.com/user-attachments/assets/a9e90563-125b-4dad-9efc-85b58850f0c8" />
+        <img width=30% height=30% src=".github/images/mirco.png" />
     </a>
 </p>
 
@@ -201,7 +201,7 @@ for other users, to be able to import your unique SharpEmu payload, the whole bu
 
 > [!WARNING]
 > **AI assisted** contributions are strictly required to carry a functional **`Co-Authored-By: ...` trailer** as the very last line of their commit messages, so that commits correctly display involvement by claude or Gemini in GitHub's user interface.<br/>
-> <img height="38" src="https://github.com/user-attachments/assets/8bf9e89c-a8b3-4af2-81ef-78d4f90a7703" />
+> <img height="38" src=".github/images/co-authored-by-example.png" />
 
 
 1. add all files, that are relevant to your changes, to git via `git add path/to/file`.
