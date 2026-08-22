@@ -22,6 +22,8 @@ android-0.0.3-hotfix-2-20260808011145/
 
 **the zip is the distribution format and the directory is what runs.** android's shell has no unzip worth relying on, so a zip is unpacked on a PC and pushed. `meta.json` sits at the **zip root**, not inside a wrapper directory — that is the single thing most likely to differ between two hand-made packages.
 
+**and no archive is part of a build.** a zip inside the directory is those two nested the wrong way round, and it matters because everything that copies a build copies it whole — the APK bundling it carries it, a stage pushes it, and neither has any reason to look at what it is carrying, so the only symptom is a number nobody was reading. **a build directory containing one is refused by name**, which is the whole of the rule: no publish emits an archive, so there is nothing legitimate to weigh against it.
+
 ## `meta.json`
 
 UTF-8, **no BOM**. `java.util.zip` and `org.json` both cope with one; every other tool that has to read this one day may not.

@@ -95,12 +95,26 @@ class Build:
             self.id, self.version, self.packaged_at, self.contract)
 
     def check(self):
-        """the two things that make a build runnable, refused here rather than on a device."""
+        """what makes a build runnable and what makes it a build, refused here rather than on a device."""
         if not self.payload.exists():
             raise Refusal("{} declares a payload it does not contain: {}".format(
                 self.directory, self.payload.name))
         if not (self.directory / "plugins").is_dir():
             raise Refusal("{} has no plugins/".format(self.directory))
+        # **an archive inside a build directory is a category error rather than clutter.** a zip is
+        # how a build is distributed and a directory is how it runs, so one nested in the other is
+        # the distribution format inside the runnable form. it matters because **everything that
+        # copies a build copies it whole** -- the APK bundles it, a stage pushes it, and neither has
+        # any reason to look at what it is carrying. a zip of a build directory left inside that
+        # directory doubles the size of the APK bundling it, and nothing anywhere reports it.
+        stray = sorted(path for path in self.directory.rglob("*.zip") if path.is_file())
+        if stray:
+            names = ", ".join(path.relative_to(self.directory).as_posix() for path in stray)
+            raise Refusal(
+                "{} contains an archive, and no build does: {}\n"
+                "  a zip is how a build is distributed and the directory is how it runs. move it "
+                "out of the build directory or delete it -- everything that copies a build copies "
+                "this with it.".format(self.directory.name, names))
         low, high = contract_range()
         if not low <= self.contract <= high:
             raise Refusal(
