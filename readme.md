@@ -144,7 +144,7 @@ hey! my name is mirco and i am a software engineer.
 
 i have a decade of programming experience myself, but in this project, claude Opus 5 is my programmer. and *nothing more*. i plan the project, i tell him what to do, i monitor his progress and only accept his contributions, if they satisfy me.
 
-i regularly spend *entire sessions* just discussing implementations out with claude, to ensure we can build the best emulator possible together.
+i regularly spend *entire sessions* just discussing implementations out with claude, to ensure we can build the best app possible together.
 
 that being said, there is one part of this project, i can hardly scrutinize: claude's [host layer](https://github.com/sharpemu-android/sharpemu-android/tree/main/host) code. the concept is sound, but i am neither a low level programmer, nor an emulator developer. so, i have entrusted claude with the implementation of said host layer. i invite anyone with the appropriate experience to properly review it. i am sure, there are improvements to be made!
 
