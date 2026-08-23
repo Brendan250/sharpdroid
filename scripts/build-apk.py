@@ -288,7 +288,13 @@ def check_currency(build, toolchain, named):
     verdict, why = builds.compare_commit(build.commit, checkout, fork,
                                          subject="the build being bundled")
     if verdict == builds.MATCH:
-        say("  it is the fork checkout, {}".format(checkout))
+        # **the tree is named and not only the commit.** two checkouts of this fork exist on a
+        # development machine and one environment variable decides which one answers -- so a line
+        # naming the commit alone is agreement between two trees that may not be the one being
+        # worked in, and the two would print identically whenever they sit at the same commit. every
+        # other answer this makes already names the tree, because it has something to complain
+        # about; this one has to name it precisely because it does not.
+        say("  it is the fork checkout, {} in {}".format(checkout, fork))
         return
     if named:
         say("  ** {}".format(why))
