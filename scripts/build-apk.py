@@ -212,6 +212,19 @@ def check_provenance(build, package):
         say("  the bundled build records no commit, so this APK is not reproducible from a clone")
         return
 
+    # **a build published from a tree with edits in it is answered here rather than by the pointer
+    # below.** its commit names a real commit and then some, so a comparison against the pointer
+    # would fail with a mismatch and offer to check out a revision no repository has.
+    if build.from_dirty_tree:
+        if shippable:
+            raise Refusal(
+                "{} was published from a working tree with uncommitted changes in it, so no commit "
+                "names the source it came from. an APK bundling it is not reproducible from a clone "
+                "-- commit the changes and package the build again".format(build.directory.name))
+        say("  the bundled build is {}, published from a tree with changes in it, so this APK is "
+            "not reproducible from a clone".format(build.commit))
+        return
+
     pointer = recorded_submodule_commit()
     if pointer is None:
         if shippable:

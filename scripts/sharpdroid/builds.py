@@ -23,6 +23,12 @@ from .shell import Refusal
 # the app's declaration of which contracts it speaks.
 _CONTRACT_SOURCE = paths.APP / "src" / "main" / "java" / "com" / "mircowuffwuff" / "sharpdroid" / "SharpEmuBuild.java"
 
+# **the marker a build's `commit` carries when the checkout it was published from had uncommitted
+# changes in it**, which is the same one the APK's own commit wears. it is a suffix on the commit
+# rather than a field beside it so that everything already reading one carries it without being
+# taught to: the launch log, the build list, the About screen and this module's own comparisons.
+DIRTY = "-dirty"
+
 # absent fields and what they mean, straight out of the format document.
 _DEFAULTS = {
     "name": None,        # the id
@@ -78,6 +84,17 @@ class Build:
     @property
     def commit(self):
         return str(self.field("commit") or "")
+
+    @property
+    def from_dirty_tree(self):
+        """whether this build was published from a checkout with uncommitted changes in it.
+
+        **no commit names such a build's source**, so nothing can reconstruct it from a clone -- which
+        is why a shippable APK refuses one and a development APK only says so. it is a different
+        answer to a build that records no commit at all: that one came from a published archive and
+        there was never a checkout to ask.
+        """
+        return self.commit.endswith(DIRTY)
 
     @property
     def payload(self):

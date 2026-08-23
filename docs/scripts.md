@@ -162,10 +162,11 @@ py scripts/build-apk.py --release --sharpemu <dir>   the shippable identity
 
 the asset is a plain directory tree rather than a zip — a zip inside an APK is compressed twice and the device pays to undo both. the first launch that resolves to it unpacks it, and a later one unpacks it again when the content hash written beside the tree differs from the stamp the last unpacking left — so **a rebuild of the same commit with different bytes in it is not a build the device keeps running**, which is the state a dirty fork tree puts every APK in.
 
-two things a shippable APK refuses that a development one does not:
+three things a shippable APK refuses that a development one does not, each of them a build whose source nothing outside this machine could get back to:
 
 - **a build the submodule pointer does not name.** that pointer is what makes an APK reproducible from a clone. the development identity prints the mismatch and builds anyway, because it installs under its own application id and there is no clone to reproduce it from
 - **a build packaged from an archive**, since it records no commit to check
+- **a build published from a checkout with uncommitted changes in it**, whose commit is recorded with `-dirty` after it and names a source nothing can reconstruct. the development identity says so and builds anyway, which is what makes it usable while the fork is being worked on
 
 both identities refuse a build whose contract generation the app does not speak, and the range is read out of the app's own source so that a script cannot bless a build the app refuses.
 

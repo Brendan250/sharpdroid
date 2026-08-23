@@ -210,7 +210,8 @@ def from_fork(toolchain, arguments):
     fork = toolchain.fork
     branch = resolve_branch(fork, arguments.branch)
 
-    if capture(["git", "-C", str(fork), "status", "--porcelain"], check=False).strip():
+    dirty = bool(capture(["git", "-C", str(fork), "status", "--porcelain"], check=False).strip())
+    if dirty:
         # the path is named because two checkouts of this fork exist on a development machine by
         # design, and which one this is matters.
         warn("{} has a dirty working tree, so this build is not a clean checkout of {}".format(
@@ -224,6 +225,13 @@ def from_fork(toolchain, arguments):
     version = version.group(1)
 
     commit = capture(["git", "-C", str(fork), "rev-parse", "--short", "HEAD"]).strip()
+    # **the marker travels with the build and the warning above does not.** a warning is read once,
+    # on this machine, by whoever typed the command -- while the metadata is staged to devices,
+    # bundled into APKs, named in every launch log and drawn on two screens, and a build published
+    # from a tree with edits in it is not the commit it would otherwise claim. the same query answers
+    # both, so the line printed here and the string recorded can never disagree.
+    if dirty:
+        commit += builds.DIRTY
     publish = fork / "artifacts" / "publish" / "SharpEmu.CLI" / "Release" / "net10.0" / "linux-x64"
 
     # **what the publish tree was last built from, recorded beside it.** without this, repackaging

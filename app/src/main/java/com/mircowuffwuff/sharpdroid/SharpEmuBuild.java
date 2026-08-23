@@ -189,9 +189,20 @@ public final class SharpEmuBuild {
                 + ", contract " + hostContract + ")";
     }
 
-    /** the commit, cut to what a person quotes in a bug report. empty when there is none. */
+    /**
+     * the commit, cut to what a person quotes in a bug report. empty when there is none.
+     *
+     * <p><b>a marker after the hash survives the cut.</b> a build published from a checkout with
+     * uncommitted changes in it records {@code <hash>-dirty}, and that suffix is the whole of what
+     * this build's provenance has to say -- truncating it to seven characters would print the
+     * confident wrong answer the marker exists to prevent, in the launch log, on the build list and
+     * on the About screen at once. a hash carries no hyphen, so the first one is where it ends.
+     */
     String shortCommit() {
-        return commit.length() > 7 ? commit.substring(0, 7) : commit;
+        int mark = commit.indexOf('-');
+        String hash = mark < 0 ? commit : commit.substring(0, mark);
+        String marker = mark < 0 ? "" : commit.substring(mark);
+        return (hash.length() > 7 ? hash.substring(0, 7) : hash) + marker;
     }
 
     /**

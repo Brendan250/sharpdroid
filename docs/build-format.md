@@ -55,10 +55,12 @@ UTF-8, **no BOM**. `java.util.zip` and `org.json` both cope with one; every othe
 | `env` | guest environment this build wants defaulted on. the lowest-precedence source there is | empty |
 | `notes` | one line, printed at launch under the identity | empty |
 | `author` | who produced this build. drawn on the build list beside the version | empty |
-| `commit` | **provenance, not format.** the commit the payload was built from | — |
+| `commit` | **provenance, not format.** the commit the payload was built from, with `-dirty` after it when that checkout had uncommitted changes in it | — |
 | `source` | **provenance, not format.** where it came from when there was no commit to record | — |
 
 the app reads the first eight, `author` and `commit`, and ignores `source`. they are recorded anyway, and deliberately: a build that renders differently from another has to be traceable to where it came from without a changelog. **`commit` is what tells two builds of one upstream version apart**, which is the common case rather than the rare one: `sharpemuVersion` is upstream's tag and a fork moves faster than upstream does. the build list shows it in place of the build number wherever there is one. it is **empty rather than absent** when a build was packaged from a published archive, and `source` says what it was instead — a build whose provenance is unknown should say so rather than leave a reader to notice a missing field.
+
+**a build published from a checkout with uncommitted changes in it records `<hash>-dirty`**, the marker the APK's own commit wears, and everything that draws a commit draws that too. it is a suffix rather than a field beside it so that nothing has to be taught about it to carry it. the hash it sits behind is real, so the two are not interchangeable: the commit exists and the payload is not what is at it. **a shippable APK refuses to bundle such a build** — nothing can reconstruct it from a clone — while a development one says so and carries on, and the same is true of a build with no commit at all.
 
 **`author` is who produced the build, and not who wrote the emulator.** `sharpemuVersion` and `commit` already say what the code is; this answers the question somebody holding two zips of one version actually has, which is whose zip each one is. it is drawn on the build list after the version, where a GPU driver card puts the same claim.
 
