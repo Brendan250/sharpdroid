@@ -16,9 +16,7 @@ like the fruit of my latest software engineering obsession? click the dumb dog b
 
 ## requirements
 
-technically an arm64-v8a processor, android 9 or later, and a GPU with vulkan support.
-
-although the development hardware is not as modest; the project is built to work on an AYN Odin 3 Max running android 15, with its **Snapdragon 8 Elite**, **Adreno** 830, and 16GB RAM. that being said, Dreaming Sarah is confirmed to perform similarly on an AYN Thor running android 13, with its **Snapdragon 8 Gen 2**.
+an arm64-v8a processor, android 9 or later, and a GPU with vulkan support. thats it.
 
 ## getting it
 
