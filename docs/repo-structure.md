@@ -221,7 +221,7 @@ dependencies keep their own licences and their texts are carried in `LICENSES/`:
 
 **the fork is the exception, and it is not ours to change.** SharpEmu follows REUSE strictly and its CI rejects a new file without a header. code does move across that boundary in both directions, so **anything that crosses into the fork gains a header at the moment it crosses** — which is one line of work at the time it happens rather than a standing tax on every file here.
 
-SharpEmu builds are GPLv2 binaries. the corresponding source is our fork, public, and each build's `meta.json` records the exact commit it was cut from. running one is aggregation rather than linking: SharpEmu is a guest process image executed under emulation, never a library the app links against.
+SharpEmu builds are GPLv2 binaries. the corresponding source is our fork, public, and each build's `meta.json` records the exact commit it was cut from — **and says so when it cannot**, a build published from a checkout with uncommitted changes in it recording a marker after that commit. a shippable APK refuses to bundle one, so what an APK distributes always names a commit somebody else can fetch. running one is aggregation rather than linking: SharpEmu is a guest process image executed under emulation, never a library the app links against.
 
 **the guest libraries in an APK are the same kind of thing, and an APK carrying them redistributes them.** they are unmodified Debian binaries — glibc under LGPL-2.1-or-later, libstdc++ and libgcc under GPL-3.0-or-later with the GCC runtime exception, openssl under Apache-2.0. **nothing here links against them and nothing could**: the application is arm64 and they are x86-64, searched by the *guest's* own dynamic linker under emulation.
 

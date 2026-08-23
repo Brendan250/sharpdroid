@@ -11,6 +11,11 @@
 # alone finds its own SDK through the environment, which on a machine with two installs is exactly
 # the silent disagreement the resolver exists to prevent.
 #
+# **the build going in has to be the fork checkout on this machine, and a difference refuses.** the
+# emulator is developed through the bundled build -- edit the fork, package it, build the APK, run it
+# -- and dropping the packaging step from that loop otherwise produces a perfectly good APK carrying
+# the payload from before the edit. naming one with `--sharpemu` is a choice and is reported instead.
+#
 # **the guest libraries always ship and there is no argument to say otherwise.** a build is chosen
 # because a person picks between several; the x86-64 set the guest's own linker searches is the one
 # right set for a given APK, so the only question it could answer is "should this APK be able to run

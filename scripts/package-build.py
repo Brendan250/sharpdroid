@@ -11,7 +11,12 @@
 #
 # **`--from-archive` needs no fork checkout, no .NET SDK and no git.** that is the path a third party
 # takes and the one any automated job would take. what it cannot do is record a commit, so the
-# build's `commit` is empty and its `source` names the archive instead.
+# build's `commit` is empty and its `source` names the archive instead -- and with no fork there is
+# no remote to take an author from, so `--author` is how one is set there.
+#
+# **everything else defaults from the fork**: the id and the `source` from the branch, the author
+# from the owner of that branch's `origin` remote, and the display name from the table below where
+# there is one for it.
 #
 # **a build is a directory, not a file.** the publish output is the payload *and* its plugins, which
 # the payload resolves relative to its own executable -- both for its managed plugins and for the

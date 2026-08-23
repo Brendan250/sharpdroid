@@ -205,8 +205,11 @@ def check_staleness(attached, toolchain, package, build_path, named):
     """
     against = build_path
     if against is None:
-        # with no build named there is no commit to read, so the most recently staged one is the
-        # best available guess at what the app will pick. it is a guess, and the message says so.
+        # with no build named there is no commit to read, so the most recently staged one is what
+        # this can see. **it is not what the app will pick**: with nothing chosen that is the build
+        # inside the APK, on internal storage, and the APK step compares that one against the
+        # checkout as it seals it in. so this covers the tier `adb` can write, the message says it
+        # is a guess, and the case it cannot see is answered where the mistake is actually made.
         files = device.external_files(package)
         staged = [name for name in attached.list(files + "/builds") if not name.startswith(".")]
         if staged:

@@ -143,9 +143,13 @@ py scripts/package-build.py --from-archive <path or url> --id android
 
 it produces a **directory and a zip** under `build/builds/` and stops. producing a build and putting one on a device are two jobs, which is what lets a build packaged last week — or one somebody else packaged — be staged without republishing anything.
 
-**`--from-archive` needs no fork checkout, no .NET SDK and no git.** that is the path a third party takes, and the one any automated job would take. what it cannot do is record a commit, so the build's `commit` is empty and its `source` names the archive instead.
+**`--from-archive` needs no fork checkout, no .NET SDK and no git.** that is the path a third party takes, and the one any automated job would take. what it cannot do is record a commit, so the build's `commit` is empty and its `source` names the archive instead — and with no fork there is no remote to take an author from either, so `--author` is how one is set there.
+
+**everything else in a build's metadata defaults from the fork**: its id and its `source` from the branch, its author from the owner of that branch's `origin` remote, and its display name from the branch where this repository knows one. [`build-format.md`](build-format.md) is where each of those is defined.
 
 the fork checkout is resolved by **`SHARPDROID_SHARPEMU`**, falling back to the `external/sharpemu` submodule and to nothing else. the submodule is a pin, nothing develops in it, and a checkout beside this repository is deliberately not in the order — if it were, the pin would be the one path no machine ever took and would go stale with nothing to notice.
+
+**set it for the whole sequence or for none of it.** packaging a build in a shell that has the variable and building the APK in one that does not gives the two steps different forks, and the second refuses a build the first was right to make. the APK step names the tree it compared against for that reason — and if the variable is missing everywhere, both steps resolve the pin, agree, and are wrong together, which is a thing to read in the paths rather than something any check can catch.
 
 [`build-format.md`](build-format.md) is what a build is.
 
@@ -160,7 +164,7 @@ py scripts/build-apk.py --release --sharpemu <dir>   the shippable identity
 
 **bundling is the default and that is deliberate**: an APK without a build in it looks identical to one with it, right up to the moment you want to test the bundled build and find it is not installed. **nothing to bundle is a refusal, never a silent bundle-less APK.**
 
-the asset is a plain directory tree rather than a zip — a zip inside an APK is compressed twice and the device pays to undo both. the first launch that resolves to it unpacks it, and a later one unpacks it again when the content hash written beside the tree differs from the stamp the last unpacking left — so **a rebuild of the same commit with different bytes in it is not a build the device keeps running**, which is the state a dirty fork tree puts every APK in.
+the asset is a plain directory tree rather than a zip — a zip inside an APK is compressed twice and the device pays to undo both. the first launch that resolves to it unpacks it, and a later one unpacks it again when the content hash written beside the tree differs from the stamp the last unpacking left — so **a rebuild of the same commit with different bytes in it is not a build the device keeps running** — which is what successive builds from a tree still being worked in are: one commit, different bytes each time.
 
 three things a shippable APK refuses that a development one does not, each of them a build whose source nothing outside this machine could get back to:
 
