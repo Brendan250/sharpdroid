@@ -31,16 +31,16 @@ UTF-8, **no BOM**. `java.util.zip` and `org.json` both cope with one; every othe
 ```json
 {
   "id": "android",
-  "name": "SharpEmu for Android",
+  "name": "Android platform support",
   "sharpemuVersion": "0.0.3-hotfix-2",
   "packagedAt": 20260808011145,
   "hostContract": 2,
   "payload": "SharpEmu",
   "env": {},
   "notes": "SharpEmu expanded by Android platform support.",
-  "author": "mircowuffwuff and claude",
+  "author": "mircowuffwuff",
   "commit": "a1b2c3d",
-  "source": "fork android"
+  "source": "https://github.com/mircowuffwuff/sharpemu/tree/android"
 }
 ```
 
@@ -56,9 +56,9 @@ UTF-8, **no BOM**. `java.util.zip` and `org.json` both cope with one; every othe
 | `notes` | one line, printed at launch under the identity | empty |
 | `author` | who produced this build. drawn on the build list beside the version | empty |
 | `commit` | **provenance, not format.** the commit the payload was built from, with `-dirty.<8 hex>` after it when that checkout had uncommitted changes in it | — |
-| `source` | **provenance, not format.** where it came from when there was no commit to record | — |
+| `source` | **provenance, not format.** where the payload came from: the fork branch's own page, or the archive a build with no commit was made from | — |
 
-the app reads the first eight, `author` and `commit`, and ignores `source`. they are recorded anyway, and deliberately: a build that renders differently from another has to be traceable to where it came from without a changelog. **`commit` is what tells two builds of one upstream version apart**, which is the common case rather than the rare one: `sharpemuVersion` is upstream's tag and a fork moves faster than upstream does. the build list shows it in place of the build number wherever there is one. it is **empty rather than absent** when a build was packaged from a published archive, and `source` says what it was instead — a build whose provenance is unknown should say so rather than leave a reader to notice a missing field.
+the app reads the first eight, `author` and `commit`, and ignores `source`. they are recorded anyway, and deliberately: a build that renders differently from another has to be traceable to where it came from without a changelog. **`commit` is what tells two builds of one upstream version apart**, which is the common case rather than the rare one: `sharpemuVersion` is upstream's tag and a fork moves faster than upstream does. the build list shows it in place of the build number wherever there is one. it is **empty rather than absent** when a build was packaged from a published archive, and `source` says what it was instead — a build whose provenance is unknown should say so rather than leave a reader to notice a missing field. **`source` is the branch's own page** for a build cut from the fork, `https://<host>/<owner>/<project>/tree/<branch>`, built from the same `origin` remote the author comes from: the project alone would answer whose emulator it is and not which of their branches, and the branches are the whole point, one being the maintained tier and the rest archived at a commit and merged nowhere. it reads `unknown` where that remote will not parse.
 
 **a build published from a checkout with uncommitted changes in it records `<hash>-dirty.<8 hex>`**, the marker the APK's own commit wears and a fingerprint of those changes after it. it is a suffix rather than a field beside it so that nothing has to be taught about it to carry it. the hash it sits behind is real, so the two are not interchangeable: the commit exists and the payload is not what is at it. **a shippable APK refuses to bundle such a build** — nothing can reconstruct it from a clone — while a development one says so and carries on, and the same is true of a build with no commit at all.
 
@@ -66,7 +66,7 @@ the app reads the first eight, `author` and `commit`, and ignores `source`. they
 
 **`author` is who produced the build, and not who wrote the emulator.** `sharpemuVersion` and `commit` already say what the code is; this answers the question somebody holding two zips of one version actually has, which is whose zip each one is. it is drawn on the build list after the version, where a GPU driver card puts the same claim.
 
-**and it is a claim rather than a fact, which is where it differs from `commit`.** a commit names something checkable against a repository; this is a string in a zip anybody can edit. so nothing reads it but the screen — no import rule consults it, nothing is trusted because of it, and a build with an author nobody recognises is refused for no reason it would not have been refused for anyway. `scripts/package-build.py --author` is how one is set; it is never derived from `git log`, which names whoever wrote the last commit and would credit an upstream contributor for a package they never made the moment the fork merges upstream.
+**and it is a claim rather than a fact, which is where it differs from `commit`.** a commit names something checkable against a repository; this is a string in a zip anybody can edit. so nothing reads it but the screen — no import rule consults it, nothing is trusted because of it, and a build with an author nobody recognises is refused for no reason it would not have been refused for anyway. `scripts/package-build.py --author` is how one is set, and it **defaults to the owner of the fork's `origin` remote** — the only place a checkout knows whose fork it is. `git config user.name` is who is sitting at the machine, which is a different claim and would credit them for somebody else's fork; the log is worse still, naming whoever wrote the last commit and so crediting an upstream contributor for a package they never made the moment the fork merges upstream. a remote that will not parse leaves it empty, which is a supported answer.
 
 **`sharpemuVersion` orders by SharpEmu's own release order, which is not semver, and the app implements that order rather than assuming one.** the released versions run `0.0.1`, `0.0.2`, `0.0.2-beta.2` … `0.0.2-beta.5`, `0.0.3`, `0.0.3-hotfix-1`, `0.0.3-hotfix-2`, `0.0.3-release.2` — so **a bare version comes first and suffixed ones follow it**, where semver says a suffixed version precedes the bare one. the dotted numbers compare numerically, then a bare version sorts before any suffix of the same numbers, then suffix labels compare alphabetically and their own numbers numerically, so `hotfix-2` precedes `hotfix-10`. `Versions.java` is the rule and says all of this beside the code, because anybody reading it against semver will think it is inverted.
 

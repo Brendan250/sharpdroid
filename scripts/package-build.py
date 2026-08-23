@@ -28,6 +28,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tarfile
 import urllib.request
@@ -57,21 +58,18 @@ HOST_CONTRACT = 3
 # is what keeps absorbing an upstream release a thing you do once.
 KNOWN = {
     "android": {
-        "name": "SharpEmu for Android",
-        "author": "mircowuffwuff and claude",
+        "name": "Android platform support",
         "env": [],
         "notes": "SharpEmu expanded by Android platform support.",
     },
     "perf/flip-snapshot-pool": {
         "name": "Flip snapshot pool",
-        "author": "mircowuffwuff and claude",
         "env": [],
         "notes": "android plus a pool for the per-frame guest flip snapshot. a topic branch, open "
                  "upstream -- import it to try the change before it lands.",
     },
     "perf/host-cached-memory": {
         "name": "Host-cached memory",
-        "author": "mircowuffwuff and claude",
         "env": [],
         "notes": "android plus a host-cached memory preference for CPU-written allocations on "
                  "integrated GPUs. it is what a third-party driver needs and does little for the "
@@ -79,7 +77,6 @@ KNOWN = {
     },
     "perf/render-pass-batching": {
         "name": "Render pass batching",
-        "author": "mircowuffwuff and claude",
         "env": ["SHARPEMU_BATCH_RENDER_PASSES=1"],
         "notes": "android plus render pass batching. a parked topic branch that joins nothing: a "
                  "per-draw global-memory barrier refuses every join, so the change is measured and "
@@ -113,9 +110,10 @@ def entry():
     parser.add_argument("--notes", metavar="TEXT", default=None,
                         help="one line, printed at launch under the identity.")
     parser.add_argument("--author", metavar="WHO", default=None,
-                        help="who produced this build -- not who wrote the emulator. never derived "
-                             "from the log, which after an upstream merge would credit an upstream "
-                             "contributor for a package they never made.")
+                        help="who produced this build -- not who wrote the emulator. defaults to "
+                             "the owner of the fork's origin remote. never derived from the log, "
+                             "which after an upstream merge would credit an upstream contributor "
+                             "for a package they never made.")
     parser.add_argument("--guest-env", metavar="NAME=VALUE", nargs="+", default=None,
                         help="guest environment this build wants defaulted on. the "
                              "lowest-precedence source there is.")
@@ -278,8 +276,48 @@ def from_fork(toolchain, arguments):
                 "--no-publish to publish the checked-out branch, or check out the branch it came "
                 "from".format(publish, was, identity))
 
+    owner, project = fork_origin(fork)
     return {"branch": branch, "version": version, "commit": commit,
-            "source": "fork " + branch}, publish
+            "author": owner,
+            "source": tree_url(project, branch) if project else "unknown"}, publish
+
+
+def fork_origin(fork):
+    """who the fork belongs to and where it lives, out of its `origin` remote, or two empty strings.
+
+    **the remote is the only place a clone knows whose fork it is.** `git config user.name` is who
+    is sitting here, which is not the same claim -- a checkout of somebody else's fork would credit
+    the wrong person for their build -- and the log is worse still, since after an upstream merge the
+    last commit is an upstream contributor's.
+
+    both URL shapes git writes are read, `https://host/owner/project` and `git@host:owner/project`,
+    because which one a clone has is a preference nobody sets deliberately.
+    """
+    url = subprocess.run(["git", "-C", str(fork), "remote", "get-url", "origin"],
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                         encoding="utf-8", errors="replace")
+    if url.returncode != 0:
+        return "", ""
+    found = re.match(r"^(?:https?://|ssh://git@|git@)([^/:]+)[/:]([^/]+)/(.+?)(?:\.git)?/?$",
+                     (url.stdout or "").strip())
+    if not found:
+        return "", ""
+    host, owner, project = found.group(1), found.group(2), found.group(3)
+    return owner, "https://{}/{}/{}".format(host, owner, project)
+
+
+def tree_url(project, branch):
+    """the branch's own page, which is where a person sent to a build's source should land.
+
+    the project alone answers "whose emulator is this" and not "which of their branches", and the
+    branches are the whole point here: one of them is the maintained tier and the rest are archived
+    at a commit and merged nowhere.
+
+    `/tree/<branch>` is GitHub's path and other forges spell it differently. that costs nothing to be
+    wrong about: this string is provenance a person reads, nothing resolves it, and the project it
+    is built from is right whatever the branch path turns out to be.
+    """
+    return "{}/tree/{}".format(project, branch)
 
 
 def resolve_branch(fork, wanted):
@@ -358,7 +396,11 @@ def package(toolchain, arguments, identity, publish):
     known = KNOWN.get(branch, {})
     name = arguments.name or known.get("name") or branch
     notes = arguments.notes if arguments.notes is not None else known.get("notes", "")
-    author = arguments.author if arguments.author is not None else known.get("author", "")
+    # **the fork's own remote is the default and the table above may still override it**, though
+    # nothing in it does: naming an author there would state on every machine what only the machine
+    # packaging can know. empty is a supported answer and means the app's own screens say it once.
+    author = arguments.author if arguments.author is not None else (
+        known.get("author") or identity.get("author", ""))
     guest_env = arguments.guest_env if arguments.guest_env is not None else known.get("env", [])
 
     packaged_at = arguments.packaged_at or int(datetime.now().strftime("%Y%m%d%H%M%S"))
