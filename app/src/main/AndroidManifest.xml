@@ -130,7 +130,7 @@
 
         <!--
           the About screen, opened by its own card on the settings scene, and the two screens behind
-          it: the list of licence documents this APK redistributes its guest libraries under, and the
+          it: the list of license documents this APK redistributes its guest libraries under, and the
           reader that shows one.
 
           none is exported, which is the rule every screen behind the cog follows. there is nothing
@@ -142,11 +142,11 @@
             android:exported="false" />
 
         <activity
-            android:name=".LicencesActivity"
+            android:name=".LicensesActivity"
             android:exported="false" />
 
         <activity
-            android:name=".LicenceTextActivity"
+            android:name=".LicenseTextActivity"
             android:exported="false" />
 
         <!--

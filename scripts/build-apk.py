@@ -411,20 +411,20 @@ def stage_guest_libs():
             raise Refusal("{} is not in {} -- the guest cannot start without it. run: py "
                           "scripts/fetch-guest-libs.py".format(needed, paths.relative(source)))
     # **the notice and the texts are required rather than packed if they happen to be there.** most
-    # of this set is unmodified debian binaries under licences that ask that a recipient be given the
+    # of this set is unmodified debian binaries under licenses that ask that a recipient be given the
     # terms and be able to get the source, and an APK is where they are distributed -- so a set
     # assembled before the fetch started writing these must not quietly ship without them.
     #
     # the index alone is not enough to check for: it is one small file, and the directory beside it
-    # is where the copyright statements and the full licence texts are. a set carrying the index and
+    # is where the copyright statements and the full license texts are. a set carrying the index and
     # an empty directory would pass a test that only asked about the index.
     # `GPL-2` is in this list because both the glibc and the gcc-12 statements refer to it, not
     # because anything here is under it alone -- a text a statement points at and the set does not
     # carry is a reference that resolves nowhere.
-    missing = [name for name in ("licences.txt", "licences/glibc.copyright",
-                                 "licences/gcc-12.copyright", "licences/openssl.copyright",
-                                 "licences/LGPL-2.1", "licences/GPL-2", "licences/GPL-3",
-                                 "licences/Apache-2.0")
+    missing = [name for name in ("licenses.txt", "licenses/glibc.copyright",
+                                 "licenses/gcc-12.copyright", "licenses/openssl.copyright",
+                                 "licenses/LGPL-2.1", "licenses/GPL-2", "licenses/GPL-3",
+                                 "licenses/Apache-2.0")
                if not (source / name).exists()]
     if missing:
         raise Refusal(
@@ -434,7 +434,7 @@ def stage_guest_libs():
                 paths.relative(source), ", ".join(missing)))
 
     # **the whole directory rather than the files in it.** the set is not only shared objects -- the
-    # notice sits beside them and `licences/` under it -- and a copy that took files would drop the
+    # notice sits beside them and `licenses/` under it -- and a copy that took files would drop the
     # subdirectory silently, which is how the terms these binaries are redistributed under would go
     # missing without anything failing. what the fetch writes is what ships.
     ensure(asset)
@@ -518,7 +518,7 @@ HOST_NOTICES = (
     ("libadrenotools", "BSD-2-Clause", ("ADRENOTOOLS", "LICENSE")),
 )
 
-# SoftFloat is the one that cannot be copied from a file. the vendored copy carries no licence
+# SoftFloat is the one that cannot be copied from a file. the vendored copy carries no license
 # document at all -- upstream keeps it in a directory that was not vendored -- and states its terms in
 # a header block at the top of every source file instead. so the notice is lifted out of one, and the
 # extraction refuses rather than shipping something shorter than the terms it claims to be.
@@ -540,13 +540,13 @@ def stage_notices(toolchain, offline):
     fraction of the distributed one and a hand-written list would be a statement about the wrong set.
     the guest's x86-64 libraries keep their own tree and are not touched here.
     """
-    step("the licence notices")
-    asset = ensure(paths.BUILD_BUNDLE / "licences")
+    step("the license notices")
+    asset = ensure(paths.BUILD_BUNDLE / "licenses")
     texts = ensure(asset / "texts")
     roots = {"FEX": paths.FEX, "ADRENOTOOLS": paths.ADRENOTOOLS}
 
     libraries = []
-    for name, licence, (root, relative) in HOST_NOTICES:
+    for name, license, (root, relative) in HOST_NOTICES:
         source = roots[root] / relative
         if not source.exists():
             raise Refusal(
@@ -556,7 +556,7 @@ def stage_notices(toolchain, offline):
                     paths.relative(source), name))
         target = texts / file_name(name)
         shutil.copyfile(str(source), str(target))
-        libraries.append({"name": name, "licence": licence,
+        libraries.append({"name": name, "license": license,
                           "text": "texts/" + target.name})
 
     libraries.append(stage_softfloat_notice(texts))
@@ -588,10 +588,10 @@ def file_name(name):
 
 
 def stage_softfloat_notice(texts):
-    """SoftFloat's terms, lifted out of a source file's header because it ships no licence document.
+    """SoftFloat's terms, lifted out of a source file's header because it ships no license document.
 
     the block is the copyright line, the three BSD conditions and the disclaimer, which is the whole
-    of what the licence asks be reproduced. an extraction that came back short would be a notice that
+    of what the license asks be reproduced. an extraction that came back short would be a notice that
     looked complete and was not, so the length is checked against the disclaimer that ends it.
     """
     source = paths.FEX / SOFTFLOAT_SOURCE[1]
@@ -602,12 +602,12 @@ def stage_softfloat_notice(texts):
     found = SOFTFLOAT_HEADER.search(source.read_text(encoding="utf-8", errors="replace"))
     if not found or "THIS SOFTWARE IS PROVIDED" not in found.group(1):
         raise Refusal(
-            "the licence header at the top of {} is not the shape this reads. SoftFloat states its "
+            "the license header at the top of {} is not the shape this reads. SoftFloat states its "
             "terms per file rather than in a document, so that block is the notice and packaging "
             "will not invent one.".format(paths.relative(source)))
     target = texts / "SoftFloat-3e"
     write_text(target, found.group(1) + "\n")
-    return {"name": "SoftFloat-3e", "licence": "BSD-3-Clause", "text": "texts/" + target.name}
+    return {"name": "SoftFloat-3e", "license": "BSD-3-Clause", "text": "texts/" + target.name}
 
 
 def stage_stl_notice(toolchain, texts):
@@ -629,7 +629,7 @@ def stage_stl_notice(toolchain, texts):
                 paths.relative(source)))
     target = texts / "LLVM"
     shutil.copyfile(str(source), str(target))
-    return {"name": "LLVM", "licence": "Apache-2.0 WITH LLVM-exception",
+    return {"name": "LLVM", "license": "Apache-2.0 WITH LLVM-exception",
             "text": "texts/" + target.name}
 
 
@@ -646,7 +646,7 @@ def stage_stl_notice(toolchain, texts):
 # packaging step should not be making and would get wrong in the safe-looking direction: quietly
 # dropping an icon that is Google's because it was redrawn at a different grid.
 VENDORED_ASSETS = (
-    {"name": "Material Symbols", "licence": "Apache-2.0",
+    {"name": "Material Symbols", "license": "Apache-2.0",
      "what": "icons in the app's drawable resources, taken from Google's Material icon set",
      "icons": ("app/src/main/res/drawable", "ic_*.xml"),
      "drawn_here": ("ic_add.xml", "ic_game_placeholder.xml")},
@@ -657,13 +657,13 @@ VENDORED_ASSETS = (
 #
 # **this is not a dependency and a row of its own would say it was.** the app asks for okhttp; the
 # Public Suffix List arrives inside it as a data file. listing it as a peer of okhttp and coil would
-# state a relationship this build does not have, so instead the row it arrived in names both licences
+# state a relationship this build does not have, so instead the row it arrived in names both licenses
 # and the document behind that row carries both texts.
 #
 # `evidence` is the entry the carrier ships to say so, and it is asserted in the finished APK -- the
 # claim made here is then the artefact's rather than this table's.
 EMBEDDED_WORKS = (
-    {"carrier": "okhttp", "work": "the Public Suffix List", "licence": "MPL-2.0",
+    {"carrier": "okhttp", "work": "the Public Suffix List", "license": "MPL-2.0",
      "text": "MPL-2.0.txt", "source": "https://publicsuffix.org/list/public_suffix_list.dat",
      "evidence": "okhttp3/internal/publicsuffix/NOTICE"},
 )
@@ -677,9 +677,9 @@ GUEST_BLOCK = re.compile(
     r"  copyright (?P<copyright>\S+)\n"
     r"  source +(?P<url>\S+)$",
     re.MULTILINE)
-GUEST_PACKAGE = re.compile(r"^  package +(?P<name>\S+) +-- +(?P<licence>.+?)\s*$", re.MULTILINE)
+GUEST_PACKAGE = re.compile(r"^  package +(?P<name>\S+) +-- +(?P<license>.+?)\s*$", re.MULTILINE)
 
-# what a debian copyright statement points at when it names a licence by where it lives on a debian
+# what a debian copyright statement points at when it names a license by where it lives on a debian
 # system rather than quoting it.
 GUEST_REFERENCE = re.compile(r"common-licenses/([A-Za-z0-9.+-]+)")
 
@@ -704,12 +704,12 @@ def stage_guest_notices(texts):
     front of the statement rather than in a separate document a reader has to know to open.
 
     **the texts are the ones that apply, intersected rather than assumed.** a statement covers a whole
-    source package, so `gcc-12` refers to licences that cover documentation and compilers this ships
+    source package, so `gcc-12` refers to licenses that cover documentation and compilers this ships
     no binary of; the set beside the binaries is the set that applies, and naming any other would be a
     claim this APK cannot back.
     """
-    index = paths.GUEST_LIBS_X86_64 / "licences.txt"
-    available = paths.GUEST_LIBS_X86_64 / "licences"
+    index = paths.GUEST_LIBS_X86_64 / "licenses.txt"
+    available = paths.GUEST_LIBS_X86_64 / "licenses"
     if not index.exists():
         raise Refusal("{} is not there, so the terms the guest's x86-64 libraries are redistributed "
                       "under cannot be packaged. run: py scripts/fetch-guest-libs.py".format(
@@ -733,7 +733,7 @@ def stage_guest_notices(texts):
                                                                  errors="replace")))
             target = texts / file_name(package.group("name"))
             write_text(target, "\n".join(document).rstrip("\n") + "\n")
-            rows.append({"name": package.group("name"), "licence": package.group("licence"),
+            rows.append({"name": package.group("name"), "license": package.group("license"),
                          "text": "texts/" + target.name})
 
     if not rows:
@@ -769,8 +769,8 @@ def guest_preamble(name, block, applicable):
             name=name, version=block.group("version"), source=block.group("source"),
             url=block.group("url"),
             texts=".\n" if not applicable else
-                  ",\nthen the full text of the licence it refers to.\n" if len(applicable) == 1 else
-                  ",\nthen the full texts of the licences it refers to.\n"))
+                  ",\nthen the full text of the license it refers to.\n" if len(applicable) == 1 else
+                  ",\nthen the full texts of the licenses it refers to.\n"))
 
 
 def stage_dex_notices(toolchain, texts, offline):
@@ -784,16 +784,16 @@ def stage_dex_notices(toolchain, texts, offline):
     the export runs as its own invocation because the answer has to exist before the asset tree is
     handed to the build that packages it. it is cheap and it is cached.
 
-    **an entry with no licence is a refusal rather than a blank row.** the terms come from each
-    artefact's published metadata, and metadata that is missing or names a licence the generator has
+    **an entry with no license is a refusal rather than a blank row.** the terms come from each
+    artefact's published metadata, and metadata that is missing or names a license the generator has
     no text for is exactly how an attribution list ends up with a confident-looking gap in it.
 
     **the generator's own file is not what ships.** its schema belongs to a build-time plugin and
     would become something the app has to keep reading correctly across upgrades of that plugin, for
-    no gain: what the screen needs is a name, a licence and a document, which is the shape everything
+    no gain: what the screen needs is a name, a license and a document, which is the shape everything
     else here is already in. so this returns rows in that shape and the plugin's file stays behind.
 
-    one text per licence rather than one per library, because these state their terms without naming
+    one text per license rather than one per library, because these state their terms without naming
     a holder in them -- the attribution is the entry, and ninety-odd copies of one identical document
     is bytes in the APK that no reader is better off for.
     """
@@ -827,9 +827,9 @@ def stage_dex_notices(toolchain, texts, offline):
 
     rows = []
     for library in described.get("libraries", []):
-        licence = sorted(set(library.get("licenses") or ()) & known)[0]
-        rows.append({"name": library.get("name") or library["uniqueId"], "licence": licence,
-                     "text": "texts/" + file_name(licence)})
+        license = sorted(set(library.get("licenses") or ()) & known)[0]
+        rows.append({"name": library.get("name") or library["uniqueId"], "license": license,
+                     "text": "texts/" + file_name(license)})
     return fold_embedded_works(rows, texts)
 
 
@@ -867,21 +867,21 @@ def vendored_asset_notices(texts):
                 "longer contains -- drop the entry.".format(
                     pattern, paths.relative(directory), asset["name"]))
 
-        text = texts / file_name(asset["licence"])
+        text = texts / file_name(asset["license"])
         if not text.exists():
             raise Refusal(
                 "{} is under {} and nothing wrote that text. it is shared with what gradle resolved, "
-                "so this needs a resolved dependency under the same licence or a copy of its "
-                "own.".format(asset["name"], asset["licence"]))
+                "so this needs a resolved dependency under the same license or a copy of its "
+                "own.".format(asset["name"], asset["license"]))
         say("  {} covers {} file(s) under {}".format(
             asset["name"], len(found), paths.relative(directory)))
-        rows.append({"name": asset["name"], "licence": asset["licence"],
+        rows.append({"name": asset["name"], "license": asset["license"],
                      "text": "texts/" + text.name})
     return rows
 
 
 def fold_embedded_works(rows, texts):
-    """give a row that carries somebody else's work under other terms both licences and both texts.
+    """give a row that carries somebody else's work under other terms both licenses and both texts.
 
     **the carrier is rewritten rather than joined by a second row**, for the reason the table says: a
     peer row would state a dependency this build does not have.
@@ -899,35 +899,35 @@ def fold_embedded_works(rows, texts):
                 "describes something this APK does not contain. remove it, or name the library that "
                 "replaced it.".format(embedded["carrier"], embedded["work"]))
 
-        text = paths.LICENCE_TEXTS / embedded["text"]
+        text = paths.LICENSE_TEXTS / embedded["text"]
         if not text.exists():
             raise Refusal("{} states the terms of {} and is not there".format(
                 paths.relative(text), embedded["work"]))
         carried = texts / file_name(row["name"])
         write_text(carried, "\n".join([
             embedded_preamble(row, embedded),
-            (texts / file_name(row["licence"])).read_text(encoding="utf-8"),
-            "{0}\n{1}\n{0}\n".format("=" * 78, embedded["licence"]),
+            (texts / file_name(row["license"])).read_text(encoding="utf-8"),
+            "{0}\n{1}\n{0}\n".format("=" * 78, embedded["license"]),
             text.read_text(encoding="utf-8"),
         ]).rstrip("\n") + "\n")
 
-        row["licence"] = "{}, and {} for {}".format(row["licence"], embedded["licence"],
+        row["license"] = "{}, and {} for {}".format(row["license"], embedded["license"],
                                                     embedded["work"])
         row["text"] = "texts/" + carried.name
     return rows
 
 
 def embedded_preamble(row, embedded):
-    """what the row's two licences are and which part of it each one covers."""
+    """what the row's two licenses are and which part of it each one covers."""
     return (
-        "{carrier} is under {licence}, and carries {work} under {other}.\n"
+        "{carrier} is under {license}, and carries {work} under {other}.\n"
         "\n"
         "{work_capitalised} is kept at\n"
         "  {source}\n"
         "\n"
-        "both texts follow: {licence} first, covering {carrier} itself, then {other}.\n".format(
-            carrier=row["name"], licence=row["licence"], work=embedded["work"],
-            other=embedded["licence"], source=embedded["source"],
+        "both texts follow: {license} first, covering {carrier} itself, then {other}.\n".format(
+            carrier=row["name"], license=row["license"], work=embedded["work"],
+            other=embedded["license"], source=embedded["source"],
             work_capitalised=embedded["work"][0].upper() + embedded["work"][1:]))
 
 
@@ -1155,12 +1155,12 @@ def verify(apk, bundled, guest_libraries, notices):
                  "assets/guest-libs/libvulkan.so.1", "assets/guest-libs/libaaudio.so",
                  # and the terms they are redistributed under, asserted in the archive rather than
                  # only in the tree it was assembled from.
-                 "assets/guest-libs/licences.txt",
-                 "assets/guest-libs/licences/glibc.copyright",
-                 "assets/guest-libs/licences/gcc-12.copyright",
-                 "assets/guest-libs/licences/openssl.copyright",
-                 "assets/guest-libs/licences/LGPL-2.1", "assets/guest-libs/licences/GPL-2",
-                 "assets/guest-libs/licences/GPL-3", "assets/guest-libs/licences/Apache-2.0"):
+                 "assets/guest-libs/licenses.txt",
+                 "assets/guest-libs/licenses/glibc.copyright",
+                 "assets/guest-libs/licenses/gcc-12.copyright",
+                 "assets/guest-libs/licenses/openssl.copyright",
+                 "assets/guest-libs/licenses/LGPL-2.1", "assets/guest-libs/licenses/GPL-2",
+                 "assets/guest-libs/licenses/GPL-3", "assets/guest-libs/licenses/Apache-2.0"):
         if name not in sizes or sizes[name] <= 0:
             raise Refusal("packaging failed: {} is missing or empty in the APK".format(name))
     check_listing(sizes, "guest-libs")
@@ -1173,23 +1173,23 @@ def verify(apk, bundled, guest_libraries, notices):
     # does not carry is a row in the list that opens onto nothing -- and that failure looks like a
     # broken screen rather than like a missing notice, which is what it is.
     host_notices, dex_notices, vendored_notices = notices
-    if sizes.get("assets/licences/notices.json", 0) <= 0:
-        raise Refusal("packaging failed: assets/licences/notices.json is missing or empty in the APK")
+    if sizes.get("assets/licenses/notices.json", 0) <= 0:
+        raise Refusal("packaging failed: assets/licenses/notices.json is missing or empty in the APK")
     with zipfile.ZipFile(str(apk)) as archive:
-        index = json.loads(archive.read("assets/licences/notices.json").decode("utf-8"))
+        index = json.loads(archive.read("assets/licenses/notices.json").decode("utf-8"))
     listed = index.get("libraries", [])
     staged = host_notices + dex_notices + vendored_notices
     if len(listed) != staged:
         raise Refusal("packaging failed: {} notices were staged and the APK's index names {}".format(
             staged, len(listed)))
     for library in listed:
-        entry = "assets/licences/" + library["text"]
+        entry = "assets/licenses/" + library["text"]
         if entry not in sizes or sizes[entry] <= 0:
             raise Refusal(
                 "packaging failed: the notice index names {} for {} and the APK does not carry "
                 "it".format(library["text"], library["name"]))
-    say("  {:>12,}  the licence notices, {} native, {} in the dex, {} committed here".format(
-        sum(count for name, count in sizes.items() if name.startswith("assets/licences/")),
+    say("  {:>12,}  the license notices, {} native, {} in the dex, {} committed here".format(
+        sum(count for name, count in sizes.items() if name.startswith("assets/licenses/")),
         host_notices, dex_notices, vendored_notices))
     check_embedded_works(sizes)
     check_bundled_build(sizes, bundled)
@@ -1201,7 +1201,7 @@ def check_embedded_works(sizes):
     a library that carries somebody else's work under other terms says so in a `NOTICE` beside it, and
     the packer puts that file in the APK whether or not anybody looked at it. so the APK knows the
     answer, and the only way this stays true as dependencies move is to ask it rather than to
-    remember: an undeclared one is a refusal here, on this machine, rather than a licence found by
+    remember: an undeclared one is a refusal here, on this machine, rather than a license found by
     accident a third time.
 
     the declared ones are asserted in the other direction too. an `evidence` entry that is no longer

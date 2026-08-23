@@ -3,7 +3,7 @@
 
   **the smaller of two sizes of one mark, and it is two files because it has to be.** a compound
   drawable is drawn at its own intrinsic size and nothing at the point of use can scale it, so a mark
-  that has to sit with two text sizes is two drawables. this one follows the licence line, whose text
+  that has to sit with two text sizes is two drawables. this one follows the license line, whose text
   is about a third smaller than the value lines above it; `ic_open_link.xml` is the same shape at the
   size those take.
 

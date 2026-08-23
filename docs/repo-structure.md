@@ -100,7 +100,7 @@ five notes on the shape:
 
 three **git submodules under `external/`**, each pinned to an exact commit:
 
-| | pin | licence | what it is |
+| | pin | license | what it is |
 | --- | --- | --- | --- |
 | [FEX](https://github.com/FEX-Emu/FEX) | tag `FEX-2607`, `1cc4b93e7` | MIT | the x86-64 translation core the host layer links |
 | [libadrenotools](https://github.com/bylaws/libadrenotools) | `8fae8ce` | BSD-2-Clause | custom GPU driver loading |
@@ -211,13 +211,13 @@ the versions required, and why they are not incidental: **NDK 29.0.14206865** �
 
 **GPL-2.0-or-later**, matching the SharpEmu fork exactly.
 
-that is a deliberate choice rather than a default. code moves across the boundary between this tree and the fork in both directions — a fix for the same bug can be written on either side — and matching licences means moving it is a copy-paste rather than a legal question, and anything written here stays upstreamable to SharpEmu. GPLv3 would have closed that direction, because a GPLv3 file cannot be contributed into a GPL-2.0-or-later project without forcing v3 on the combination. "or later" also keeps us compatible with the Apache-2.0 headers the thunk generators read.
+that is a deliberate choice rather than a default. code moves across the boundary between this tree and the fork in both directions — a fix for the same bug can be written on either side — and matching licenses means moving it is a copy-paste rather than a legal question, and anything written here stays upstreamable to SharpEmu. GPLv3 would have closed that direction, because a GPLv3 file cannot be contributed into a GPL-2.0-or-later project without forcing v3 on the combination. "or later" also keeps us compatible with the Apache-2.0 headers the thunk generators read.
 
-dependencies keep their own licences and their texts are carried in `LICENSES/`: **FEXCore is MIT**, **libadrenotools is BSD-2-Clause**, both compatible.
+dependencies keep their own licenses and their texts are carried in `LICENSES/`: **FEXCore is MIT**, **libadrenotools is BSD-2-Clause**, both compatible.
 
 **that covers somebody who cloned this and nobody who was handed an APK**, which is a separate obligation with a separate answer — the section below.
 
-**the licence is declared once, in `REUSE.toml`, and no source file carries an SPDX header.** that is a deliberate choice: the GPL's *"attach them to the start of each source file"* language is in its **How to Apply These Terms** appendix, which is advice rather than a condition — what the licence requires is a notice on each copy of the program, and the root `LICENSE` is that. one aggregate annotation keeps the tree machine-readable for a scanner and stays true on its own as files come and go, where a header per file is a chance per file to forget one — and the file count only grows.
+**the license is declared once, in `REUSE.toml`, and no source file carries an SPDX header.** that is a deliberate choice: the GPL's *"attach them to the start of each source file"* language is in its **How to Apply These Terms** appendix, which is advice rather than a condition — what the license requires is a notice on each copy of the program, and the root `LICENSE` is that. one aggregate annotation keeps the tree machine-readable for a scanner and stays true on its own as files come and go, where a header per file is a chance per file to forget one — and the file count only grows.
 
 **the fork is the exception, and it is not ours to change.** SharpEmu follows REUSE strictly and its CI rejects a new file without a header. code does move across that boundary in both directions, so **anything that crosses into the fork gains a header at the moment it crosses** — which is one line of work at the time it happens rather than a standing tax on every file here.
 
@@ -227,9 +227,9 @@ SharpEmu builds are GPLv2 binaries. the corresponding source is our fork, public
 
 what those terms ask for is that a recipient be given the terms and be able to get the source, and all of it ships beside the libraries:
 
-- **`licences.txt`** — the index. what the set is, what each source package is under, and where its source is kept
-- **`licences/*.copyright`** — Debian's own copyright statement per source package, taken out of the package rather than written here, so it cannot drift from the binaries. `gcc-12` is fetched purely for this: Debian points every gcc runtime package's documentation directory at it by symlink, so neither `libstdc++6` nor `libgcc-s1` carries a statement of its own
-- **`licences/LGPL-2.1`, `GPL-2`, `GPL-3`, `Apache-2.0`** — the full texts, since a Debian copyright file refers to a licence by the path it lives at on a Debian system rather than quoting it. `base-files` is fetched for these
+- **`licenses.txt`** — the index. what the set is, what each source package is under, and where its source is kept
+- **`licenses/*.copyright`** — Debian's own copyright statement per source package, taken out of the package rather than written here, so it cannot drift from the binaries. `gcc-12` is fetched purely for this: Debian points every gcc runtime package's documentation directory at it by symlink, so neither `libstdc++6` nor `libgcc-s1` carries a statement of its own
+- **`licenses/LGPL-2.1`, `GPL-2`, `GPL-3`, `Apache-2.0`** — the full texts, since a Debian copyright file refers to a license by the path it lives at on a Debian system rather than quoting it. `base-files` is fetched for these
 
 **the packages are pinned to `snapshot.debian.org` by content hash.** the ordinary mirror keeps only what a suite currently references, so a pinned filename is retired at the next point release; snapshot keeps every version permanently, which makes both the build and the source pointers stable. `scripts/build-apk.py` refuses to package a set missing any of the above.
 
@@ -255,15 +255,15 @@ that row is the project rather than one library out of it, because more than one
 
 **membership is decided by what is in the binary rather than by what the build configures.** FEX's `External/` holds several more than this and four of them reach no APK — two are built and linked into nothing, one is header-only and never instantiated, and the allocator is a stub whose real implementation is not compiled. each entry above was checked against the symbols in `libsharpdroid-host-layer.so`. a notice for a library a recipient did not receive is noise in a list whose whole value is that every line of it is true.
 
-**SoftFloat is the one that cannot be copied from a file**: the vendored copy carries no licence document, stating its terms in a header block at the top of every source file instead, so the notice is lifted out of one and the extraction refuses rather than shipping something shorter than the terms it claims to be.
+**SoftFloat is the one that cannot be copied from a file**: the vendored copy carries no license document, stating its terms in a header block at the top of every source file instead, so the notice is lifted out of one and the extraction refuses rather than shipping something shorter than the terms it claims to be.
 
 **resolved into the dex.** the app declares a dozen or so libraries and gradle resolves several times that, nearly all of it transitively — so a hand-written list would state something true about `build.gradle` and false about the APK. an attribution plugin is asked what gradle resolved, and packaging refuses on an artefact whose terms are unstated or have no text behind them, rather than shipping a row that opens onto nothing. its output is flattened into the same shape as everything else, so the plugin's schema stays a packaging concern.
 
-**searched by the guest, one row per debian binary package.** a `.deb` and a maven artefact are the same kind of thing — a named, versioned unit somebody redistributes — so `libc6`, `libgcc-s1`, `libstdc++6` and `libssl3` are rows like any other, each stating its own licence rather than being folded into one entry about the set. packaging builds them by reading `licences.txt`, which the fetch generates from the same table that pins the binaries, so the two cannot drift; a parse that finds nothing is a refusal rather than an empty set.
+**searched by the guest, one row per debian binary package.** a `.deb` and a maven artefact are the same kind of thing — a named, versioned unit somebody redistributes — so `libc6`, `libgcc-s1`, `libstdc++6` and `libssl3` are rows like any other, each stating its own license rather than being folded into one entry about the set. packaging builds them by reading `licenses.txt`, which the fetch generates from the same table that pins the binaries, so the two cannot drift; a parse that finds nothing is a refusal rather than an empty set.
 
-each of those rows opens a preamble and then debian's own statement verbatim, and then the full text of every licence that statement refers to **which applies here**. the preamble carries what a debian statement does not: the version, and the `snapshot.debian.org` URL for the complete corresponding source. that pointer is load-bearing rather than a courtesy — glibc is LGPL and the gcc runtime is GPL with an exception, both of which ask that the corresponding source of the *binary distributed* be available, and debian's statement points at **upstream**, which is not the corresponding source of a debian-patched binary.
+each of those rows opens a preamble and then debian's own statement verbatim, and then the full text of every license that statement refers to **which applies here**. the preamble carries what a debian statement does not: the version, and the `snapshot.debian.org` URL for the complete corresponding source. that pointer is load-bearing rather than a courtesy — glibc is LGPL and the gcc runtime is GPL with an exception, both of which ask that the corresponding source of the *binary distributed* be available, and debian's statement points at **upstream**, which is not the corresponding source of a debian-patched binary.
 
-the texts are intersected rather than assumed. a statement covers a whole source package, so `gcc-12` refers to licences covering compilers and documentation this ships no binary of, and `openssl` likewise; naming those would be a claim the APK cannot back.
+the texts are intersected rather than assumed. a statement covers a whole source package, so `gcc-12` refers to licenses covering compilers and documentation this ships no binary of, and `openssl` likewise; naming those would be a claim the APK cannot back.
 
 **the guest set also keeps its own notices in its own tree**, and that is not duplication for its own sake: the directory is redistributable on its own — it is staged to a device as a plain directory — so a copy of it travelling without its terms would be one this project had stripped.
 
@@ -277,13 +277,13 @@ not everything third-party arrives as a dependency. the icons in the app's drawa
 
 ### a work carried inside a dependency
 
-a dependency can carry somebody else's work under terms of its own, and then the licence naming that dependency covers only part of what arrived. okhttp is Apache-2.0 and embeds the Public Suffix List, which is MPL-2.0.
+a dependency can carry somebody else's work under terms of its own, and then the license naming that dependency covers only part of what arrived. okhttp is Apache-2.0 and embeds the Public Suffix List, which is MPL-2.0.
 
-**that is not a dependency and a row of its own would say it was.** the app asks for okhttp; the list arrives inside it as a data file, so a row beside okhttp and coil would state a relationship this build does not have. instead the carrier's own row names both licences and the document behind it carries both texts, which is the same shape a debian binary's row already has.
+**that is not a dependency and a row of its own would say it was.** the app asks for okhttp; the list arrives inside it as a data file, so a row beside okhttp and coil would state a relationship this build does not have. instead the carrier's own row names both licenses and the document behind it carries both texts, which is the same shape a debian binary's row already has.
 
-**the APK is asked rather than remembered.** a library that does this ships a `NOTICE` beside the work to say so, and the packer puts that file in the APK whether or not anybody read it — so packaging refuses on a `NOTICE` in the finished archive that nothing accounts for, and refuses in the other direction when a declared one is no longer there. that turns a licence found by accident into one that fails the build on the machine that can fix it.
+**the APK is asked rather than remembered.** a library that does this ships a `NOTICE` beside the work to say so, and the packer puts that file in the APK whether or not anybody read it — so packaging refuses on a `NOTICE` in the finished archive that nothing accounts for, and refuses in the other direction when a declared one is no longer there. that turns a license found by accident into one that fails the build on the machine that can fix it.
 
-**MPL-2.0's text is kept in `LICENSES/`**, with the other texts for terms not derivable from anything else in the tree, because the Public Suffix List is distributed as data with no licence file beside it.
+**MPL-2.0's text is kept in `LICENSES/`**, with the other texts for terms not derivable from anything else in the tree, because the Public Suffix List is distributed as data with no license file beside it.
 
 ## what is deliberately not here
 

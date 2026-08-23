@@ -154,7 +154,7 @@ the payload is *found* inside the archive rather than assumed at a fixed depth, 
 
 ## the build that ships inside the APK
 
-**exactly one does**, and it is the only build that is not a directory to begin with. it is an asset tree at `assets/sharpemu/` — the payload, its `plugins/`, the licences and a `meta.json` generated when the APK was built — and it becomes `builds/bundled` the first time a game is launched with it selected.
+**exactly one does**, and it is the only build that is not a directory to begin with. it is an asset tree at `assets/sharpemu/` — the payload, its `plugins/`, the licenses and a `meta.json` generated when the APK was built — and it becomes `builds/bundled` the first time a game is launched with it selected.
 
 **an asset tree rather than a zip.** an APK already is a zip, so a zip inside one would compress the payload twice and the device would pay to undo both. the format above is otherwise unchanged: what lands on disk is an ordinary build directory, and everything that reads one reads this one the same way.
 

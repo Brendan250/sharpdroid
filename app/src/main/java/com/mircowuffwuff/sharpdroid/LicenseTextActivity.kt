@@ -5,14 +5,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import com.mircowuffwuff.sharpdroid.databinding.ActivityLicenceTextBinding
+import com.mircowuffwuff.sharpdroid.databinding.ActivityLicenseTextBinding
 import java.io.File
 import java.util.concurrent.Executors
 
 /**
- * one licence document, read as it ships.
+ * one license document, read as it ships.
  *
- * reached from the Third-party licences list, and from the About screen's own licence card -- the text
+ * reached from the Third-party licenses list, and from the About screen's own license card -- the text
  * this app is under is the GPL, and the GPL ships beside the guest libraries already, so there is one
  * copy of it in the APK rather than two that can disagree.
  *
@@ -29,9 +29,9 @@ import java.util.concurrent.Executors
  * big one is a copyright statement listing every file in a compiler, so the screen draws its frame
  * first and fills in.
  */
-class LicenceTextActivity : AppCompatActivity() {
+class LicenseTextActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityLicenceTextBinding
+    private lateinit var binding: ActivityLicenseTextBinding
     private lateinit var drawnWith: String
     private val worker = Executors.newSingleThreadExecutor()
 
@@ -39,7 +39,7 @@ class LicenceTextActivity : AppCompatActivity() {
         Theme.apply(this)
         drawnWith = Theme.signature(this)
         super.onCreate(state)
-        binding = ActivityLicenceTextBinding.inflate(layoutInflater)
+        binding = ActivityLicenseTextBinding.inflate(layoutInflater)
         setContentView(binding.root)
         SystemBars.apply(this, binding.root)
 
@@ -50,7 +50,7 @@ class LicenceTextActivity : AppCompatActivity() {
 
         if (asset == null && path == null) {
             // nothing but a hand-written intent reaches this. finishing beats an empty page that
-            // looks like a licence with no text in it.
+            // looks like a license with no text in it.
             finish()
             return
         }
@@ -58,7 +58,7 @@ class LicenceTextActivity : AppCompatActivity() {
             val text = if (asset != null) read(asset) else readFile(path!!)
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
-                binding.text.text = text ?: getString(R.string.licences_unreadable)
+                binding.text.text = text ?: getString(R.string.licenses_unreadable)
             }
         }
     }
@@ -112,7 +112,7 @@ class LicenceTextActivity : AppCompatActivity() {
          */
         fun open(context: Context, asset: String?, path: String?, title: String) =
             context.startActivity(
-                Intent(context, LicenceTextActivity::class.java)
+                Intent(context, LicenseTextActivity::class.java)
                     .putExtra(EXTRA_ASSET, asset)
                     .putExtra(EXTRA_PATH, path)
                     .putExtra(EXTRA_TITLE, title)

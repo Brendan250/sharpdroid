@@ -310,16 +310,16 @@ def _restore_executable_bits(root):
 
 
 def _sdkmanager(toolchain, package_name):
-    """install one SDK package, and accept the licences it asks about.
+    """install one SDK package, and accept the licenses it asks about.
 
-    **`sdkmanager` exits zero having installed nothing** when a licence has not been accepted, which
+    **`sdkmanager` exits zero having installed nothing** when a license has not been accepted, which
     is the single most common shape of failure in this repository. the caller asserts the artefact
     afterwards; feeding the acceptance in is what stops it happening in the first place. running
     `--install` is the acceptance -- there is nowhere else for a person to give it, and a prompt
     here would read EOF under anything driving this script and take that for a yes.
     """
     environment = tc.java_home_environment(toolchain)
-    say("  accepting SDK licences")
+    say("  accepting SDK licenses")
     _feed(toolchain, ["--licenses"], environment)
     say("  installing {}".format(package_name))
     _feed(toolchain, [package_name], environment)

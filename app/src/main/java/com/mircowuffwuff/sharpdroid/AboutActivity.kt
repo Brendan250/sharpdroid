@@ -89,11 +89,11 @@ class AboutActivity : AppCompatActivity() {
         facts.source.setOnClickListener { open(REPOSITORY) }
         // **the GPL text this app ships beside its guest libraries, rather than a second copy of it in
         // `res/`.** it is the same document either way, and one copy cannot disagree with the other.
-        facts.readLicence.setOnClickListener {
-            LicenceTextActivity.open(this, LicencesActivity.textAsset(GPL), GPL)
+        facts.readLicense.setOnClickListener {
+            LicenseTextActivity.open(this, LicensesActivity.textAsset(GPL), GPL)
         }
         facts.thirdParty.setOnClickListener {
-            startActivity(Intent(this, LicencesActivity::class.java))
+            startActivity(Intent(this, LicensesActivity::class.java))
         }
 
         // the entrance, once, on the way in. deliberately not repeated by onResume: a screen that
@@ -312,7 +312,7 @@ class AboutActivity : AppCompatActivity() {
         const val REPOSITORY = "https://github.com/mircowuffwuff/sharpdroid"
         const val DONATE = "https://support.mircowuffwuff.com/"
 
-        /** the licence text this app is itself under, which ships beside the guest libraries. */
+        /** the license text this app is itself under, which ships beside the guest libraries. */
         const val GPL = "GPL-2"
 
         /** long enough to read as a reaction, short enough that nobody waits on it to leave. */

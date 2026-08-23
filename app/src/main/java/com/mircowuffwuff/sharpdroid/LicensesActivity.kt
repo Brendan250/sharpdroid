@@ -9,14 +9,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.mircowuffwuff.sharpdroid.databinding.ActivityManagerBinding
-import com.mircowuffwuff.sharpdroid.databinding.ItemLicenceBinding
+import com.mircowuffwuff.sharpdroid.databinding.ItemLicenseBinding
 import org.json.JSONObject
 import java.io.File
 
 /**
  * everything this APK redistributes but did not write, and the terms each of those is under.
  *
- * reached from **About → Licence → Third-party licences**.
+ * reached from **About → License → Third-party licenses**.
  *
  * **the obligation is met by the APK and this is what makes it reachable.** an APK is a binary
  * redistribution, and the permission notices in it are addressed to the person holding one -- not to
@@ -45,7 +45,7 @@ import java.io.File
  * dependency that arrives transitively appears with nothing in this file changing -- a screen that
  * spelled out its rows would go stale the day the graph moved, and would do it silently.
  */
-class LicencesActivity : AppCompatActivity() {
+class LicensesActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityManagerBinding
     private lateinit var drawnWith: String
@@ -58,7 +58,7 @@ class LicencesActivity : AppCompatActivity() {
         setContentView(binding.root)
         SystemBars.apply(this, binding.root)
 
-        binding.toolbar.setTitle(R.string.licences_title)
+        binding.toolbar.setTitle(R.string.licenses_title)
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         // the manager screen's shell without the two things a manager has that this does not: nothing
@@ -69,13 +69,13 @@ class LicencesActivity : AppCompatActivity() {
         binding.list.layoutManager =
             GridLayoutManager(this, resources.getInteger(R.integer.settings_section_columns))
         binding.list.adapter = Adapter(documents) {
-            LicenceTextActivity.open(this, it.asset, it.path, it.name)
+            LicenseTextActivity.open(this, it.asset, it.path, it.name)
         }
 
         // packaging asserts every one of these is in the APK, so an empty list is something having
         // gone wrong rather than a state to design for. it still says so instead of drawing nothing.
         if (documents.isEmpty()) {
-            binding.empty.setText(R.string.licences_unreadable)
+            binding.empty.setText(R.string.licenses_unreadable)
             binding.empty.visibility = View.VISIBLE
         }
     }
@@ -87,9 +87,9 @@ class LicencesActivity : AppCompatActivity() {
     }
 
     /**
-     * one row: a library, its licence, and where that licence is stated.
+     * one row: a library, its license, and where that license is stated.
      *
-     * [kind] is the row's second line and is always a licence -- `MIT`, `Apache-2.0`,
+     * [kind] is the row's second line and is always a license -- `MIT`, `Apache-2.0`,
      * `GPL-3.0-or-later WITH GCC-exception-3.1`. **every row means the same thing**, which is what
      * lets one list hold four provenances without a reader having to work out which kind of row they
      * are looking at.
@@ -126,7 +126,7 @@ class LicencesActivity : AppCompatActivity() {
         val libraries = JSONObject(index).getJSONArray("libraries")
         (0 until libraries.length()).map { at ->
             val library = libraries.getJSONObject(at)
-            Document(library.getString("name"), library.getString("licence"),
+            Document(library.getString("name"), library.getString("license"),
                 asset = "$OURS/" + library.getString("text"))
         }
     } catch (e: Exception) {
@@ -167,20 +167,20 @@ class LicencesActivity : AppCompatActivity() {
     } catch (e: Exception) {
         // the rest of the list is the APK's own and is still true, so a build that cannot be read
         // costs its own rows rather than the screen.
-        Log.e(TAG, "[app] could not read the selected build's licences", e)
+        Log.e(TAG, "[app] could not read the selected build's licenses", e)
         emptyList()
     }
 
     /** the bundled build's, out of the asset tree the unpack copies from. */
     private fun bundledNotices(): List<Document> {
-        val listed = assets.list("$BUNDLED/$BUILD_LICENCES").orEmpty().sorted()
+        val listed = assets.list("$BUNDLED/$BUILD_LICENSES").orEmpty().sorted()
         return buildNotice(
             { assets.open("$BUNDLED/$it").use { stream -> stream.readBytes().decodeToString() } },
-            { Document(SHARPEMU, it, asset = "$BUNDLED/$BUILD_LICENCE") },
+            { Document(SHARPEMU, it, asset = "$BUNDLED/$BUILD_LICENSE") },
             listed.map { name ->
                 name to { title: String ->
                     Document(name.removeSuffix(TEXT), title,
-                        asset = "$BUNDLED/$BUILD_LICENCES/$name")
+                        asset = "$BUNDLED/$BUILD_LICENSES/$name")
                 }
             },
         )
@@ -188,30 +188,30 @@ class LicencesActivity : AppCompatActivity() {
 
     /** a staged or imported build's, out of the directory it runs from. */
     private fun stagedNotices(directory: File): List<Document> {
-        val listed = File(directory, BUILD_LICENCES).listFiles()
+        val listed = File(directory, BUILD_LICENSES).listFiles()
             ?.filter { it.isFile && it.name.endsWith(TEXT) }
             ?.map { it.name }
             .orEmpty()
             .sorted()
         return buildNotice(
             { File(directory, it).readText() },
-            { Document(SHARPEMU, it, path = File(directory, BUILD_LICENCE).path) },
+            { Document(SHARPEMU, it, path = File(directory, BUILD_LICENSE).path) },
             listed.map { name ->
                 name to { title: String ->
                     Document(name.removeSuffix(TEXT), title,
-                        path = File(File(directory, BUILD_LICENCES), name).path)
+                        path = File(File(directory, BUILD_LICENSES), name).path)
                 }
             },
         )
     }
 
     /**
-     * the build's own licence, then one row per document beside it, each titled from what it says.
+     * the build's own license, then one row per document beside it, each titled from what it says.
      *
-     * **the licence is quoted from the document rather than worked out from it.** these files are
-     * written by whoever packaged the build, so nothing here knows in advance which licence any of
+     * **the license is quoted from the document rather than worked out from it.** these files are
+     * written by whoever packaged the build, so nothing here knows in advance which license any of
      * them states -- and an identifier inferred from prose is a confident wrong answer on the one
-     * screen whose value is that every line of it is true. a licence text names itself on its first
+     * screen whose value is that every line of it is true. a license text names itself on its first
      * line, so that line is what the row says.
      */
     private fun buildNotice(
@@ -220,9 +220,9 @@ class LicencesActivity : AppCompatActivity() {
         others: List<Pair<String, (String) -> Document>>,
     ): List<Document> {
         val documents = mutableListOf<Document>()
-        runCatching { own(titleOf(read(BUILD_LICENCE))) }.getOrNull()?.let { documents.add(it) }
+        runCatching { own(titleOf(read(BUILD_LICENSE))) }.getOrNull()?.let { documents.add(it) }
         for ((name, make) in others) {
-            runCatching { make(titleOf(read("$BUILD_LICENCES/$name"))) }
+            runCatching { make(titleOf(read("$BUILD_LICENSES/$name"))) }
                 .onFailure { Log.e(TAG, "[app] could not read the build's $name", it) }
                 .getOrNull()?.let { documents.add(it) }
         }
@@ -230,14 +230,14 @@ class LicencesActivity : AppCompatActivity() {
     }
 
     /**
-     * what a licence document calls itself: its first non-blank line, and the version line under it.
+     * what a license document calls itself: its first non-blank line, and the version line under it.
      *
      * the GPL's title and its version are two lines and the pair is the identity -- a row saying only
-     * *GNU GENERAL PUBLIC LICENSE* names three different licences at once.
+     * *GNU GENERAL PUBLIC LICENSE* names three different licenses at once.
      */
     private fun titleOf(text: String): String {
         val lines = text.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.take(2).toList()
-        val title = lines.firstOrNull().orEmpty().ifEmpty { getString(R.string.licences_untitled) }
+        val title = lines.firstOrNull().orEmpty().ifEmpty { getString(R.string.licenses_untitled) }
         val version = lines.getOrNull(1).orEmpty()
         return if (version.startsWith("Version ", ignoreCase = true)) "$title, $version" else title
     }
@@ -247,10 +247,10 @@ class LicencesActivity : AppCompatActivity() {
         private val onClick: (Document) -> Unit,
     ) : RecyclerView.Adapter<Adapter.Holder>() {
 
-        class Holder(val binding: ItemLicenceBinding) : RecyclerView.ViewHolder(binding.root)
+        class Holder(val binding: ItemLicenseBinding) : RecyclerView.ViewHolder(binding.root)
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = Holder(
-            ItemLicenceBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            ItemLicenseBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         )
 
         override fun getItemCount() = documents.size
@@ -267,9 +267,9 @@ class LicencesActivity : AppCompatActivity() {
         private const val TAG = "sharpdroid"
 
         /** where packaging puts the terms of everything this APK redistributes. */
-        private const val OURS = "licences"
+        private const val OURS = "licenses"
 
-        /** its index: one entry per library, each naming its licence and the document stating it. */
+        /** its index: one entry per library, each naming its license and the document stating it. */
         private const val NOTICES = "$OURS/notices.json"
 
         /**
@@ -280,25 +280,25 @@ class LicencesActivity : AppCompatActivity() {
          * app had stripped. the rows on this screen are assembled from it at packaging time rather
          * than read from here, so what a reader opens is one document per library like every other.
          */
-        private const val LICENCES = "guest-libs/licences"
+        private const val LICENSES = "guest-libs/licenses"
 
         /** the bundled build's asset tree, which is also where its own notices are. */
         private const val BUNDLED = "sharpemu"
 
         /**
-         * what a build calls its own licence, and the directory beside it holding the rest.
+         * what a build calls its own license, and the directory beside it holding the rest.
          *
          * **these are the emulator's spelling and not this project's.** everything written here says
-         * *licence*; a build's layout is upstream's, so it is read under the name upstream gives it.
+         * *license*; a build's layout is upstream's, so it is read under the name upstream gives it.
          */
-        private const val BUILD_LICENCE = "LICENSE.txt"
-        private const val BUILD_LICENCES = "licenses"
+        private const val BUILD_LICENSE = "LICENSE.txt"
+        private const val BUILD_LICENSES = "licenses"
         private const val TEXT = ".txt"
 
-        /** what the build's own licence row is called, which is the emulator rather than a library. */
+        /** what the build's own license row is called, which is the emulator rather than a library. */
         private const val SHARPEMU = "SharpEmu"
 
-        /** where a licence text named [name] lives, for a caller that wants one by name. */
-        fun textAsset(name: String) = "$LICENCES/$name"
+        /** where a license text named [name] lives, for a caller that wants one by name. */
+        fun textAsset(name: String) = "$LICENSES/$name"
     }
 }

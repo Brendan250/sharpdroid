@@ -3,9 +3,9 @@ version = 1
 # the whole tree is ours and is GPL-2.0-or-later, declared once here rather than as a header on every
 # file.
 #
-# **per-file headers are not a licence condition.** the GPL's "attach them to the start of each
+# **per-file headers are not a license condition.** the GPL's "attach them to the start of each
 # source file" language lives in its *How to Apply These Terms to Your New Programs* appendix, which
-# is advice; what the licence itself requires is a notice on each copy of the program, and that is the
+# is advice; what the license itself requires is a notice on each copy of the program, and that is the
 # root LICENSE. one declaration keeps the licensing machine-readable for a scanner and costs nothing
 # to keep true as files come and go.
 #

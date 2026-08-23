@@ -9,7 +9,7 @@ import java.io.IOException
  * the one SharpEmu build that ships inside the APK: where it is before it is a directory, and what
  * turns it into one.
  *
- * **it is an [AssetTree]**, `assets/sharpemu/` -- the payload, its `plugins/`, the licences, and a
+ * **it is an [AssetTree]**, `assets/sharpemu/` -- the payload, its `plugins/`, the licenses, and a
  * `meta.json` generated when the APK was built -- which is where the listing, the space check and the
  * `.partial` write live, shared with the guest libraries in [GuestLibraries]. [BuildImport] handles
  * zips because a zip is what somebody *sends* you; nothing sends you the build you shipped.

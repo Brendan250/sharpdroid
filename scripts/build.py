@@ -56,7 +56,7 @@ STEPS = [
     # -- so a checkout holding a set from before the fetch wrote it would otherwise skip the fetch
     # here and be refused four steps later for a file this step owns.
     ("guest-libs", ["fetch-guest-libs.py"],
-     [paths.GUEST_LIBS_X86_64 / "libc.so.6", paths.GUEST_LIBS_X86_64 / "licences.txt"], True,
+     [paths.GUEST_LIBS_X86_64 / "libc.so.6", paths.GUEST_LIBS_X86_64 / "licenses.txt"], True,
      "the x86-64 glibc set the guest's own linker searches"),
     ("adrenotools", ["build-adrenotools.py"],
      [paths.ADRENOTOOLS_LIBRARY], False,

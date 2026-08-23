@@ -610,7 +610,7 @@
          FEXCore is what executes SharpEmu, which is x86-64, on an arm64 CPU. -->
     <string name="about_label_emulator">Emulators</string>
     <string name="about_label_references">References</string>
-    <string name="about_label_licence">Licence</string>
+    <string name="about_label_license">License</string>
 
     <string name="about_sharpemu">SharpEmu</string>
     <!-- a build packaged from a published archive records no commit, and a development APK ships no
@@ -625,26 +625,26 @@
     <!-- the two reasons, in the order of the two names above them, and no adjective on either. -->
     <string name="about_references_sub">for the user interface and x86 on Android</string>
 
-    <string name="about_licence">GPL-2.0-or-later</string>
+    <string name="about_license">GPL-2.0-or-later</string>
     <string name="about_source">Source</string>
-    <string name="about_read_licence">Read it</string>
-    <string name="about_third_party">Third-party licences</string>
+    <string name="about_read_license">Read it</string>
+    <string name="about_third_party">Third-party licenses</string>
 
     <!-- **a device with no browser is a real state for this one**, and a handheld set up to run games
          and nothing else is exactly where it happens. every link on the screen fails the same way and
          none of them takes the app with it. -->
     <string name="about_link_failed">Nothing on this device can open links</string>
 
-    <!-- the Third-party licences screen and the reader behind it. -->
-    <string name="licences_title">Third-party licences</string>
-    <!-- every row on this screen is a library and states its licence, so the second line is a licence
+    <!-- the Third-party licenses screen and the reader behind it. -->
+    <string name="licenses_title">Third-party licenses</string>
+    <!-- every row on this screen is a library and states its license, so the second line is a license
          identifier out of the index packaging wrote rather than a string from here. the exception is a
          selected build's own documents, which are read as they are found and quote their own first
          line. this is for one that has no line to quote. -->
-    <string name="licences_untitled">Licence text</string>
+    <string name="licenses_untitled">License text</string>
 
     <!-- an APK is asserted to carry every one of these when it is packaged, so this is the answer to
          something having gone wrong rather than to a normal state. -->
-    <string name="licences_unreadable">Could not read that document</string>
+    <string name="licenses_unreadable">Could not read that document</string>
 
 </resources>

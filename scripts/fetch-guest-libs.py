@@ -1,4 +1,4 @@
-# stages an x86-64 glibc set for the guest to link against, with the licences it travels under.
+# stages an x86-64 glibc set for the guest to link against, with the licenses it travels under.
 #
 #   py scripts/fetch-guest-libs.py
 #   py scripts/fetch-guest-libs.py --keep-packages
@@ -34,9 +34,9 @@
 # **the APK ships these binaries, so it distributes them.** most of the set is unmodified debian
 # packages under the LGPL, the GPL with the GCC runtime exception, and Apache-2.0 -- all of which ask
 # that a recipient be given the terms and be able to get the source. so the fetch also lays down
-# `licences.txt` and a `licences/` directory holding each source package's own debian `copyright`
-# statement and the full text of every licence they reference; `scripts/build-apk.py` refuses to
-# package a set without them. the source itself is on snapshot at the URLs `licences.txt` names,
+# `licenses.txt` and a `licenses/` directory holding each source package's own debian `copyright`
+# statement and the full text of every license they reference; `scripts/build-apk.py` refuses to
+# package a set without them. the source itself is on snapshot at the URLs `licenses.txt` names,
 # permanently, for the same reason the binaries are.
 
 import hashlib
@@ -58,7 +58,7 @@ from sharpdroid.vocabulary import Parser
 SNAPSHOT_FILE = "https://snapshot.debian.org/file/{}"
 
 # the human-readable page for one source package at one version, listing its binaries *and its
-# source*. this is what `licences.txt` points a recipient at, and it is permanent.
+# source*. this is what `licenses.txt` points a recipient at, and it is permanent.
 SNAPSHOT_PACKAGE = "https://snapshot.debian.org/package/{}/{}/"
 
 # where this project's own source is, named in the notice because that is the other half of what a
@@ -75,11 +75,11 @@ TIMEOUT_SECONDS = 300
 # used; the runtime carries its own internationalisation library instead.
 #
 # `copyright` is debian's own statement of the copyright holders and terms for a source package, and
-# `texts` are the licences those statements refer to. **two packages here contribute neither a
+# `texts` are the licenses those statements refer to. **two packages here contribute neither a
 # library nor a binary and exist only for those**: `gcc-12-base`, because debian points every gcc
 # runtime package's documentation directory at it by symlink and so neither `libstdc++6` nor
-# `libgcc-s1` contains a `copyright` of its own -- the two strictest licences in the set, with no
-# statement in their own archives -- and `base-files`, which is where debian keeps the licence texts
+# `libgcc-s1` contains a `copyright` of its own -- the two strictest licenses in the set, with no
+# statement in their own archives -- and `base-files`, which is where debian keeps the license texts
 # that every `copyright` file refers to by path rather than quoting.
 PACKAGES = [
     {"name": "libc6", "source": "glibc", "version": "2.36-9+deb12u14",
@@ -89,13 +89,13 @@ PACKAGES = [
      "wanted": ["./lib/x86_64-linux-gnu/", "./usr/share/doc/libc6/copyright"],
      "libraries": "lib/x86_64-linux-gnu",
      "copyright": "usr/share/doc/libc6/copyright",
-     "licence": "LGPL-2.1-or-later, with parts under other terms"},
+     "license": "LGPL-2.1-or-later, with parts under other terms"},
     {"name": "libc-bin", "source": "glibc", "version": "2.36-9+deb12u14",
      "file": "libc-bin_2.36-9+deb12u14_amd64.deb",
      "sha1": "2b3d6ee6b798b30a8b52ab719dc9cd59e79584e3",
      "sha256": "e667401af91fad95f15b3ebd25d1abd8373fd18b00dc32219678413170544e84",
      "wanted": ["./usr/bin/"], "libraries": None,
-     "licence": "GPL-2.0-or-later, with parts under other terms",
+     "license": "GPL-2.0-or-later, with parts under other terms",
      # it contributes one test binary and no library, so nothing of it reaches an APK.
      "shipped": False},
     {"name": "libgcc-s1", "source": "gcc-12", "version": "12.2.0-14+deb12u1",
@@ -103,13 +103,13 @@ PACKAGES = [
      "sha1": "c72798568b9086ecacf3d46e420c6d90b78ce50d",
      "sha256": "3016e62cb4b7cd8038822870601f5ed131befe942774d0f745622cc77d8a88f7",
      "wanted": ["./lib/x86_64-linux-gnu/"], "libraries": "lib/x86_64-linux-gnu",
-     "licence": "GPL-3.0-or-later WITH GCC-exception-3.1"},
+     "license": "GPL-3.0-or-later WITH GCC-exception-3.1"},
     {"name": "libstdc++6", "source": "gcc-12", "version": "12.2.0-14+deb12u1",
      "file": "libstdc++6_12.2.0-14+deb12u1_amd64.deb",
      "sha1": "b1d2dc0cd7bcd57fa4b1ea6dd27a40384d45b937",
      "sha256": "5cd3171216d4ab0fc911cfe9c35509bf2dd8f47761c43b7f6a4296701551a24d",
      "wanted": ["./usr/lib/x86_64-linux-gnu/"], "libraries": "usr/lib/x86_64-linux-gnu",
-     "licence": "GPL-3.0-or-later WITH GCC-exception-3.1"},
+     "license": "GPL-3.0-or-later WITH GCC-exception-3.1"},
     {"name": "gcc-12-base", "source": "gcc-12", "version": "12.2.0-14+deb12u1",
      "file": "gcc-12-base_12.2.0-14+deb12u1_amd64.deb",
      "sha1": "715f9e66f5f45930246f5881c6dfe75ab8c6f32c",
@@ -128,7 +128,7 @@ PACKAGES = [
      "wanted": ["./usr/lib/x86_64-linux-gnu/", "./usr/share/doc/libssl3/copyright"],
      "libraries": "usr/lib/x86_64-linux-gnu",
      "copyright": "usr/share/doc/libssl3/copyright",
-     "licence": "Apache-2.0"},
+     "license": "Apache-2.0"},
     {"name": "base-files", "source": "base-files", "version": "12.4+deb12u15",
      "file": "base-files_12.4+deb12u15_amd64.deb",
      "sha1": "9127e8b37cee2d2f4be081488fc45c1aa155efb7",
@@ -151,8 +151,8 @@ GENERATED = (paths.GUEST_VULKAN.name, paths.GUEST_VULKAN_SONAME.name, paths.GUES
 
 # the notice, and the directory of full texts it indexes. both travel with the libraries: everything
 # that moves this set moves the directory, and `scripts/build-apk.py` refuses a set missing either.
-NOTICE = "licences.txt"
-LICENCES = "licences"
+NOTICE = "licenses.txt"
+LICENSES = "licenses"
 
 
 def entry():
@@ -206,8 +206,8 @@ def entry():
     for path in sorted(output.glob("libstdc++.so.6.*")):
         path.replace(output / "libstdc++.so.6")
 
-    step("the licences")
-    write_licences(output, work)
+    step("the licenses")
+    write_licenses(output, work)
 
     step("the test binaries")
     for name in TEST_BINARIES:
@@ -230,11 +230,11 @@ def entry():
             say("  kept {}, which is generated rather than fetched".format(name))
 
 
-# --- the licences ------------------------------------------------------------------------------------
+# --- the licenses ------------------------------------------------------------------------------------
 
 
-def write_licences(output, work):
-    """debian's own copyright statements and the full text of every licence they refer to.
+def write_licenses(output, work):
+    """debian's own copyright statements and the full text of every license they refer to.
 
     **debian's `copyright` file is taken rather than a list written here.** it is the authoritative
     statement of who holds what and under which terms for a source package, it is already inside the
@@ -243,11 +243,11 @@ def write_licences(output, work):
     writes them at -- `libstdc++6` and `libgcc-s1` come out of one statement, which is also the one
     neither of their own archives contains.
 
-    **the texts are debian's too.** a `copyright` file refers to a licence by the path it lives at on
+    **the texts are debian's too.** a `copyright` file refers to a license by the path it lives at on
     a debian system rather than quoting it, so on its own it is a pointer to a file the recipient of
     an APK does not have. `base-files` is where those live and is fetched for exactly this.
     """
-    licences = ensure(output / LICENCES)
+    licenses = ensure(output / LICENSES)
 
     taken = {}
     for package in PACKAGES:
@@ -260,7 +260,7 @@ def write_licences(output, work):
                 "directories at another package by symlink, which an unpack of regular files "
                 "skips -- find the package that holds the statement and pin that one "
                 "too".format(package["name"], package["copyright"]))
-        target = licences / "{}.copyright".format(package["source"])
+        target = licenses / "{}.copyright".format(package["source"])
         shutil.copyfile(str(found), str(target))
         taken[package["source"]] = target.name
 
@@ -271,7 +271,7 @@ def write_licences(output, work):
             if not found.is_file():
                 raise Refusal("{} was supposed to carry the {} text and does not".format(
                     package["name"], name))
-            shutil.copyfile(str(found), str(licences / name))
+            shutil.copyfile(str(found), str(licenses / name))
             texts.append(name)
 
     # every source package that actually ships a library has to have a statement, checked here
@@ -282,12 +282,12 @@ def write_licences(output, work):
                 package["name"], package["source"]))
 
     write_notice(output, texts)
-    say("  {} copyright statement(s), {} licence text(s) -> {}".format(
-        len(taken), len(texts), paths.relative(licences)))
+    say("  {} copyright statement(s), {} license text(s) -> {}".format(
+        len(taken), len(texts), paths.relative(licenses)))
 
 
 def write_notice(output, texts):
-    """the index over `licences/`, and the one file a person is likely to open first.
+    """the index over `licenses/`, and the one file a person is likely to open first.
 
     it says what the set is, what each part is under, where the source of each is kept permanently,
     and -- the thing an LGPL recipient actually wants to know -- that the whole directory is
@@ -326,18 +326,18 @@ def write_notice(output, texts):
             continue
         lines.append("{} {}".format(package["source"], package["version"]))
         for one in binaries:
-            lines.append("  package   {}  --  {}".format(one["name"], one["licence"]))
-        lines.append("  copyright {}/{}.copyright".format(LICENCES, package["source"]))
+            lines.append("  package   {}  --  {}".format(one["name"], one["license"]))
+        lines.append("  copyright {}/{}.copyright".format(LICENSES, package["source"]))
         lines.append("  source    " + SNAPSHOT_PACKAGE.format(
             package["source"], package["version"]))
         lines.append("")
 
     lines += [
-        "the full text of every licence those statements refer to is beside them:",
+        "the full text of every license those statements refer to is beside them:",
         "",
     ]
     for name in texts:
-        lines.append("  {}/{}".format(LICENCES, name))
+        lines.append("  {}/{}".format(LICENSES, name))
     lines += [
         "",
         "libvulkan.so, libvulkan.so.1 and libaaudio.so are not debian's. they are the guest halves",
@@ -401,7 +401,7 @@ def _unpack(archive, into, wanted):
 
     **skipping symlinks is not free of consequences and one of them is answered elsewhere**: debian
     points a package's documentation directory at another package's with one, so a `copyright` that
-    is reached that way is simply absent here rather than an error. `write_licences` refuses when one
+    is reached that way is simply absent here rather than an error. `write_licenses` refuses when one
     it expected did not land.
     """
     member, data = _read_ar(archive)
