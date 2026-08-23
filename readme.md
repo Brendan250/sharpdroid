@@ -99,6 +99,10 @@ theres a fork of upstream SharpEmu that specialises in compatibility with a spec
 
 a few weeks ago, i woke up, caked in sweat. "what if... PS5 on android?", i asked myself, at the dawn of night. the moonlight shone through my window, as i heard the crickets chirp. it was a beautiful summer night. i uttered "maybe with F-FEX...", before i fell back asleep.
 
+<p float=left>
+	<img src=".github/images/caked-in-sweat.png" />
+</p>
+
 when i woke up the next morning, i was infatuated with the idea of a PS5 emulator on android. i tried suppressing my burning curiosity for the topic, but i was hardly able to. later that fateful day, i gave in. together with claude, i might just be able to produce a proof of concept, i thought.
 
 hours of discussion later, sharpdroid's architecture was decided upon.
@@ -235,7 +239,7 @@ thanks to [Dolphin](https://github.com/dolphin-emu/dolphin) for providing a func
 
 thanks to Ömer for donating 3 weeks' worth of claude code pro trials.
 
-thanks to Milana for hand drawing this project's super cute visuals.
+thanks to Milana for hand drawing the SharpEmu logo at the top, my OC, and the history illustration.
 
 ## license
 
