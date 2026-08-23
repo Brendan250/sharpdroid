@@ -96,7 +96,7 @@ def entry():
     step("gradle")
     build_with_gradle(toolchain, package, label, arguments.offline, arguments.release)
     collect(apk, arguments.release)
-    verify(apk, bundled, guest_libraries, notices)
+    verify(apk, bundled, guest_libraries, notices, arguments.release)
 
     say("")
     say("built: {}  {}".format(paths.relative(apk), size(apk.stat().st_size)))
@@ -1227,7 +1227,7 @@ def collect(apk, release):
 # --- what is actually in it ---------------------------------------------------------------------------
 
 
-def verify(apk, bundled, guest_libraries, notices):
+def verify(apk, bundled, guest_libraries, notices, release):
     """open the APK and assert what it holds, while the artefact is still on this machine.
 
     an APK missing its dex installs and then dies at a missing class; one missing the host layer
@@ -1305,6 +1305,8 @@ def verify(apk, bundled, guest_libraries, notices):
         host_notices, dex_notices, vendored_notices))
     check_embedded_works(sizes)
     check_bundled_build(sizes, bundled)
+    if release:
+        check_release(apk)
 
 
 def check_embedded_works(sizes):
@@ -1339,6 +1341,63 @@ def check_embedded_works(sizes):
             "nothing accounts for it. read it, and either add it to the embedded-works table or say "
             "why it needs no entry.".format(", ".join(undeclared)))
     say("  {:>12}  {} embedded work(s), each evidenced in the archive".format("", len(declared)))
+
+
+def check_release(apk):
+    """**the release APK proves it is one, rather than being trusted to be.**
+
+    both of these have been wrong in an artefact that looked finished. a debuggable release lets
+    anything on the device attach to the process and read the app's private directory, and it is one
+    attribute set by a build type -- so the way it goes wrong is that the wrong type was assembled,
+    which nothing else here would notice. and an unsigned or debug-signed release is an APK that
+    either does not install or can never be updated, and both are found by whoever installed it
+    rather than here.
+
+    the manifest is read with aapt2 rather than parsed: the copy in an APK is binary XML, and the
+    tool that wrote it is already resolved.
+    """
+    toolchain = tc.resolve().require("build_tools", "jdk")
+    aapt2 = toolchain.build_tools / ("aapt2.exe" if tc.IS_WINDOWS else "aapt2")
+    manifest = capture([aapt2, "dump", "xmltree", "--file", "AndroidManifest.xml", str(apk)])
+    for line in manifest.splitlines():
+        if "android:debuggable" in line and line.rstrip().endswith("=true"):
+            raise Refusal(
+                "packaging failed: the release APK is debuggable. it was assembled as the wrong "
+                "build type -- only the development one sets that attribute")
+
+    apksigner = toolchain.build_tools / ("apksigner.bat" if tc.IS_WINDOWS else "apksigner")
+    signature = capture([apksigner, "verify", "--print-certs", str(apk)])
+    signer = re.search(r"Signer #1 certificate SHA-256 digest:\s*([0-9a-f]+)", signature)
+    if not signer:
+        raise Refusal("packaging failed: the release APK carries no signature apksigner can read")
+
+    # **compared against the debug certificate rather than recognised by its shape.** a release key
+    # is free to carry any name and any size, so anything that guessed from those would refuse a
+    # perfectly good key one day. the debug one is the specific certificate that must not be here,
+    # and its password is public and hardcoded above, so reading it needs no secret.
+    debug_digest = debug_certificate(toolchain)
+    if debug_digest and debug_digest == signer.group(1):
+        raise Refusal(
+            "packaging failed: the release APK is signed with the generated debug key. it is "
+            "throwaway and its password is in a public file, so anybody could publish an APK that "
+            "upgrades over this one")
+    say("  signed by {}..., and not debuggable".format(signer.group(1)[:16]))
+
+
+def debug_certificate(toolchain):
+    """the SHA-256 of the generated debug key's certificate, or nothing if there is no debug key.
+
+    nothing is a supported answer: a machine that has only ever built the release identity has no
+    debug keystore, and the certificate that must not be used is then one that does not exist here.
+    """
+    path = paths.APP / "debug.keystore"
+    if not path.exists():
+        return None
+    keytool = toolchain.jdk / "bin" / ("keytool.exe" if tc.IS_WINDOWS else "keytool")
+    listing = capture([keytool, "-list", "-v", "-keystore", str(path),
+                       "-alias", "sharpdroid", "-storepass", "android"])
+    found = re.search(r"SHA256:\s*((?:[0-9A-F]{2}:)+[0-9A-F]{2})", listing)
+    return found.group(1).replace(":", "").lower() if found else None
 
 
 def check_bundled_build(sizes, bundled):
