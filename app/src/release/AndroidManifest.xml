@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  what the release identity adds to the manifest, and nothing else does.
+
+  a source set named for a build type is merged into the main manifest for that variant alone, so
+  the launcher icon below reaches the published app and neither development identity. that is the
+  same reason the label differs: two entries in the launcher that look alike and are different apps
+  is the confusion worth spending a resource to avoid, and an icon separates them at a glance where
+  a name has to be read.
+
+  the icon itself is a plain bitmap at five densities rather than an adaptive one. a launcher on
+  this platform will shim it onto a background of its own, which is a rougher result than an
+  adaptive icon gives - the two layers an adaptive icon wants are a drawing job rather than a
+  packaging one, and the artwork is a single full-bleed composition today.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:icon="@mipmap/ic_launcher" />
+
+</manifest>
