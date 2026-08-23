@@ -8,6 +8,10 @@
 // the native libraries are NOT built here. scripts/build-host.py and scripts/build-adrenotools.py produce
 // them into build/, and stageJniLibs below collects the four that go in the APK.
 
+// imported rather than written out where it is used: inside this file `java` resolves to the java
+// extension the plugins install, so a fully qualified java.util.Properties does not compile.
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -50,6 +54,17 @@ val identityFexVersion: String =
 // declared one fetched and unused. that also breaks --offline for anyone whose only build-tools is
 // the one fetch-toolchain.py installed.
 val buildTools: String? = (findProperty("sharpdroidBuildTools") as String?)?.takeIf { it.isNotBlank() }
+
+// the release signing key, read here rather than handed over by scripts/build-apk.py: a password
+// passed as a project property is a password in the command line of a process anybody on the machine
+// can list. the script asserts this file instead, so the refusal still happens before gradle starts.
+//
+// **absent is the ordinary state and never a failure.** a clone has no release key and does not need
+// one -- it builds the debug identity, which signs itself. only asking for the release identity
+// requires this, and that request is refused by name when the file is not here.
+val releaseSigning: Properties? = file("release-signing.properties")
+    .takeIf { it.isFile }
+    ?.let { source -> Properties().apply { source.inputStream().use { stream -> load(stream) } } }
 
 android {
     // **the java package, and it does not move.** the JNI entry points are named
@@ -106,6 +121,14 @@ android {
     // device was signed with it; a different key -- including gradle's own ~/.android/debug.keystore
     // -- makes adb install -r fail with INSTALL_FAILED_UPDATE_INCOMPATIBLE and costs an uninstall,
     // which takes the app's save data with it. scripts/build-apk.py generates it on demand.
+    //
+    // **the release key is a different key and it is never generated.** a published APK is the one
+    // artefact whose signature has to be the same next time: android refuses an update signed by
+    // another key, and the recovery is an uninstall, which takes the save data of everybody who
+    // installed the last one. so a missing release key is a refusal that names how to make one,
+    // where a missing debug key is made on the spot -- generating on demand is exactly the failure
+    // here, because the key that quietly appears is a new one and nothing says so until an upgrade
+    // fails on somebody else's phone.
     signingConfigs {
         getByName("debug") {
             storeFile = file("debug.keystore")
@@ -113,17 +136,53 @@ android {
             keyAlias = "sharpdroid"
             keyPassword = "android"
         }
+
+        // the values come from release-signing.properties, which is not in git: a signing password
+        // in a public build file signs nothing, since anybody can then produce an APK that upgrades
+        // over a published one. scripts/build-apk.py asserts the file and the keystore before
+        // gradle is asked for anything, so the refusal arrives with the instruction rather than as
+        // a null store file three tasks deep.
+        releaseSigning?.let { properties ->
+            create("release") {
+                storeFile = file(properties.getProperty("storeFile"))
+                storePassword = properties.getProperty("storePassword")
+                keyAlias = properties.getProperty("keyAlias")
+                keyPassword = properties.getProperty("keyPassword")
+
+                // **v3 is what leaves a way out.** v2 alone pins the app to this key forever; v3
+                // carries a rotation proof, so a key that is lost or has to be retired can be
+                // succeeded rather than stranding every install. v1 is the JAR signature and is
+                // only read below API 24, which is under this app's own minimum.
+                enableV1Signing = false
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
     }
 
     buildTypes {
-        // **only the debug build type is ever assembled**, including for the release identity. the two
-        // senses of "release" are deliberately not the same thing here: it means the manifest's own
-        // application id and label, not an optimised non-debuggable build. that is also where
-        // android:debuggable="true" went -- the debug type sets it, and hardcoding it in the
-        // manifest is a lint error under AGP.
+        // **the two build types are the two audiences, and the difference is one attribute.**
+        // neither is minified: the frontend reaches native entry points by name and the emulator
+        // payload is not ours to shrink, so R8 would be trading a real risk against megabytes that
+        // the bundled build dwarfs anyway.
         getByName("debug") {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("debug")
+        }
+
+        // **what a stranger installs.** debuggable is off here and on above, which is the whole of
+        // the difference: a debuggable APK lets anything on the device attach to the process and
+        // read the app's private directory, and that directory is where save data lives. nothing in
+        // this repository reads the flag and no script uses run-as, so switching it off costs the
+        // development loop nothing -- that loop runs under the debug identity, which is still
+        // debuggable.
+        //
+        // a person who wants their own data out of a shipped install has the User data screen,
+        // which exports it as an archive and needs no cable.
+        getByName("release") {
+            isMinifyEnabled = false
+            isDebuggable = false
+            releaseSigning?.let { signingConfig = signingConfigs.getByName("release") }
         }
     }
 

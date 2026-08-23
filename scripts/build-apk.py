@@ -74,6 +74,11 @@ def entry():
     say("APK:            {}".format(paths.relative(apk)))
 
     check_sdk_levels(toolchain)
+    # **asserted before any staging, rather than beside the signing it configures.** the three asset
+    # trees take minutes to assemble, and a refusal that waits for them is one that arrives after the
+    # work it makes pointless. nothing here reaches a device or writes anything.
+    if arguments.release:
+        release_keystore()
     # **written before anything asks gradle a question**, rather than beside the build it configures.
     # staging the notices runs gradle to find out what it resolved, and gradle cannot configure an
     # android project without being told where the SDK is.
@@ -86,11 +91,11 @@ def entry():
     guest_libraries = stage_guest_libs()
     notices = stage_notices(toolchain, arguments.offline)
 
-    keystore(toolchain)
+    keystore(toolchain, arguments.release)
 
     step("gradle")
-    build_with_gradle(toolchain, package, label, arguments.offline)
-    collect(apk)
+    build_with_gradle(toolchain, package, label, arguments.offline, arguments.release)
+    collect(apk, arguments.release)
     verify(apk, bundled, guest_libraries, notices)
 
     say("")
@@ -954,13 +959,23 @@ def write_local_properties(toolchain):
     ]) + "\n")
 
 
-def keystore(toolchain):
-    """a throwaway debug key, generated once and kept out of git.
+SIGNING_PROPERTIES = ("storeFile", "storePassword", "keyAlias", "keyPassword")
 
-    the app's build file names it rather than letting gradle use the per-user one, because that one
-    is per machine: a device that already has this app refuses an update signed by a different key,
-    and recovering costs an uninstall, which takes the app's save data with it.
+
+def keystore(toolchain, release):
+    """the key this APK is signed with: generated on demand for development, asserted for a release.
+
+    **the two halves are opposites on purpose.** a debug key is disposable and the only thing that
+    matters is that it stays the same one on this machine, so a missing one is made on the spot. a
+    release key is the opposite in every respect: android refuses an update signed by a different
+    key, and the recovery is an uninstall, which takes the save data of everybody who installed the
+    last release. generating one on demand would mean a key that quietly reappears as a *new* key,
+    with nothing saying so until somebody else's upgrade fails -- so a missing one is refused here.
     """
+    if release:
+        # already asserted before the staging ran, and there is nothing to generate for a release.
+        return
+
     path = paths.APP / "debug.keystore"
     if path.exists():
         return
@@ -971,6 +986,90 @@ def keystore(toolchain):
          "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
          "-dname", "CN=sharpdroid"])
     produced(path, "the debug keystore")
+
+
+def unescape_property(value):
+    """read a value the way java's Properties.load reads it, because that is what gradle uses.
+
+    **the backslash is an escape character in this format**, and the file names a windows path. a
+    single backslash before an ordinary letter is dropped, so `Y:\\dir\\key.jks` written once loads as
+    `Y:dirkey.jks` -- and the two halves of this check would then disagree: reading the value
+    literally finds the file and lets the build proceed, and gradle, reading it correctly, fails
+    several tasks later on a path nobody typed. a check that passes where the thing it stands in for
+    fails is worse than no check.
+
+    the sequences java defines are the four whitespace ones and a unicode escape; anything else keeps
+    the character and loses the backslash, which is what turns a doubled one back into a single.
+    """
+    known = {"t": "\t", "n": "\n", "r": "\r", "f": "\f"}
+    out = []
+    index = 0
+    while index < len(value):
+        char = value[index]
+        if char != "\\" or index + 1 >= len(value):
+            out.append(char)
+            index += 1
+            continue
+        following = value[index + 1]
+        if following == "u" and index + 5 < len(value) + 1:
+            try:
+                out.append(chr(int(value[index + 2:index + 6], 16)))
+                index += 6
+                continue
+            except ValueError:
+                pass
+        out.append(known.get(following, following))
+        index += 2
+    return "".join(out)
+
+
+def release_keystore():
+    """assert the release key and the file naming it, before gradle is asked for anything.
+
+    gradle would fail on this too, several tasks in and as a null store file, which names neither the
+    file that is missing nor the command that makes one. it is checked here so that the refusal is
+    the instruction.
+
+    the passwords are read by the app's build file rather than passed from here: a password handed
+    over as a project property is a password in the command line of a process anybody on the machine
+    can list.
+    """
+    properties = paths.APP / "release-signing.properties"
+    if not properties.exists():
+        raise Refusal(
+            "the release identity is signed with a key that is not in this repository and {} is "
+            "not there. make one, once, and keep a copy off this machine -- a lost release key "
+            "means nobody who installed a release can ever take another one:\n"
+            "  keytool -genkeypair -keystore app/release.keystore -alias sharpdroid \\\n"
+            "      -keyalg RSA -keysize 4096 -validity 10000 -dname CN=sharpdroid\n"
+            "then write {} naming it, with the password you chose:\n"
+            "  {}".format(paths.relative(properties), paths.relative(properties),
+                          "\n  ".join("{}=".format(key) for key in SIGNING_PROPERTIES)))
+
+    values = {}
+    for line in properties.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, _, value = line.partition("=")
+        values[name.strip()] = unescape_property(value.strip())
+
+    missing = [key for key in SIGNING_PROPERTIES if not values.get(key)]
+    if missing:
+        raise Refusal("{} says nothing about {}".format(
+            paths.relative(properties), ", ".join(missing)))
+
+    # the store file is resolved the way gradle's own file() resolves it, which is against the app
+    # directory rather than against the repository root or the working directory. an absolute path is
+    # left alone, so a key kept outside this tree works and is the better place for one.
+    store = Path(values["storeFile"])
+    if not store.is_absolute():
+        store = paths.APP / store
+    if not store.exists():
+        raise Refusal("{} names {} and it is not there".format(
+            paths.relative(properties), store))
+
+    say("release keystore: {}".format(store))
 
 
 def gradle_environment(toolchain):
@@ -992,7 +1091,7 @@ def gradle_environment(toolchain):
     return tc.java_home_environment(toolchain, {"TEMP": temporary, "TMP": temporary})
 
 
-def build_with_gradle(toolchain, package, label, offline):
+def build_with_gradle(toolchain, package, label, offline, release):
     launcher = gradle_launcher()
 
     # the C++ runtime, from the resolver rather than from gradle's own idea of which NDK is
@@ -1006,7 +1105,7 @@ def build_with_gradle(toolchain, package, label, offline):
     # toolchain.json, and AGP's own default is a different revision that gradle downloads on demand.
     # unstated, the APK is packaged by a revision this repository never asked for and the fetched one
     # sits unused.
-    arguments = [str(launcher), ":app:assembleDebug",
+    arguments = [str(launcher), ":app:assemble" + build_type(release).capitalize(),
                  "-PsharpdroidStlSo=" + str(stl),
                  "-PsharpdroidBuildTools=" + toolchain.build_tools_version,
                  "-PsharpdroidBundleAssets=" + str(paths.BUILD_BUNDLE),
@@ -1024,7 +1123,7 @@ def build_with_gradle(toolchain, package, label, offline):
     # come to twenty-nine. it installs and runs perfectly, which is why it went unnoticed; it costs
     # a third of every install in the deploy loop, and it makes a recorded APK size depend on how
     # many times the APK was built. deleting one file costs a repackage and no recompilation.
-    written = gradle_output()
+    written = gradle_output(release)
     if written.exists():
         written.unlink()
 
@@ -1093,17 +1192,30 @@ def fex_version():
     return described.stdout.strip() if described.returncode == 0 else ""
 
 
-def gradle_output():
-    return paths.BUILD / "gradle" / "app" / "outputs" / "apk" / "debug" / "app-debug.apk"
+def build_type(release):
+    """which of the app's two build types this APK is, named once for the three places that ask.
+
+    **it tracks the identity rather than being a separate choice.** the release identity is the one
+    a stranger installs, and the only difference between the types is that theirs is not debuggable
+    -- so a release-identity APK that was debuggable, or a development one that could not be attached
+    to, would each be the wrong half of the pair. a third identity named with --package is a
+    development one and gets the development type.
+    """
+    return "release" if release else "debug"
 
 
-def collect(apk):
+def gradle_output(release):
+    kind = build_type(release)
+    return paths.BUILD / "gradle" / "app" / "outputs" / "apk" / kind / "app-{}.apk".format(kind)
+
+
+def collect(apk, release):
     """copy the APK to the path every other script predicts.
 
     one rule for where an APK is, shared, rather than eight scripts each taught the build system's
     own output layout.
     """
-    written = gradle_output()
+    written = gradle_output(release)
     if not written.exists():
         raise Refusal("gradle reported success and {} is not there".format(
             paths.relative(written)))

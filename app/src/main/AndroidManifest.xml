@@ -9,8 +9,10 @@
   four things AGP owns are in app/build.gradle.kts rather than here: the application id (namespace
   and applicationId are separate there, and only the second one moves), the SDK levels,
   extractNativeLibs - which is packaging { jniLibs { useLegacyPackaging } } - and debuggable, which
-  the debug build type sets and which is a lint error when hardcoded here. the label is a string
-  resource so a renamed build can set it without this file being rewritten.
+  each build type decides for itself and which is a lint error when hardcoded here. that last one is
+  the whole difference between the two: the identity a stranger installs is not debuggable, and the
+  development ones are. the label is a string resource so a renamed build can set it without this
+  file being rewritten.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">

@@ -14,6 +14,13 @@
 # to publish one.
 /app/debug.keystore
 
+# the key a published APK is signed with, and the file naming its passwords. neither is generated and
+# neither is recoverable: android refuses an update signed by a different key, so losing these means
+# nobody who installed a release can ever take another one. keep a copy somewhere that is not this
+# machine. scripts/build-apk.py refuses the release identity without them and says how to make one.
+/app/release.keystore
+/app/release-signing.properties
+
 # gradle's own project-local cache and daemon state. there is no way to redirect it from inside the
 # build the way build/ is redirected, so it is ignored where it lands.
 /.gradle/

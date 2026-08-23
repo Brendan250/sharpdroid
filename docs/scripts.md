@@ -63,7 +63,20 @@ staging does not do this and neither does the regression set — copying files n
 
 **`regression.py` takes neither, and that is right rather than an omission**: it stages the shell binary to a directory that belongs to no app, which is the whole reason it can run the host layer without an APK at all. `--serial` is on every script that reaches a device, including that one.
 
-**it does not mean a release *build type*.** only the debug build type is ever assembled — the two senses of the word are deliberately not the same thing here.
+**the identity chooses the build type with it**, and the difference between the two types is one attribute: the release one is not debuggable. a debuggable APK lets anything on the device attach to the process and read the app's private directory, which is where save data lives — so the identity a stranger installs is not debuggable, and the two development identities are, because that is the loop where attaching to it is the point. neither is minified.
+
+**the release identity is signed with a key that is not in this repository**, and `build-apk.py` refuses it rather than making one. that asymmetry is the whole point: a debug key is disposable and a missing one is generated on the spot, where a release key is the one thing that has to be the same next time — android refuses an update signed by another key, and the recovery is an uninstall, which takes the save data of everybody who installed the last release. a key that quietly regenerated would be a *new* key, and nothing would say so until somebody else's upgrade failed.
+
+so a release is signed by a key made once, by hand, and kept somewhere that is not the machine that built it:
+
+```
+keytool -genkeypair -keystore app/release.keystore -alias sharpdroid \
+    -keyalg RSA -keysize 4096 -validity 10000 -dname CN=sharpdroid
+```
+
+`app/release-signing.properties` names it and holds its passwords — `storeFile`, `storePassword`, `keyAlias`, `keyPassword`. both files are ignored by git, and the refusal that arrives without them says this. the app's build file reads the passwords itself rather than being handed them, because a password passed as a project property is a password in the command line of a process anybody on the machine can list. **v3 signing is on**, so a key that is lost or has to be retired can be succeeded rather than stranding every install.
+
+**a release APK proves it is one before it is written.** packaging reads the finished archive back and refuses a debuggable one, and refuses one whose signing certificate is the generated debug key's.
 
 ## existing, build, none, or a path
 
