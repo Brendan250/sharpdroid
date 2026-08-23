@@ -159,14 +159,14 @@ the fork checkout is resolved by **`SHARPDROID_SHARPEMU`**, falling back to the 
 py scripts/build-apk.py                              bundles the newest under build\builds\
 py scripts/build-apk.py --sharpemu <a build>         bundles that one
 py scripts/build-apk.py --sharpemu none              no asset at all
-py scripts/build-apk.py --release --sharpemu <dir>   the shippable identity
+py scripts/build-apk.py --release --sharpemu <dir>   the release identity
 ```
 
 **bundling is the default and that is deliberate**: an APK without a build in it looks identical to one with it, right up to the moment you want to test the bundled build and find it is not installed. **nothing to bundle is a refusal, never a silent bundle-less APK.**
 
 the asset is a plain directory tree rather than a zip — a zip inside an APK is compressed twice and the device pays to undo both. the first launch that resolves to it unpacks it, and a later one unpacks it again when the content hash written beside the tree differs from the stamp the last unpacking left — so **a rebuild of the same commit with different bytes in it is not a build the device keeps running** — which is what successive builds from a tree still being worked in are: one commit, different bytes each time.
 
-three things a shippable APK refuses that a development one does not, each of them a build whose source nothing outside this machine could get back to:
+three things a release APK refuses that a development one does not, each of them a build whose source nothing outside this machine could get back to:
 
 - **a build the submodule pointer does not name.** that pointer is what makes an APK reproducible from a clone. the development identity prints the mismatch and builds anyway, because it installs under its own application id and there is no clone to reproduce it from
 - **a build packaged from an archive**, since it records no commit to check

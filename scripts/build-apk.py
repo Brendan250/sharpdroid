@@ -194,7 +194,7 @@ def stage_bundle(wanted, package, toolchain):
 
 
 def check_provenance(build, package):
-    """the recorded submodule pointer has to name the commit a shippable APK's build was cut from.
+    """the recorded submodule pointer has to name the commit a release APK's build was cut from.
 
     that pointer is the only thing that makes an APK reproducible from a clone: the build's own
     metadata records a commit from whatever the packager had checked out, while the submodule is what
@@ -207,10 +207,10 @@ def check_provenance(build, package):
     since every development build would stop until somebody had committed, pushed and moved the
     pointer. the mismatch is printed instead, so it is still known which commit is on the phone.
     """
-    shippable = package != device.DEBUG_ID
+    release = package != device.DEBUG_ID
 
     if not build.commit:
-        if shippable:
+        if release:
             raise Refusal(
                 "{} records no commit, so it was packaged from an archive and cannot say what "
                 "source it came from. an APK bundling it is not reproducible from a clone -- "
@@ -222,7 +222,7 @@ def check_provenance(build, package):
     # below.** its commit names a real commit and then some, so a comparison against the pointer
     # would fail with a mismatch and offer to check out a revision no repository has.
     if build.from_dirty_tree:
-        if shippable:
+        if release:
             raise Refusal(
                 "{} was published from a working tree with uncommitted changes in it, so no commit "
                 "names the source it came from. an APK bundling it is not reproducible from a clone "
@@ -233,7 +233,7 @@ def check_provenance(build, package):
 
     pointer = recorded_submodule_commit()
     if pointer is None:
-        if shippable:
+        if release:
             raise Refusal(
                 "external/sharpemu is not a submodule of this repository, so there is no recorded "
                 "commit to check {} against. run: git submodule update --init --recursive".format(
@@ -242,7 +242,7 @@ def check_provenance(build, package):
         return
 
     if not pointer.startswith(build.commit):
-        if shippable:
+        if release:
             raise Refusal(
                 "{} was cut from {} and external/sharpemu is recorded at {}. an APK bundling this "
                 "build would ship a commit this repository does not name. move the submodule onto "
@@ -252,7 +252,7 @@ def check_provenance(build, package):
                 "  git add external/sharpemu".format(
                     build.directory.name, build.commit, pointer[:7], build.commit))
         say("  the bundled build is {}; external/sharpemu is recorded at {} -- fine for a "
-            "development APK, a shippable one would refuse this".format(build.commit, pointer[:7]))
+            "development APK, a release one would refuse this".format(build.commit, pointer[:7]))
     else:
         say("  the bundled build is {}, which external/sharpemu is recorded at".format(build.commit))
 

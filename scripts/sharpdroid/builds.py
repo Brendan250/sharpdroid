@@ -99,7 +99,7 @@ class Build:
         """whether this build was published from a checkout with uncommitted changes in it.
 
         **no commit names such a build's source**, so nothing can reconstruct it from a clone -- which
-        is why a shippable APK refuses one and a development APK only says so. it is a different
+        is why a release APK refuses one and a development APK only says so. it is a different
         answer to a build that records no commit at all: that one came from a published archive and
         there was never a checkout to ask.
         """
