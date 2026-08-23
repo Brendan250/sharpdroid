@@ -4,7 +4,7 @@
 
 # sharpdroid
 
-this is an unofficial android port of [SharpEmu](https://github.com/sharpemu/sharpemu), a PS5 emulator for Windows and Linux on x86-64. sharpdroid focuses on low overhead, mergeability, and modularity.
+this is an android app that runs [SharpEmu](https://github.com/sharpemu/sharpemu), a PS5 emulator for Windows and Linux on x86-64. sharpdroid focuses on low overhead, mergeability, and modularity.
 
 like the fruit of my latest software engineering obsession? click the dumb dog below to support development!
 
@@ -26,7 +26,7 @@ download the latest rolling release [here](https://github.com/mircowuffwuff/shar
 
 ## how it works
 
-tl;dr: sharpdroid is a compatibility layer purpose-built to run SharpEmu's x64 Linux build on arm64 android.
+tl;dr: sharpdroid ships a **compatibility layer** purpose-built to run SharpEmu's x64 Linux build on arm64 android.
 
 ```
 sharpdroid
