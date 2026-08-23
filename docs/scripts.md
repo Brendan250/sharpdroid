@@ -170,6 +170,17 @@ three things a shippable APK refuses that a development one does not, each of th
 
 both identities refuse a build whose contract generation the app does not speak, and the range is read out of the app's own source so that a script cannot bless a build the app refuses.
 
+**and both refuse a build that is not the fork checkout on this machine**, which is a different question to any of the above: those ask whether an APK could be rebuilt from a clone, and this asks whether the payload about to be sealed into one contains the work in the tree you are editing. the emulator is developed through the bundled build — edit the fork, package it, build the APK, run it — and dropping the packaging step from that loop otherwise produces a perfectly good APK carrying the payload from before the edit, with nothing anywhere saying so.
+
+```
+py scripts/package-build.py                      package the checkout, then build again
+py scripts/build-apk.py --sharpemu <a build>     bundle that one, knowing what it is
+```
+
+**a build you name is reported and bundled anyway**, because naming one is a choice and it is the only way to bundle a branch that is not what is checked out. omitting it means the newest under `build\builds` answered and nobody chose, which is where the accident lives.
+
+**an uncommitted change is compared rather than noticed.** the recorded commit carries a fingerprint of the working tree's changes after its marker — `8725891-dirty.925a11d6` — so a build published from *these* edits matches and one published from a different set does not. without that, the state a person developing the fork is in all day would be the one state this could not answer, and an answer nobody can act on is one they learn to skip. the app draws `8725891-dirty` and leaves the fingerprint off: it is there for a comparison, and a person reading a screen is not that comparison.
+
 **the APK also records the commit of this repository it was built from**, which the app shows on its About screen beside its version and which a bug report is worth having: a version alone names a fortnight of commits. a working tree with uncommitted changes in it is marked as such, because an APK built from one is not the commit it names. **not knowing is a supported state and never a refusal** — a source archive carries no `.git` and a machine may have no `git` at all, and the app then shows the version by itself.
 
 **it records the FEXCore it was built against the same way**, described out of the pinned submodule against FEX's own release tags. the same empty-string fallback applies, and the same dirty marker — which here would mean the rule that FEX is never modified had been broken, rather than an ordinary development tree.

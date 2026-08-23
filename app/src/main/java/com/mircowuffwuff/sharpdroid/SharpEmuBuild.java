@@ -197,11 +197,20 @@ public final class SharpEmuBuild {
      * this build's provenance has to say -- truncating it to seven characters would print the
      * confident wrong answer the marker exists to prevent, in the launch log, on the build list and
      * on the About screen at once. a hash carries no hyphen, so the first one is where it ends.
+     *
+     * <p><b>what the marker carries after a dot does not survive it</b>, and that asymmetry is the
+     * point: the packaging step fingerprints the uncommitted changes so that two of them can be told
+     * apart by a comparison, and a person reading a screen is not that comparison. what they need is
+     * that this build is not a commit, which is the word.
      */
     String shortCommit() {
         int mark = commit.indexOf('-');
         String hash = mark < 0 ? commit : commit.substring(0, mark);
         String marker = mark < 0 ? "" : commit.substring(mark);
+        int detail = marker.indexOf('.');
+        if (detail >= 0) {
+            marker = marker.substring(0, detail);
+        }
         return (hash.length() > 7 ? hash.substring(0, 7) : hash) + marker;
     }
 

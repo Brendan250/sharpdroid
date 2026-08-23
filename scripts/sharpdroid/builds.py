@@ -13,6 +13,7 @@
 # the app will refuse. two copies of that range would drift, and the failure would appear on a
 # device rather than in a build.
 
+import hashlib
 import json
 import re
 import subprocess
@@ -29,6 +30,13 @@ _CONTRACT_SOURCE = paths.APP / "src" / "main" / "java" / "com" / "mircowuffwuff"
 # rather than a field beside it so that everything already reading one carries it without being
 # taught to: the launch log, the build list, the About screen and this module's own comparisons.
 DIRTY = "-dirty"
+
+# **and a digest of those changes after it**, `-dirty.a1b2c3d4`, which is what makes a dirty tree an
+# identity rather than a word. without it every uncommitted state spells itself the same way, so two
+# builds published from two different sets of edits compare equal -- and that comparison is the whole
+# of what stops a bundle being the payload from before the edit you are about to test. it is a
+# suffix on a suffix for the same reason the marker is one: nothing has to be taught to carry it.
+_CHANGES = 8
 
 # absent fields and what they mean, straight out of the format document.
 _DEFAULTS = {
@@ -95,7 +103,7 @@ class Build:
         answer to a build that records no commit at all: that one came from a published archive and
         there was never a checkout to ask.
         """
-        return self.commit.endswith(DIRTY)
+        return bool(split_commit(self.commit)[1])
 
     @property
     def payload(self):
@@ -212,11 +220,11 @@ UNKNOWN = "unknown"
 def checkout_commit(fork):
     """what a build published from [fork] right now would record as its `commit`, or empty.
 
-    **it is here, in one function, because two places need the identical string.** the packaging step
-    writes it into a build's metadata and the staleness comparison computes it again to compare
-    against -- and a marker that one of them appends and the other does not is a difference that
-    reads as a stale build, or a stale build that reads as the checkout. neither could be told apart
-    from the real thing by the person the answer is printed to.
+    **it is here, in one function, because three places need the identical string.** the packaging
+    step writes it into a build's metadata, and both the bundling step and the staleness comparison
+    compute it again to compare against -- and a marker that one of them appends and another does not
+    is a difference that reads as a stale build, or a stale build that reads as the checkout. neither
+    could be told apart from the real thing by the person the answer is printed to.
 
     an empty answer means the checkout would not say, and is a *different* thing to a clean tree at
     no commit: every way of failing lands on it, and the caller decides what that is worth.
@@ -236,20 +244,90 @@ def checkout_commit(fork):
     dirt = subprocess.run(["git", "-C", str(fork), "status", "--porcelain"],
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                           encoding="utf-8", errors="replace")
-    if dirt.returncode == 0 and (dirt.stdout or "").strip():
-        commit += DIRTY
-    return commit
+    if dirt.returncode != 0 or not (dirt.stdout or "").strip():
+        return commit
+    return commit + DIRTY + "." + changes_digest(fork)
+
+
+def changes_digest(fork):
+    """one short hex string naming everything uncommitted in [fork].
+
+    **the diff and the untracked files, and nothing that is ignored.** `git diff HEAD` covers what is
+    modified, staged, or deleted against the commit; a file added and never told to git is in none of
+    that and is most of what new work looks like here, so it goes in by name and by content. what
+    `.gitignore` covers stays out, since the publish output lands inside this tree and hashing it
+    would make every build its own snowflake.
+
+    **the diff is read as bytes.** decoding it would fold newline conventions together and replace
+    anything that is not text, which is a change to a file reading as no change at all.
+    """
+    digest = hashlib.sha256()
+    diff = subprocess.run(["git", "-C", str(fork), "diff", "HEAD"],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    digest.update(diff.stdout or b"")
+
+    others = subprocess.run(["git", "-C", str(fork), "ls-files", "--others", "--exclude-standard",
+                             "-z"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    names = sorted(name for name in (others.stdout or b"").split(b"\0") if name)
+    for name in names:
+        digest.update(name)
+        digest.update(b"\0")
+        path = Path(str(fork)) / name.decode("utf-8", "replace")
+        try:
+            with open(str(path), "rb") as handle:
+                for block in iter(lambda: handle.read(1 << 20), b""):
+                    digest.update(block)
+        except OSError:
+            # a name git lists and this cannot open is itself a state worth being distinct.
+            digest.update(b"?")
+    return digest.hexdigest()[:_CHANGES]
 
 
 def split_commit(commit):
     """a recorded commit as the hash and the marker after it, either of which may be empty.
 
-    a hash carries no hyphen, so the first one is where it ends -- the same split the app makes when
-    it shortens a commit for a bug report.
+    a hash carries no hyphen, so the first one is where the marker begins -- the same split the app
+    makes when it shortens a commit for a bug report.
     """
-    if commit.endswith(DIRTY):
-        return commit[:-len(DIRTY)], DIRTY
-    return commit, ""
+    mark = commit.find("-")
+    if mark < 0:
+        return commit, ""
+    return commit[:mark], commit[mark:]
+
+
+def compare_commit(recorded, checkout, fork, subject="the staged build"):
+    """whether a build recording [recorded] is the checkout that answers [checkout].
+
+    **both sides are the same string or the comparison means nothing**, which is why they come from
+    one function: `rev-parse` alone makes a tree with edits in it indistinguishable from the commit it
+    sits on, in both directions -- a build published before the edits reads as current, and a build
+    published from them reads as current too.
+
+    **and the marker is compared rather than noticed.** two sets of uncommitted changes are the same
+    tree only when they are the same changes, which is exactly what the digest after `-dirty` says;
+    without comparing it, the one state a person developing the fork is in all day would be the one
+    state this cannot answer, and an answer nobody can act on is one they learn to skip.
+    """
+    was, was_dirty = split_commit(recorded)
+    now, now_dirty = split_commit(checkout)
+    # one of the two is abbreviated and which one is not fixed: a build records whatever `--short`
+    # gave the machine that packaged it, and a hand-written `meta.json` may carry all forty.
+    if not (now.startswith(was) or was.startswith(now)):
+        return STALE, "{} was cut from {} and {} is at {}".format(subject, recorded, fork, checkout)
+    if was_dirty == now_dirty:
+        # both clean at one commit, or both carrying the same uncommitted changes.
+        return MATCH, "{} is the fork checkout, {}".format(subject, checkout)
+    if was_dirty and now_dirty:
+        return STALE, (
+            "{} was published from a different set of uncommitted changes to the ones in {} now, so "
+            "the payload does not contain what you are about to test".format(subject, fork))
+    if was_dirty:
+        return STALE, (
+            "{} was published from a working tree with changes in it and {} is clean at {}, so the "
+            "payload holds changes the checkout does not".format(subject, fork, now))
+    return STALE, (
+        "{} is {} and {} has uncommitted changes on top of it, so the payload does not contain "
+        "them".format(subject, recorded, fork))
 
 
 def compare_payload(build, remote_size):

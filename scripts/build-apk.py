@@ -77,7 +77,7 @@ def entry():
     # into it and each would otherwise wipe the other's work depending on the order they were called
     # in -- a failure that would show up as an APK missing whichever one was packed first.
     fresh(paths.BUILD_BUNDLE)
-    bundled = stage_bundle(arguments.sharpemu, package)
+    bundled = stage_bundle(arguments.sharpemu, package, toolchain)
     guest_libraries = stage_guest_libs()
     notices = stage_notices(toolchain, arguments.offline)
 
@@ -121,7 +121,7 @@ def check_sdk_levels(toolchain):
 # --- the bundled build -----------------------------------------------------------------------------
 
 
-def stage_bundle(wanted, package):
+def stage_bundle(wanted, package, toolchain):
     """assemble the asset tree for the one build that ships inside this APK.
 
     **exactly one ships, and it is a plain directory tree rather than a zip.** a zip inside an APK is
@@ -166,6 +166,7 @@ def stage_bundle(wanted, package):
 
     build.check()
     check_provenance(build, package)
+    check_currency(build, toolchain, named=source.kind == vocabulary.PC_PATH)
 
     ensure(asset)
     shutil.copytree(str(build.directory), str(asset), dirs_exist_ok=True)
@@ -249,6 +250,57 @@ def check_provenance(build, package):
             "development APK, a shippable one would refuse this".format(build.commit, pointer[:7]))
     else:
         say("  the bundled build is {}, which external/sharpemu is recorded at".format(build.commit))
+
+
+def check_currency(build, toolchain, named):
+    """the build going into this APK has to be the fork checkout on this machine.
+
+    **this is a different question to the one above and it is the one a person hits daily.**
+    provenance asks whether an APK could be rebuilt from a clone, which matters when one ships;
+    currency asks whether the payload about to be sealed into an APK contains the work in the tree
+    you are editing, which matters every single time. the emulator is developed through the bundled
+    build here -- edit the fork, package it, build the APK, run it -- and dropping the packaging step
+    from that loop produces a perfectly good APK carrying the payload from before the edit, with
+    nothing anywhere saying so.
+
+    **a build that was named is reported and bundled anyway.** naming one is a choice and it is the
+    only way to bundle a branch that is not what is checked out, which is how a `perf/` branch is
+    packaged by hand. omitting it means the newest under `build/builds` answered and nobody chose, so
+    a difference there is the accident this exists for and it refuses.
+
+    a build packaged from an archive is skipped: it records no commit, provenance has already said
+    so, and there is nothing to compare. so is a machine with no fork checkout at all, which is a
+    clone that has not set one up rather than a mistake.
+    """
+    if not build.commit:
+        return
+    try:
+        fork = toolchain.fork
+    except Refusal as why:
+        say("  the bundled build is not compared against a fork checkout -- {}".format(why))
+        return
+    checkout = builds.checkout_commit(fork)
+    if not checkout:
+        say("  the bundled build is not compared -- {} would not say what commit it is at".format(
+            fork))
+        return
+
+    verdict, why = builds.compare_commit(build.commit, checkout, fork,
+                                         subject="the build being bundled")
+    if verdict == builds.MATCH:
+        say("  it is the fork checkout, {}".format(checkout))
+        return
+    if named:
+        say("  ** {}".format(why))
+        say("     it is bundled anyway, because it was named **")
+        return
+    raise Refusal(
+        "{}.\n"
+        "  no --sharpemu was given, so the newest build under {} answered and nobody chose.\n"
+        "  py scripts/package-build.py           package the checkout, then build again\n"
+        "  --sharpemu <a build directory>        bundle that one, knowing what it is\n"
+        "  --sharpemu none                       ship an APK with no build in it".format(
+            why, paths.relative(paths.BUILD_BUILDS)))
 
 
 def recorded_submodule_commit():
