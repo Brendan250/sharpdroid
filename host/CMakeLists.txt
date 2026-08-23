@@ -55,9 +55,9 @@ add_compile_definitions(_M_ARM_64=1)
 
 # bionic gaps, patched in from our side rather than by editing FEX. see the header for why.
 #
-# the header is referenced by bare filename and found via the include path, deliberately: the
-# repo lives under "Y:\Local Projects\...", and an absolute path in -include arrives at the
-# compiler unquoted and splits at the space. -I directories are quoted by cmake for us.
+# the header is referenced by bare filename and found via the include path, deliberately: an
+# absolute path in -include arrives at the compiler unquoted and splits at the first space, so a
+# checkout anywhere with a space in its path fails to compile. -I directories cmake quotes for us.
 #
 # CXX only: the .c files in cephes/SoftFloat and the ASM sources neither need it nor would
 # tolerate a C++ header. SHELL: keeps "-include <file>" together as one option group so cmake

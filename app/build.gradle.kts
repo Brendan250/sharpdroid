@@ -145,8 +145,10 @@ android {
 
             // **the native libraries ship unstripped, on purpose.** AGP strips by default, and the
             // host layer is where this project's open crash investigations live -- a stripped .so
-            // turns a native backtrace into a list of addresses. it costs about 7 MB of APK, on a
-            // build that is only ever installed over adb.
+            // turns a native backtrace into a list of addresses. it costs about 7 MB against an APK
+            // whose bundled emulator build is an order of magnitude larger, and the crashes worth
+            // reading a backtrace for are the ones that happen on somebody else's phone, so a
+            // published APK is the one that needs the symbols most rather than least.
             //
             // it is written down rather than left alone because AGP is *already* failing to strip
             // these ("Unable to strip the following libraries, packaging them as they are") and
