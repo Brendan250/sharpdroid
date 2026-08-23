@@ -69,10 +69,11 @@ android {
         applicationId = identityApplicationId ?: "com.mircowuffwuff.sharpdroid"
         minSdk = 28
         targetSdk = 35
-        // **the version is the release counter and nothing else.** a release is tagged wuff-1,
-        // wuff-2, wuff-3, and the prefix lives in the tag alone -- it is a namespace for a git ref,
-        // and repeating it here would put a third spelling of one release beside the tag and the
-        // asset name. bare is what the About screen shows and what a bug report is worth having.
+        // **the version is the release counter and nothing else.** a release is tagged sharpdroid-1,
+        // sharpdroid-2, sharpdroid-3, and the prefix lives in the tag alone -- it is a namespace for
+        // a git ref and the first half of the published asset's filename, and repeating it here
+        // would put a third spelling of one release beside those two. bare is what the About screen
+        // shows and what a bug report is worth having.
         //
         // **the code is ten times the version, and the gap between them is the point.** android
         // refuses an install whose code is not above the installed one, so the nine values between
