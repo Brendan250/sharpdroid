@@ -15,6 +15,7 @@
 
 import json
 import re
+import subprocess
 from pathlib import Path
 
 from . import paths
@@ -206,6 +207,49 @@ def open_build(where):
 MATCH = "match"
 STALE = "stale"
 UNKNOWN = "unknown"
+
+
+def checkout_commit(fork):
+    """what a build published from [fork] right now would record as its `commit`, or empty.
+
+    **it is here, in one function, because two places need the identical string.** the packaging step
+    writes it into a build's metadata and the staleness comparison computes it again to compare
+    against -- and a marker that one of them appends and the other does not is a difference that
+    reads as a stale build, or a stale build that reads as the checkout. neither could be told apart
+    from the real thing by the person the answer is printed to.
+
+    an empty answer means the checkout would not say, and is a *different* thing to a clean tree at
+    no commit: every way of failing lands on it, and the caller decides what that is worth.
+    """
+    head = subprocess.run(["git", "-C", str(fork), "rev-parse", "--short", "HEAD"],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                          encoding="utf-8", errors="replace")
+    if head.returncode != 0:
+        return ""
+    commit = (head.stdout or "").strip()
+    if not commit:
+        return ""
+
+    # `status --porcelain` over `diff --quiet`, which answers about tracked files that differ and
+    # says nothing about a file that was added and never committed -- and an added file is most of
+    # what this fork's own work looks like before it is committed.
+    dirt = subprocess.run(["git", "-C", str(fork), "status", "--porcelain"],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                          encoding="utf-8", errors="replace")
+    if dirt.returncode == 0 and (dirt.stdout or "").strip():
+        commit += DIRTY
+    return commit
+
+
+def split_commit(commit):
+    """a recorded commit as the hash and the marker after it, either of which may be empty.
+
+    a hash carries no hyphen, so the first one is where it ends -- the same split the app makes when
+    it shortens a commit for a bug report.
+    """
+    if commit.endswith(DIRTY):
+        return commit[:-len(DIRTY)], DIRTY
+    return commit, ""
 
 
 def compare_payload(build, remote_size):

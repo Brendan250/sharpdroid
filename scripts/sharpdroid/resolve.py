@@ -156,6 +156,15 @@ def build_staleness(attached, toolchain, build_path):
     **a check that could not run is not a check that passed**, so this answers with one of three
     words. an empty answer that meant both "they agree" and "I could not look" has reported silence
     as success here before, and a clean arm hid it for a whole round of testing.
+
+    **both sides are asked the same question**, which is what a build records rather than what `git`
+    prints: a checkout with uncommitted changes in it publishes `<hash>-dirty`, so that is what it is
+    compared against. asking `rev-parse` alone makes a tree with edits in it indistinguishable from
+    the commit it sits on, in both directions -- a build published before the edits reads as current,
+    and a build published from them reads as current too.
+
+    **and a marker on both sides is not a match.** two different sets of uncommitted changes spell it
+    the same way, so the hashes agreeing there says only that nothing can tell.
     """
     if not build_path:
         return builds.UNKNOWN, "no build to compare"
@@ -174,16 +183,31 @@ def build_staleness(attached, toolchain, build_path):
         fork = toolchain.fork
     except Refusal as why:
         return builds.UNKNOWN, str(why)
-    head = subprocess.run(["git", "-C", str(fork), "rev-parse", "--short", "HEAD"],
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                          encoding="utf-8", errors="replace")
-    if head.returncode != 0:
+    head = builds.checkout_commit(fork)
+    if not head:
         return builds.UNKNOWN, "the fork checkout would not say what commit it is at"
-    head = (head.stdout or "").strip()
-    if head.startswith(commit) or commit.startswith(head):
+
+    was, was_dirty = builds.split_commit(commit)
+    now, now_dirty = builds.split_commit(head)
+    # one of the two is abbreviated and which one is not fixed: a build records whatever `--short`
+    # gave the machine that packaged it, and a hand-written `meta.json` may carry all forty.
+    if not (now.startswith(was) or was.startswith(now)):
+        return builds.STALE, ("the staged build was cut from {} and {} is at {}".format(
+            commit, fork, head))
+    if not was_dirty and not now_dirty:
         return builds.MATCH, "the staged build is the fork checkout, {}".format(head)
-    return builds.STALE, ("the staged build was cut from {} and {} is at {}".format(
-        commit, fork, head))
+    if was_dirty and now_dirty:
+        return builds.STALE, (
+            "the staged build was published from a working tree with changes in it, and {} has "
+            "changes in it now -- so nothing can say whether the payload contains the ones you are "
+            "about to test".format(fork))
+    if was_dirty:
+        return builds.STALE, (
+            "the staged build was published from a working tree with changes in it and {} is clean "
+            "at {}, so the payload holds changes the checkout does not".format(fork, now))
+    return builds.STALE, (
+        "the staged build is {} and {} has uncommitted changes on top of it, so the payload does "
+        "not contain them".format(commit, fork))
 
 
 # --- running the other scripts ------------------------------------------------------------------------

@@ -38,9 +38,12 @@
 #
 # **but a build that no longer matches the fork checkout is said out loud**, because the other half
 # of that mistake is editing the fork and testing yesterday's payload with nothing erroring. a build
-# records the commit it was cut from, so the two can be compared: naming a build prints the
-# difference and carries on -- you chose it, it is yours to own -- and a run that named none at all
-# **stops**, because nobody chose and the two answers are not equivalent. it is never a question:
+# records the commit it was cut from, marker and all, and the checkout is asked the same question, so
+# an edit that has not been committed is a difference like any other -- which is the case this exists
+# for -- and two trees that both have edits in them are a difference nothing can resolve rather than
+# a match. naming a build prints the difference and carries on -- you chose it, it is yours to own --
+# and a run that named none at all **stops**, because nobody chose and the two answers are not
+# equivalent. it is never a question:
 # stdin here is a pipe under anything driving this, and a prompt nobody can answer is a script
 # nobody can automate.
 
