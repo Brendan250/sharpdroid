@@ -74,7 +74,7 @@ the app reads the first eight, `author` and `commit`, and ignores `source`. they
 
 it is a **sortable integer** rather than an ISO string or an epoch second, deliberately: a person reading a directory listing can date it at a glance and a machine can compare it without parsing. it is read as 64-bit, since `20260808011145` does not fit in 32.
 
-**the build that ships inside the APK omits `packagedAt` entirely**, and legitimately: absent means 0, exactly one of it exists, and there is nothing to order it against. its folder is the reserved word `bundled` rather than a derived name, and **its version, to a person, is its `commit`** — which is also what tells the app whether an app update brought a new one. [the section on it](#the-build-that-ships-inside-the-apk) has the rest.
+**the build that ships inside the APK omits `packagedAt` entirely**, and legitimately: absent means 0, exactly one of it exists, and there is nothing to order it against. its folder is the reserved word `bundled` rather than a derived name, and **its version, to a person, is its `commit`** — though what tells the app whether an app update brought a new one is a content hash beside the tree rather than any field in here. [the section on it](#the-build-that-ships-inside-the-apk) has the rest.
 
 ## `hostContract`
 
@@ -160,8 +160,9 @@ the payload is *found* inside the archive rather than assumed at a fixed depth, 
 | **`name` is `Bundled build`** | what a person needs to know about this build is that it is the one the app came with, which is exactly what it does *not* share with a staged copy of the same commit. it is named here rather than in the build it was cut from, where the name would travel to every copy of it |
 | **`author` is absent** | it is whoever produced the app, which the app's own screens say once. a card for the build that arrived with it repeating that says nothing |
 | **`contents`** | a generated listing beside `meta.json`, `<size>` and a path per line, tab-separated. **it is packaging's file and not part of this format** — it is not extracted, and a build that is not an APK asset has no reason to carry one |
+| **`identity`** | a content hash of the whole tree, one line, written after the listing so it is in neither the listing nor its own digest. packaging's file too, and never extracted: what lands on disk is `.identity`, written as the last file of the unpacking, holding the same string |
 | **nothing is unpacked until a launch needs it** | so an app update that changed only the app costs nothing, and a device that never runs the bundled build never spends the storage |
-| **staleness is the `commit`** | an update carrying a different one re-unpacks; one carrying the same build does not. with no commit on either side — a build packaged from a published archive records none — the whole `meta.json` is compared instead |
+| **staleness is the content** | the two short strings are compared on every launch and nothing is hashed on the device. **a `commit` cannot answer this**: a payload rebuilt from a dirty fork tree is at the commit it was already at, so an APK carrying bytes the directory does not have would agree in every field, and the launch would run the older payload without saying so |
 | **out of space is refused before anything is written** | the listing is what makes that possible: a deflated asset has no length until it has been read, so without it the check would have to happen halfway through the write it exists to prevent |
 
 `contents` exists for two things an APK asset cannot otherwise answer: how large the unpacking is before it starts, and which names are directories — `AssetManager` reports names without kinds, so telling a file from a directory otherwise means opening each one and reading a failure as "directory".

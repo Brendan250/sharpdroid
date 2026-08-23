@@ -171,12 +171,19 @@ def stage_bundle(wanted, package):
     shutil.copytree(str(build.directory), str(asset), dirs_exist_ok=True)
     drop_unpackable(asset)
     write_bundle_meta(build, asset)
+
+    # the listing first, then the identity -- so the identity is not in the listing, is not
+    # extracted, and is not hashing itself. the guest libraries are assembled in the same order for
+    # the same reason.
     count = write_contents(asset)
+    identity = content_hash(asset)
+    write_text(asset / "identity", identity + "\n")
 
     total = tree_size(asset)
     say("  bundling {} {} {}, contract {}".format(
         build.id, build.version, build.commit or "no commit", build.contract))
     say("  {} in {} files, from {}".format(size(total), count, paths.relative(build.directory)))
+    say("  identity {}".format(identity[:16]))
     return build
 
 
@@ -282,9 +289,10 @@ def write_bundle_meta(build, asset):
         "payload": build.payload.name,
         "env": build.field("env") or {},
         "notes": build.field("notes") or "",
-        # the commit is how the app tells whether an app update brought a new build, so a bundle
-        # without one re-extracts on any metadata change instead. that is the format's own answer
-        # rather than a special case invented here.
+        # the commit is what a person calls this build's version, one tag of upstream's having many
+        # builds of the fork under it, and both the About screen and the build manager name it.
+        # whether what is on disk is what this APK carries is a different question and the identity
+        # beside this tree answers it, so a bundle recording no commit costs nothing here.
         "commit": build.commit,
         "source": build.field("source") or "",
     }
@@ -370,11 +378,12 @@ def stage_guest_libs():
 
 
 def content_hash(asset):
-    """one hex string naming the whole content of an asset tree.
+    """one hex string naming the whole content of an asset tree. **both trees are hashed with it.**
 
     every file's path and byte count go into the digest beside its bytes, so a renamed file is a
-    different set rather than the same one -- which matters here, where the linker finds a library by
-    the name it is filed under and two of the names are sonames that nothing else spells out.
+    different set rather than the same one -- which matters in the guest set, where the linker finds
+    a library by the name it is filed under and two of the names are sonames that nothing else spells
+    out, and in a build, where `meta.json` names the payload file it must find.
     """
     digest = hashlib.sha256()
     for path in sorted(asset.rglob("*")):
@@ -1153,7 +1162,11 @@ def check_bundled_build(sizes, bundled):
         say("  no bundled build, as asked")
         return
 
+    # **the identity is required rather than packed if it happens to be there.** without it the app
+    # cannot tell the tree on disk from the one in this APK, and the launch that would have noticed
+    # runs the previous payload instead of saying anything.
     for name in ("assets/sharpemu/meta.json", "assets/sharpemu/contents",
+                 "assets/sharpemu/identity",
                  "assets/sharpemu/" + bundled.payload.name):
         if name not in sizes or sizes[name] <= 0:
             raise Refusal("packaging failed: {} is missing or empty in the APK".format(name))

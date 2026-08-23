@@ -30,6 +30,31 @@ object BundledBuild {
     /** the asset directory the APK carries the build in. `scripts/build-apk.py` populates it. */
     private const val ASSETS = "sharpemu"
 
+    /**
+     * the content hash of the packaged tree, one line, computed by `scripts/build-apk.py`.
+     *
+     * **a content hash rather than the build's own commit**, which is the only other string that
+     * could name this tree and is not enough: a payload rebuilt from a dirty fork tree sits at the
+     * commit it was already at, so the APK would carry bytes the directory on disk does not have and
+     * every field a comparison could use would agree. the failure that buys is a launch running the
+     * *previous* payload and saying nothing, which is the most expensive shape of bug this project
+     * has -- a plausible run attributed to the wrong artefact.
+     *
+     * it is not in the tree's listing, so it is never extracted: what lands on disk is [STAMP],
+     * which this is compared against.
+     */
+    private const val IDENTITY = "identity"
+
+    /**
+     * the extracted copy's record of which packaged tree it is, holding exactly what [IDENTITY]
+     * holds.
+     *
+     * **written last and inside the `.partial` directory**, so the rename is the moment the tree
+     * becomes complete. a dot name so that nothing reading a build directory has to know about it,
+     * and [SharpEmuBuild] does not.
+     */
+    private const val STAMP = ".identity"
+
     /** what [ensure] did. */
     sealed class Outcome {
         /** this APK ships no build. a development build of the app is in this state. */
@@ -80,11 +105,23 @@ object BundledBuild {
      */
     @JvmStatic
     fun ensure(context: Context, internal: File, progress: AssetTree.Progress): Outcome {
-        val meta = assetMeta(context) ?: return Outcome.NotBundled
+        assetMeta(context) ?: return Outcome.NotBundled
         val target = target(internal)
 
+        // **no identity is a refusal rather than an extraction.** `scripts/build-apk.py` writes one
+        // beside every tree it packages and asserts it inside the finished archive, so an APK
+        // reaching this line carries a bundle nothing can identify -- and the alternative to
+        // refusing is writing 76 MB on every launch, or running a directory that may be older than
+        // the APK it came from.
+        val packaged = AssetTree.text(context, "$ASSETS/$IDENTITY")
+        if (packaged == null) {
+            AppLog.e(TAG, "[app] this APK carries a bundled build and no $IDENTITY beside it, so"
+                    + " nothing can say whether $target is that build")
+            return Outcome.Failed(context.getString(R.string.bundled_failed))
+        }
+
         val onDisk = SharpEmuBuild.read(target)
-        if (onDisk != null && !isStale(context, target, meta)) {
+        if (onDisk != null && stamp(target) == packaged) {
             return Outcome.Ready(onDisk)
         }
         if (onDisk != null) {
@@ -103,7 +140,7 @@ object BundledBuild {
             return Outcome.OutOfSpace(total, free)
         }
 
-        val extracted = extract(context, contents, target, progress)
+        val extracted = extract(context, contents, target, packaged, progress)
             ?: return Outcome.Failed(context.getString(R.string.bundled_failed))
         return Outcome.Ready(extracted)
     }
@@ -112,33 +149,14 @@ object BundledBuild {
     private fun target(internal: File) = File(internal, SharpEmuBuild.BUNDLED)
 
     /**
-     * whether what is on disk is the build this APK carries.
+     * what the extracted copy says it is, or null when it says nothing.
      *
-     * **the commit is the test**, and it is the reason `meta.json` records one: `sharpemuVersion` is
-     * upstream's tag and the fork moves faster than upstream, so two builds of one tag are the
-     * ordinary case and are identical in every other field a comparison could use. re-extracting on
-     * every app update would be the alternative, and it would charge 76 MB of writes for an update
-     * that changed a string in the settings scene.
-     *
-     * **with no commit on either side the whole `meta.json` is compared instead.** a build packaged
-     * from a published archive records none -- there was no checkout to ask -- and something still has
-     * to notice when the APK starts carrying a different one.
-     *
-     * what it cannot see is a payload rebuilt from a dirty fork tree at the same commit.
-     * `scripts/package-build.py` warns when it packages one, which is where that belongs.
+     * **nothing is hashed on the device.** the comparison this feeds is *read two short files*, and
+     * it does not grow with the tree -- hashing 76 MB here would sit on every launch, in front of a
+     * game, to answer a question `scripts/build-apk.py` already answered once on a desktop.
      */
-    private fun isStale(context: Context, target: File, assetMeta: JSONObject): Boolean {
-        val diskMeta = File(target, "meta.json")
-        val assetCommit = assetMeta.optString("commit", "")
-        val diskCommit = runCatching { JSONObject(diskMeta.readText()) }
-            .getOrNull()?.optString("commit", "") ?: return true
-        if (assetCommit.isNotEmpty() && diskCommit.isNotEmpty()) {
-            return assetCommit != diskCommit
-        }
-        val asset = runCatching { context.assets.open("$ASSETS/meta.json").use { it.readBytes() } }
-            .getOrNull() ?: return true
-        return !asset.contentEquals(runCatching { diskMeta.readBytes() }.getOrNull() ?: return true)
-    }
+    private fun stamp(dir: File): String? =
+        runCatching { File(dir, STAMP).readText().trim() }.getOrNull()?.takeIf { it.isNotEmpty() }
 
     /**
      * lays the tree down and reads back what landed.
@@ -149,16 +167,19 @@ object BundledBuild {
      * would otherwise find it and the build manager would offer it.
      *
      * a `.partial` left behind by a process that died is invisible rather than dangerous, since
-     * [SharpEmuBuild.list] and [SharpEmuBuild.mostRecent] both skip one. that is why this tree needs
-     * no stamp of its own: `meta.json` is both the identity and the mark of a finished extraction.
+     * [SharpEmuBuild.list] and [SharpEmuBuild.mostRecent] both skip one. so [STAMP] is not what marks
+     * this tree finished -- `meta.json` and the rename already do that -- and is only what names
+     * which packaged tree it is.
      */
     private fun extract(
         context: Context,
         contents: List<AssetTree.Item>,
         target: File,
+        packaged: String,
         progress: AssetTree.Progress,
     ): SharpEmuBuild? {
-        AssetTree.extract(context, ASSETS, "the bundled build", contents, target, progress)
+        AssetTree.extract(context, ASSETS, "the bundled build", contents, target, progress,
+            STAMP to packaged)
             ?: return null
         val build = SharpEmuBuild.read(target)
         if (build == null || !build.runnable()) {
