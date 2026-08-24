@@ -44,7 +44,7 @@ sharpdroid
 
 **SharpEmu** has no CPU emulator. instead, it executes x86-64 PS5 guest code natively on an x86-64 host CPU. there is simply nothing there, to port to arm64 android.
 
-thats where [FEX](https://github.com/FEX-Emu/FEX) comes in. we use the x86-64 to arm64 translator it ships, **FEXCore**, to read x86-64 and emit arm64, as SharpEmu runs.
+thats where [FEX](https://github.com/FEX-Emu/FEX) comes in. we use the x86-64 to arm64 translator it ships, [**FEXCore**](https://github.com/FEX-Emu/FEX/tree/main/FEXCore), to read x86-64 and emit arm64, as SharpEmu runs.
 
 on arm64 Linux, which is FEX's intended usage environment, FEX also ships what it calls its frontend; a Linux program that loads the guest, answers its syscalls, and delivers its signals. FEX's frontend is a program. we need a library. which is why we implement an analogue that works as such: our **host layer**.
 
@@ -227,7 +227,7 @@ for other users, to be able to import your unique SharpEmu payload, the whole bu
 
 thanks to [SharpEmu](https://github.com/sharpemu/sharpemu), all its contributors on GitHub, its references [ShadPS4](https://shadps4.net/), [Kyty](https://github.com/InoriRus/Kyty), and Ryujinx, and everyone who has helped support its development.
 
-thanks to [FEX](https://github.com/FEX-Emu/FEX) for providing FEXCore, an x86-64 to arm64 translation layer, and thanks to [Valve](https://www.valvesoftware.com/en/) for funding it.
+thanks to [FEX](https://github.com/FEX-Emu/FEX) for providing [FEXCore](https://github.com/FEX-Emu/FEX/tree/main/FEXCore), an x86-64 to arm64 translation layer, and thanks to [Valve](https://www.valvesoftware.com/en/) for funding it.
 
 thanks to [libadrenotools](https://github.com/bylaws/libadrenotools) for making it possible to inject custom vulkan drivers with relative ease.
 
