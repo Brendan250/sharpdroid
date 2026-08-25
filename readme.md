@@ -6,6 +6,10 @@
 
 this is an android app that runs [SharpEmu](https://github.com/sharpemu/sharpemu), a PS5 emulator for Windows and Linux on x86-64. sharpdroid focuses on low overhead, mergeability, and modularity.
 
+<p align="center">
+	<a target="_blank" rel="noopener noreferrer" href="#agent-usage"><img height="33" src=".github/images/agent-usage-button.png" /></a> <a target="_blank" rel="noopener noreferrer" href="https://dl-sharpdroid.mircowuffwuff.com"><img height="33" src=".github/images/download-button.png" /></a> <a target="_blank" rel="noopener noreferrer" href="https://github.com/mircowuffwuff/sharpemu/releases"><img height="33" src=".github/images/sharpemu-builds-button.png" /></a>
+</p>
+
 like the fruit of my latest software engineering obsession? click the dumb dog below to support development!
 
 <p align="center">
@@ -17,10 +21,6 @@ like the fruit of my latest software engineering obsession? click the dumb dog b
 ## requirements
 
 an arm64-v8a processor, android 9 or later, and a GPU with vulkan support. thats it.
-
-## getting it
-
-download the latest rolling release [here](https://github.com/mircowuffwuff/sharpdroid/releases/latest). an archive of previously bundled SharpEmu builds can be found [here](https://github.com/mircowuffwuff/sharpemu/releases). sharpdroid does not ship any games, firmware, or other proprietary PlayStation assets.
 
 ## how it works
 
@@ -131,7 +131,7 @@ my name is mirco <img width="24" align="top" alt="mircomoji" src=".github/images
 
 i have a decade of programming experience myself, but in this project, claude is my programmer. and *nothing more*. i plan the project, i tell him what to do, i monitor his progress and only accept his contributions, if they satisfy me.
 
-i regularly spend *entire sessions* just discussing implementations out with claude, to ensure we can build the best app possible together. if claude suggests something i never blindly accept it; i ask him how that would work, until i get it, which takes hours at times.
+i regularly spend *entire sessions* just discussing implementations out with claude, to ensure we can build the best app possible together. if claude suggests something, i never blindly accept it; i ask him how that would work, until i get it, which takes hours at times.
 
 but as a result, i understand how every moving part of the project works.
 
@@ -256,3 +256,10 @@ thanks to Milana for hand drawing the SharpEmu logo at the top, my OC, and the h
 
 [GPL-2.0-or-later](LICENSE)
 
+## legal
+
+sharpdroid does not:
+
+- ship any games, firmware, or other proprietary PlayStation assets
+- implement any circumvention of copy protection or digital rights management
+- exist for any purposes but research
