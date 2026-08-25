@@ -127,13 +127,13 @@ i remained awestruck for what felt like an eternity. stunned by dozens of ideas,
 > - issues or comments on issues, that are written by claude, are posted by [@claudeclaudewuff](https://github.com/claudeclaudewuff).
 > - every commit, that is co-authored by claude, is credited as such.
 
-my name is mirco <img width="24" align="top" alt="mircomoji" src=".github/images/mircomoji-flat.png" /> and i am a software engineer.
+hai!! my name is mirco <img width="24" align="top" alt="mircomoji" src=".github/images/mircomoji-flat.png" /> and i am a software engineer.
 
-i have a decade of programming experience myself, but in this project, claude is my programmer. and *nothing more*. i plan the project, i tell him what to do, i monitor his progress and only accept his contributions, if they satisfy me.
+i have a decade of programming experience myself, but in this project, claude is my programmer. and *barely more*. i plan the project, i tell him what to do, i monitor his progress and only accept his contributions, if they satisfy me.
 
-i regularly spend *entire sessions* just discussing implementations out with claude, to ensure we can build the best app possible together. if claude suggests something, i never blindly accept it; i ask him how that would work, until i get it, which takes hours at times.
+i regularly spend *entire sessions* just discussing implementations out with claude, to ensure we can build the best app possible together. in the event that claude suggests something, i never blindly accept it.
 
-but as a result, i understand how every moving part of the project works.
+and as a result, i understand how every moving part of the project works on paper.
 
 ...including our compatibility layer, sharpdroid's [host layer](https://github.com/mircowuffwuff/sharpdroid/tree/main/host). that being said, i can hardly scrutinize claude's host layer *code*. the concept is sound, but i am neither a low level programmer, nor an emulator developer. so, i have entrusted claude with the implementation of said host layer. i invite anyone with the appropriate experience to properly review it. i am sure, there are improvements to be made!
 
