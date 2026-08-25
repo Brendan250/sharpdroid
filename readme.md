@@ -120,7 +120,7 @@ i remained awestruck for what felt like an eternity. stunned by dozens of ideas,
 
 ## agent usage
 
-hey! my name is mirco and i am a software engineer.
+hey! my name is mirco <img width="24" align="top" alt="mircomoji" src=".github/images/mircomoji-flat.png" /> and i am a software engineer.
 
 i have a decade of programming experience myself, but in this project, claude Opus 5 is my programmer. and *nothing more*. i plan the project, i tell him what to do, i monitor his progress and only accept his contributions, if they satisfy me.
 
