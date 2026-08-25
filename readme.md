@@ -120,17 +120,28 @@ i remained awestruck for what felt like an eternity. stunned by dozens of ideas,
 
 ## agent usage
 
-hey! my name is mirco <img width="24" align="top" alt="mircomoji" src=".github/images/mircomoji-flat.png" /> and i am a software engineer.
+> [!NOTE]
+> this entire project makes it unambiguous, what is written by a human or an agent, by design.
+>
+> - both this readme and all release notes are hand written.
+> - issues or comments on issues, that are written by claude, are posted by @claudeclaudewuff.
+> - every commit, that is co-authored by claude, is credited as such.
 
-i have a decade of programming experience myself, but in this project, claude Opus 5 is my programmer. and *nothing more*. i plan the project, i tell him what to do, i monitor his progress and only accept his contributions, if they satisfy me.
+my name is mirco <img width="24" align="top" alt="mircomoji" src=".github/images/mircomoji-flat.png" /> and i am a software engineer.
 
-i regularly spend *entire sessions* just discussing implementations out with claude, to ensure we can build the best app possible together.
+i have a decade of programming experience myself, but in this project, claude is my programmer. and *nothing more*. i plan the project, i tell him what to do, i monitor his progress and only accept his contributions, if they satisfy me.
 
-that being said, there is one part of this project, i can hardly scrutinize: claude's [host layer](https://github.com/mircowuffwuff/sharpdroid/tree/main/host) code. the concept is sound, but i am neither a low level programmer, nor an emulator developer. so, i have entrusted claude with the implementation of said host layer. i invite anyone with the appropriate experience to properly review it. i am sure, there are improvements to be made!
+i regularly spend *entire sessions* just discussing implementations out with claude, to ensure we can build the best app possible together. if claude suggests something i never blindly accept it; i ask him how that would work, until i get it, which takes hours at times.
+
+but as a result, i understand how every moving part of the project works.
+
+...including our compatibility layer, sharpdroid's [host layer](https://github.com/mircowuffwuff/sharpdroid/tree/main/host). that being said, i can hardly scrutinize claude's host layer *code*. the concept is sound, but i am neither a low level programmer, nor an emulator developer. so, i have entrusted claude with the implementation of said host layer. i invite anyone with the appropriate experience to properly review it. i am sure, there are improvements to be made!
+
+the claude model used until release was exclusively Opus 5.
 
 ## documentation
 
-besides this human written readme, much more in-depth documentation on the separate moving parts of this project exists as well. these are written almost entirely by claude Opus 5.
+besides this hand written readme, much more in-depth documentation on the separate moving parts of this project exists as well. do note, that these are written by claude:
 
 - [app](docs/app.md)
 - [audio](docs/audio.md)
