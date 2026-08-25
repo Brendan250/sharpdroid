@@ -248,7 +248,7 @@ thanks to [GameNative](https://github.com/utkarshdalal/GameNative) for providing
 
 thanks to [Dolphin](https://github.com/dolphin-emu/dolphin) for providing a functional SAF file loading reference.
 
-thanks to Ömer for donating 3 weeks' worth of claude code pro trials.
+thanks to Ömer for donating 3 weeks' worth of claude code pro trials, and for composing his amazing handheld themed [sharpdroid render](https://github.com/user-attachments/assets/6bf16388-f0f9-4a91-aa36-2c10acdd1d8d).
 
 thanks to Milana for hand drawing the SharpEmu logo at the top, my OC, and the history illustration.
 
