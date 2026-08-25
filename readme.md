@@ -124,7 +124,7 @@ i remained awestruck for what felt like an eternity. stunned by dozens of ideas,
 > this entire project makes it unambiguous, what is written by a human or an agent, by design.
 >
 > - both this readme and all release notes are hand written.
-> - issues or comments on issues, that are written by claude, are posted by @claudeclaudewuff.
+> - issues or comments on issues, that are written by claude, are posted by [@claudeclaudewuff](https://github.com/claudeclaudewuff).
 > - every commit, that is co-authored by claude, is credited as such.
 
 my name is mirco <img width="24" align="top" alt="mircomoji" src=".github/images/mircomoji-flat.png" /> and i am a software engineer.
@@ -141,7 +141,7 @@ the claude model used until release was exclusively Opus 5.
 
 ## documentation
 
-besides this hand written readme, much more in-depth documentation on the separate moving parts of this project exists as well. do note, that these are written by claude:
+besides this hand written readme, a bunch of more in-depth documents on the separate moving parts of this project exist. do note, that these are written by claude:
 
 - [app](docs/app.md)
 - [audio](docs/audio.md)
