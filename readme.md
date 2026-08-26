@@ -54,7 +54,7 @@ graphics and audio are solved without serialisation or copying, since guest and 
 
 a decoy `libvulkan.so` driver reroutes graphics API calls from SharpEmu to the host layer's **vulkan** thunk, and as a result of that to the system driver or a loaded mesa turnip driver, directly. each frame is drawn straight from SharpEmu into android's **ANativeWindow**.
 
-similarly, a decoy `libaaudio.so` driver reroutes audio API calls from SharpEmu to the host layer's **aaudio** thunk. all audio is routed straight to android's **AAudio**.
+similarly, a decoy `libaaudio.so` driver reroutes audio API calls from SharpEmu to the host layer's **aaudio** thunk. all audio is played straight from SharpEmu through android's **AAudio**.
 
 ### versus Windows emulation
 
