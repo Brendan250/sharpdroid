@@ -38,6 +38,8 @@ public class TouchOverlayView extends View {
     }
 
     private void init() {
+        setFocusable(true);
+        setClickable(true);
         buttonPaint.setColor(Color.argb(128, 255, 255, 255)); // Semi-transparent white
         buttonPaint.setStyle(Paint.Style.FILL);
     }
@@ -63,7 +65,7 @@ public class TouchOverlayView extends View {
     }
 
     @Override
-    public bool onTouchEvent(MotionEvent event) {
+    public boolean onTouchEvent(MotionEvent event) {
         int action = event.getActionMasked();
         int index = event.getActionIndex();
 
