@@ -21,6 +21,15 @@ jobs:
       with:
         python-version: '3.x'
 
+    - name: Set up .NET SDK 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.103'
+
+    - name: Set SHARPDROID_DOTNET environment variable
+      run: |
+        echo "SHARPDROID_DOTNET=$(dirname $(which dotnet))" >> $GITHUB_ENV
+
     - name: Install Toolchain / Android SDK
       run: python3 scripts/fetch-toolchain.py --install
 
