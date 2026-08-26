@@ -70,7 +70,7 @@ on paper, sharpdroid carries much less overhead than Windows emulation on androi
 |                                                              | SharpEmu otherwise                             |
 | the Windows game                                             | the PS5 game                                   |
 
-Windows emulation's **container** is replaced by our much more lightweight **host layer**, which manages to provide SharpEmu with everything it needs, mostly natively, from the Linux kernel at android's heart.
+Windows emulation's **container** is replaced by our more lightweight **host layer**, which manages to provide SharpEmu with everything it needs, mostly natively, from the Linux kernel at android's heart.
 
 Windows emulation's **wine**/Proton falls away entirely, because we are building our SharpEmu payloads for Linux. thus, the Windows API and everything Windows-specific is completely out of the picture.
 
