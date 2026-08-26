@@ -8,8 +8,8 @@
   "dotnetSdk": "10.0.103",
 
   "sources": {
-    "cmdlineTools": "https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip",
-    "jdk": "https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jdk/hotspot/normal/eclipse",
-    "dotnetInstall": "https://dot.net/v1/dotnet-install.ps1"
+    "cmdlineTools": "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip",
+    "jdk": "https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse",
+    "dotnetInstall": "https://dot.net/v1/dotnet-install.sh"
   }
 }
