@@ -409,7 +409,7 @@ def package(toolchain, arguments, identity, publish):
     guest_env = arguments.guest_env if arguments.guest_env is not None else known.get("env", [])
 
     packaged_at = arguments.packaged_at or int(datetime.now().strftime("%Y%m%d%H%M%S"))
-    folder = slug("{}-{}-{}".format(branch, identity["version"], packaged_at))
+    folder = builds.slug("{}-{}-{}".format(branch, identity["version"], packaged_at))
 
     step("packaging {} -- {} {} {}".format(name, branch, identity["version"], packaged_at))
     say("  into {}".format(folder))
@@ -487,17 +487,6 @@ def read_environment(assignments):
         name, value = assignment.split("=", 1)
         values[name] = value
     return values
-
-
-def slug(text):
-    """lowercase, spaces to hyphens, and nothing outside a safe set.
-
-    this project has already paid once for a path with a space in it. game directories are not ours
-    to name; build directories are.
-    """
-    text = re.sub(r"\s+", "-", text.lower())
-    text = re.sub(r"[^a-z0-9._-]", "-", text)
-    return re.sub(r"-+", "-", text).strip("-")
 
 
 if __name__ == "__main__":

@@ -53,6 +53,27 @@ _DEFAULTS = {
 }
 
 
+def slug(text):
+    """lowercase, spaces to hyphens, and nothing outside a safe set.
+
+    this project has already paid once for a path with a space in it. game directories are not ours
+    to name; build directories are.
+
+    **it lives here rather than in the packaging script because the name it makes is read back.** an
+    id is a branch name and a branch name may hold a `/`, which is a directory separator on every
+    machine and on the device -- so a name derived without this is one the packaging step cannot
+    write and the staging step pushes into a subdirectory nobody created. one function, so the two
+    cannot disagree about what a build is called.
+
+    **the id keeps its slashes and only the folder name loses them.** the id is what `source` points
+    at and what a checkout is named by, and flattening it would leave two builds of genuinely
+    different branches sharing one. a folder is distinguished by `packagedAt` regardless.
+    """
+    text = re.sub(r"\s+", "-", text.lower())
+    text = re.sub(r"[^a-z0-9._-]", "-", text)
+    return re.sub(r"-+", "-", text).strip("-")
+
+
 class Build:
     """one build directory, and what its metadata says about it."""
 
@@ -113,7 +134,7 @@ class Build:
     @property
     def folder_name(self):
         """what this build is called wherever it lands. never the directory's own name."""
-        return "{}-{}-{}".format(self.id, self.version, self.packaged_at)
+        return slug("{}-{}-{}".format(self.id, self.version, self.packaged_at))
 
     @property
     def identity(self):
