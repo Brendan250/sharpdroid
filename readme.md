@@ -52,29 +52,30 @@ our **host layer** routes most of what SharpEmu asks for through to the Linux ke
 
 graphics and audio are solved without serialisation or copying, since guest and host share one address space.
 
-a decoy `libvulkan.so` driver reroutes graphics API calls from SharpEmu to the host layer's **vulkan** thunk, and as a result of that to the system driver or a loaded mesa turnip driver, directly. there is no display server and no virtual desktop between SharpEmu and android's **ANativeWindow**; a frame is drawn straight into it.
+a decoy `libvulkan.so` driver reroutes graphics API calls from SharpEmu to the host layer's **vulkan** thunk, and as a result of that to the system driver or a loaded mesa turnip driver, directly. each frame is drawn straight from SharpEmu into android's **ANativeWindow**.
 
-similarly, a decoy `libaaudio.so` driver reroutes audio API calls from SharpEmu to the host layer's **aaudio** thunk. there is no Linux audio server, like PulseAudio or PipeWire, between SharpEmu and android's **AAudio**.
+similarly, a decoy `libaaudio.so` driver reroutes audio API calls from SharpEmu to the host layer's **aaudio** thunk. all audio is routed straight to android's **AAudio**.
 
 ### versus Windows emulation
 
 on paper, sharpdroid carries much less overhead than Windows emulation on android does. though that isnt worth much, until upstream SharpEmu matures enough. but once it does, sharpdroid has serious potential to become the most performant and efficient way to play games on android, that are available on both PS5 and Windows.
 
 | layers of Windows emulation on android, running a Windows game | layers of sharpdroid, running a PS5 game |
-| ------------------------------------------------------------ | ---------------------------------------- |
-| a bionic container                                           | our host layer                           |
-| wine                                                         |                                          |
-| FEXCore                                                      | FEXCore                                  |
-| X server                                                     |                                          |
-| DXVK                                                         | SharpEmu graphics                        |
-|                                                              | SharpEmu otherwise                       |
-| the Windows game                                             | the PS5 game                             |
+| --- | --- |
+| a bionic container | our host layer |
+| wine | |
+| FEXCore | FEXCore |
+| X server | |
+| PulseAudio server | |
+| DXVK | SharpEmu graphics |
+| | SharpEmu otherwise |
+| the Windows game | the PS5 game |
 
 Windows emulation's **bionic container** is replaced by our more lightweight **host layer**. similarly to a bionic container, it manages to provide SharpEmu with everything it needs, mostly natively, from the Linux kernel at android's heart. but unlike a bionic container, it loads SharpEmu itself, in-process instead of as a second process, with no root filesystem and nothing to unpack per game.
 
-Windows emulation's **wine**/Proton falls away entirely, because we are building our SharpEmu payloads for Linux. thus, the Windows API and everything Windows-specific is completely out of the picture.
+Windows emulation's **wine**/Proton falls away entirely, because we are building our SharpEmu payloads for Linux. thus, wine's whole virtual desktop, the Windows API, and everything else Windows-specific are completely out of the picture.
 
-likewise, something like Windows emulation's **X server** is not necessary at all on sharpdroid, since the picture is drawn into android's ANativeWindow directly.
+likewise, Windows emulation's **X server** and **PulseAudio server** are not necessary at all on sharpdroid, which is an immediate benefit of SharpEmu sharing an address space with our app.
 
 both Windows emulation on android and sharpdroid translate graphics to vulkan. the former through **DXVK**, the latter through **SharpEmu's graphics** translation.
 
