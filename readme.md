@@ -48,7 +48,7 @@ thats where [FEX](https://github.com/FEX-Emu/FEX) comes in. we use the x86-64 to
 
 on arm64 Linux, which is FEX's intended usage environment, FEX also ships what it calls its frontend; a Linux program that loads the guest, answers its syscalls, and delivers its signals. FEX's frontend is a program. we need a library. which is why we implement an analogue that works as such: our **host layer**.
 
-our **host layer** is not a container. instead, it routes most of what SharpEmu asks for through to the Linux kernel at android's heart. files, memory, threads, and futexes are all answered by the real thing. though this does not work for all types of question; for instance, when SharpEmu asks which program it is, the host layer answers *SharpEmu*, instead of *an android app*, which is what the kernel would have said.
+our **host layer** routes most of what SharpEmu asks for through to the Linux kernel at android's heart. files, memory, threads, and futexes are all answered by the real thing. though this does not work for all types of question; for instance, when SharpEmu asks which program it is, the host layer answers *SharpEmu*, instead of *an android app*, which is what the kernel would have said.
 
 graphics and audio are solved without serialisation or copying, since guest and host share one address space.
 
@@ -61,16 +61,16 @@ similarly, a decoy `libaaudio.so` driver reroutes audio API calls from SharpEmu 
 on paper, sharpdroid carries much less overhead than Windows emulation on android does. though that isnt worth much, until upstream SharpEmu matures enough. but once it does, sharpdroid has serious potential to become the most performant and efficient way to play games on android, that are available on both PS5 and Windows.
 
 | layers of Windows emulation on android, running a Windows game | layers of sharpdroid, running a PS5 game |
-| ------------------------------------------------------------ | ---------------------------------------------- |
-| a container                                                  | our host layer                                 |
-| wine                                                         |                                                |
-| FEXCore                                                      | FEXCore                                        |
-| X server                                                     |                                                |
-| DXVK                                                         | SharpEmu graphics                              |
-|                                                              | SharpEmu otherwise                             |
-| the Windows game                                             | the PS5 game                                   |
+| ------------------------------------------------------------ | ---------------------------------------- |
+| a bionic container                                           | our host layer                           |
+| wine                                                         |                                          |
+| FEXCore                                                      | FEXCore                                  |
+| X server                                                     |                                          |
+| DXVK                                                         | SharpEmu graphics                        |
+|                                                              | SharpEmu otherwise                       |
+| the Windows game                                             | the PS5 game                             |
 
-Windows emulation's **container** is replaced by our more lightweight **host layer**, which manages to provide SharpEmu with everything it needs, mostly natively, from the Linux kernel at android's heart.
+Windows emulation's **bionic container** is replaced by our more lightweight **host layer**. similarly to a bionic container, it manages to provide SharpEmu with everything it needs, mostly natively, from the Linux kernel at android's heart. but unlike a bionic container, it loads SharpEmu itself, in-process instead of as a second process, with no root filesystem and nothing to unpack per game.
 
 Windows emulation's **wine**/Proton falls away entirely, because we are building our SharpEmu payloads for Linux. thus, the Windows API and everything Windows-specific is completely out of the picture.
 
