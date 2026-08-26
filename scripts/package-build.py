@@ -61,26 +61,32 @@ HOST_CONTRACT = 3
 # that absorbs upstream; anything with a type prefix is archived at the commit it was cut from and is
 # merged nowhere. that is the fork's own naming convention rather than a quirk of this script, and it
 # is what keeps absorbing an upstream release a thing you do once.
+#
+# **a topic branch says which base it sits on, and the android one says so explicitly.**
+# `<type>/android/<topic>` carries the platform support underneath the change, so it builds an APK
+# and is what a measurement runs; `<type>/<topic>` is upstream plus the change and nothing else,
+# which is what a pull request is cut from and what cannot build an APK at all. only the first kind
+# is ever packaged, which is why every id here has the segment.
 KNOWN = {
     "android": {
         "name": "Android platform support",
         "env": [],
         "notes": "SharpEmu expanded by Android platform support.",
     },
-    "perf/flip-snapshot-pool": {
+    "perf/android/flip-snapshot-pool": {
         "name": "Flip snapshot pool",
         "env": [],
         "notes": "android plus a pool for the per-frame guest flip snapshot. a topic branch, open "
                  "upstream -- import it to try the change before it lands.",
     },
-    "perf/host-cached-memory": {
+    "perf/android/host-cached-memory": {
         "name": "Host-cached memory",
         "env": [],
         "notes": "android plus a host-cached memory preference for CPU-written allocations on "
                  "integrated GPUs. it is what a third-party driver needs and does little for the "
                  "platform's own.",
     },
-    "perf/render-pass-batching": {
+    "perf/android/render-pass-batching": {
         "name": "Render pass batching",
         "env": ["SHARPEMU_BATCH_RENDER_PASSES=1"],
         "notes": "android plus render pass batching. a parked topic branch that joins nothing: a "
