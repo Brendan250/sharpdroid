@@ -22,7 +22,7 @@ jobs:
         python-version: '3.x'
 
     - name: Install Toolchain / Android SDK
-      run: python3 scripts/fetch-toolchain.py --install
+      run: python3 scripts/fetch-toolchain.py --install --platform linux
 
     - name: Build Host Layer Native Library
       run: python3 scripts/build-host.py
