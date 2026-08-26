@@ -74,7 +74,8 @@ int HostProt(int GuestProt);
 // Prot throughout is what the *guest* asked for, PROT_EXEC included -- not what was passed to
 // bionic. ranges are page-aligned by the tracker, so callers may pass byte lengths.
 
-///< a new mapping. replaces whatever was recorded over the same range, as MAP_FIXED does.
+///< a new mapping. replaces whatever was recorded over the same range, as MAP_FIXED does -- and
+///< invalidates when that range was executable, since no munmap said the old bytes were going.
 void Record(uint64_t Base, uint64_t Length, int GuestProt);
 
 ///< munmap. the range simply stops existing.
@@ -131,5 +132,24 @@ WriteFault HandleWriteFault(FEXCore::Core::InternalThreadState* Thread, uint64_t
 uint64_t EntryCount();
 uint64_t SMCFaultCount();
 uint64_t InvalidationCount();
+
+/**
+ * @brief New mappings, and how many of them landed on memory the map already held.
+ *
+ * a mapping can only be laid over live guest memory by MAP_FIXED, which replaces what was there
+ * without a munmap -- so Forget never runs, and Record does not invalidate. a translation FEXCore
+ * holds for such a range therefore outlives the code it was compiled from.
+ *
+ * `Total` is the denominator, so a zero in either other column is a measurement rather than
+ * silence. `OverExecutable` is the column to read: a landing on a range the guest declared
+ * executable is the only kind that can strand a translation, and the first one is named in the log
+ * as it happens.
+ */
+struct MappingReport {
+  uint64_t Total;
+  uint64_t Overlapping;
+  uint64_t OverExecutable;
+};
+MappingReport MappingsRecorded();
 
 } // namespace HostLayer::VMA

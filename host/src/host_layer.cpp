@@ -164,6 +164,15 @@ void PrintRunSummary() {
               static_cast<unsigned long long>(HostLayer::VMA::EntryCount()),
               static_cast<unsigned long long>(HostLayer::VMA::InvalidationCount()),
               static_cast<unsigned long long>(HostLayer::VMA::SMCFaultCount()));
+  {
+    // the third column is the one worth reading. a mapping laid over memory the guest had already
+    // declared executable leaves whatever FEXCore compiled there describing bytes that are gone,
+    // and the total beside it is what stops a zero being silence.
+    const auto Mappings = HostLayer::VMA::MappingsRecorded();
+    std::printf("[host-layer] %llu mapping(s) recorded, %llu over live memory, %llu over executable memory\n",
+                static_cast<unsigned long long>(Mappings.Total), static_cast<unsigned long long>(Mappings.Overlapping),
+                static_cast<unsigned long long>(Mappings.OverExecutable));
+  }
   if (LinuxSyscalls.UnhandledCount()) {
     std::printf("[host-layer] %llu unhandled syscall(s), last was %llu\n",
                 static_cast<unsigned long long>(LinuxSyscalls.UnhandledCount()),
