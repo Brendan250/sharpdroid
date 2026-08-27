@@ -145,6 +145,24 @@ uint64_t InvalidationCount();
  * executable is the only kind that can strand a translation, and the first one is named in the log
  * as it happens.
  */
+/**
+ * @brief Called from a host signal handler, before it decides anything.
+ *
+ * the invalidation walk in Invalidate is not atomic against a signal, where FEX's own frontend
+ * wraps the equivalent section in a deferred-signal guard. a handler that redirects the thread out
+ * of that walk leaves every thread after it in the list holding translations the call was meant to
+ * drop -- so whether a signal ever lands there decides whether that difference can matter at all.
+ */
+void NoteSignal(int Signal);
+
+///< signal deliveries, and how many arrived inside a code invalidation. the first is the
+///< denominator: a zero in the second means nothing until the first is large.
+struct SignalReport {
+  uint64_t Total;
+  uint64_t InsideInvalidation;
+};
+SignalReport SignalsDuringInvalidation();
+
 struct MappingReport {
   uint64_t Total;
   uint64_t Overlapping;

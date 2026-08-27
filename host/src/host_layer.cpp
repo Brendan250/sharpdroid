@@ -173,6 +173,11 @@ void PrintRunSummary() {
                 static_cast<unsigned long long>(Mappings.Total), static_cast<unsigned long long>(Mappings.Overlapping),
                 static_cast<unsigned long long>(Mappings.OverExecutable));
   }
+  if (HostLayer::Threads::SignalTrace()) {
+    const auto Signals = HostLayer::VMA::SignalsDuringInvalidation();
+    std::printf("[host-layer] %llu signal(s) delivered, %llu of them inside a code invalidation\n",
+                static_cast<unsigned long long>(Signals.Total), static_cast<unsigned long long>(Signals.InsideInvalidation));
+  }
   if (LinuxSyscalls.UnhandledCount()) {
     std::printf("[host-layer] %llu unhandled syscall(s), last was %llu\n",
                 static_cast<unsigned long long>(LinuxSyscalls.UnhandledCount()),

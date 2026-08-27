@@ -308,7 +308,10 @@ void ClearChildTIDAndWake(GuestThread& T) {
 // runs on the *target* thread, wherever it happened to be. its whole job is to decide whether that
 // is a place the thread can be redirected from, and to leave the signal pending if it is not.
 
-void GuestInterruptHandler(int, siginfo_t*, void* UContext) {
+void GuestInterruptHandler(int Sig, siginfo_t*, void* UContext) {
+  if (SignalTraceEnabled) {
+    VMA::NoteSignal(Sig);
+  }
   GuestThread* T = CurrentGuestThread;
   if (!T || !T->Thread) {
     // a host thread that is not running guest code. nothing to deliver to, and nothing this
@@ -376,6 +379,9 @@ void GuestInterruptHandler(int, siginfo_t*, void* UContext) {
 // --- the host fault handler --------------------------------------------------------------------
 
 void GuestFaultHandler(int Signal, siginfo_t* Info, void* UContext) {
+  if (SignalTraceEnabled) {
+    VMA::NoteSignal(Signal);
+  }
   auto* Context = static_cast<ucontext_t*>(UContext);
   const uint64_t HostPC = Context->uc_mcontext.pc;
 
