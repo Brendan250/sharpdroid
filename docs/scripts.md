@@ -105,6 +105,8 @@ keytool -genkeypair -keystore app/release.keystore -alias sharpdroid \
 
 **`--log-tids` widens every guest log line's stamp to name the host thread that wrote it** — `[+   6.402 t14053]` instead of `[+   6.402]`. it is what makes a thread the emulator names in its own output comparable with a counter that names a thread id, which nothing else in a log does: every line reaching logcat carries the log pump's thread rather than its author's. **it is off by default and should stay that way for an ordinary run**, because the boot checkpoints and anything else matching a guest line by its text see a prefix that has moved.
 
+**`--audio-watchdog` reports the audio stream's state once a second whether or not the guest is submitting.** the periodic report on the write path cannot see the guest *stopping*, so without this a run that goes silent says nothing at all and reads exactly like a run that did not.
+
 `--restage` pushes over what the device has regardless of what the byte counts say. it is rarely needed, since a size mismatch restages by itself; it is the escape hatch for the one case a byte count cannot see, which is two different dumps or builds of exactly the same length.
 
 ## building the pieces

@@ -76,6 +76,9 @@ def entry():
     vocabulary.add_package(parser)
     vocabulary.add_common(parser)
     parser.add_argument("--turbo", action="store_true", help="the guest's turbo flag.")
+    parser.add_argument("--audio-watchdog", action="store_true",
+                        help="report the audio stream's state once a second whether or not the guest is "
+                             "submitting. without it a run that stops submitting says nothing at all.")
     parser.add_argument("--log-tids", action="store_true",
                         help="stamp every guest log line with the host thread that wrote it. "
                              "for tying a thread the emulator names to a counter that names a thread id.")
@@ -129,7 +132,7 @@ def entry():
     if not runs_guest:
         guest_only = [name for name, given in (
             ("--turbo", arguments.turbo), ("--guest-env", arguments.guest_env),
-            ("--log-tids", arguments.log_tids),
+            ("--log-tids", arguments.log_tids), ("--audio-watchdog", arguments.audio_watchdog),
             ("--smc", arguments.smc), ("--fex-preset", arguments.fex_preset),
             ("--fex", arguments.fex), ("--profile", arguments.profile),
             ("--host-features", arguments.host_features)) if given]
@@ -292,6 +295,8 @@ def launch(attached, package, activity, runs_guest, game, build_path, driver, ar
             extras["turbo"] = True
         if arguments.log_tids:
             extras["logtids"] = True
+        if arguments.audio_watchdog:
+            extras["audiowatchdog"] = True
         if arguments.profile:
             extras["profile"] = True
 
