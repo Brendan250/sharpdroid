@@ -76,6 +76,9 @@ def entry():
     vocabulary.add_package(parser)
     vocabulary.add_common(parser)
     parser.add_argument("--turbo", action="store_true", help="the guest's turbo flag.")
+    parser.add_argument("--log-tids", action="store_true",
+                        help="stamp every guest log line with the host thread that wrote it. "
+                             "for tying a thread the emulator names to a counter that names a thread id.")
     parser.add_argument("--guest-env", metavar="NAME=VALUE", default=None,
                         help="extra guest environment, comma separated.")
     parser.add_argument("--smc", choices=("none", "mtrack", "full"), default=None,
@@ -126,6 +129,7 @@ def entry():
     if not runs_guest:
         guest_only = [name for name, given in (
             ("--turbo", arguments.turbo), ("--guest-env", arguments.guest_env),
+            ("--log-tids", arguments.log_tids),
             ("--smc", arguments.smc), ("--fex-preset", arguments.fex_preset),
             ("--fex", arguments.fex), ("--profile", arguments.profile),
             ("--host-features", arguments.host_features)) if given]
@@ -286,6 +290,8 @@ def launch(attached, package, activity, runs_guest, game, build_path, driver, ar
             extras["hostprobe"] = arguments.host_features == "probe"
         if arguments.turbo:
             extras["turbo"] = True
+        if arguments.log_tids:
+            extras["logtids"] = True
         if arguments.profile:
             extras["profile"] = True
 

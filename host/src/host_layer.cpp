@@ -609,6 +609,12 @@ int HostLayer::RunMain(int argc, char** argv) {
     } else if (std::strcmp(argv[ArgIndex], "--timestamps") == 0) {
       // off by default, so an unmeasured run produces exactly the log every milestone recorded.
       HostLayer::GuestLog::Enable();
+    } else if (std::strcmp(argv[ArgIndex], "--log-tids") == 0) {
+      // the stamp widens to name the host thread that wrote the line. implies --timestamps, since
+      // the tid rides in the stamp and there is nowhere else to put it. off by default: the wider
+      // prefix moves under every scanner that matches a guest line by its text.
+      HostLayer::GuestLog::Enable();
+      HostLayer::GuestLog::EnableThreadIds();
     } else if (std::strcmp(argv[ArgIndex], "--boot-progress") == 0) {
       // a flag rather than something always on, for the same reason as the one above: a caller with
       // nothing to draw pays nothing and prints nothing extra. only a caller that has a screen in
@@ -757,7 +763,7 @@ int HostLayer::RunMain(int argc, char** argv) {
 
   if (!SpikeMode && ArgIndex >= argc) {
     std::fprintf(stderr, "usage: sharpdroid-host-layer [--smc none|mtrack|full] --spike\n"
-                         "       sharpdroid-host-layer [--trace] [--trace-signals] [--trace-files <prefix>] [--timestamps] "
+                         "       sharpdroid-host-layer [--trace] [--trace-signals] [--trace-files <prefix>] [--timestamps] [--log-tids] "
                          "[--boot-progress] "
                          "[--smc none|mtrack|full] "
                          "[--asyncsig syscall|safepoint|block] [--vulkan] [--vulkan-lib <so>] "
@@ -782,6 +788,9 @@ int HostLayer::RunMain(int argc, char** argv) {
     // said once, because the stamps only appear on the guest's own output and their absence from
     // the host layer's lines should read as deliberate rather than broken.
     std::printf("[host-layer] --timestamps: guest stdout/stderr lines carry [+seconds.millis] since process start\n");
+  }
+  if (HostLayer::GuestLog::ThreadIdsEnabled()) {
+    std::printf("[host-layer] --log-tids: and the host thread that wrote each of them, as [+seconds.millis tN]\n");
   }
   if (HostLayer::BootProgress::Enabled()) {
     // said once and at the top, so that the `[boot]` line at the far end of the log is read as the

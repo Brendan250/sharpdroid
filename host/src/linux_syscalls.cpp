@@ -1071,7 +1071,20 @@ uint64_t LinuxSyscallHandler::Dispatch(FEXCore::Core::CpuStateFrame* Frame, FEXC
 
   // PR_* option numbers are architecture-independent, including android's own PR_SET_VMA -- and
   // since the host is android too, a guest naming its mappings gets exactly what it asked for.
-  case SYS_x64_prctl: return FromHost(::prctl(static_cast<int>(Arg0), Arg1, Arg2, Arg3, Arg4));
+  case SYS_x64_prctl: {
+    const uint64_t Result = FromHost(::prctl(static_cast<int>(Arg0), Arg1, Arg2, Arg3, Arg4));
+    // the guest names its own threads, and nothing else in a log ties a tid to a name. it rides
+    // with --log-tids because it answers the same question and is only wanted by the same caller:
+    // note that this sees the runtime's threads and not the ones the emulator names itself, which
+    // are tracked inside it and never reach a prctl.
+    if (HostLayer::GuestLog::ThreadIdsEnabled() && Result == 0 && static_cast<int>(Arg0) == PR_SET_NAME && Arg1) {
+      char Name[17] {};
+      std::memcpy(Name, reinterpret_cast<const void*>(Arg1), sizeof(Name) - 1);
+      std::printf("[host-layer] thread %d is named '%s'\n", static_cast<int>(::gettid()), Name);
+      std::fflush(stdout);
+    }
+    return Result;
+  }
 
   // scheduling. the guest is one host thread, so these are honest pass-throughs; cpu_set_t is a
   // plain bitmask with the same representation on both.
