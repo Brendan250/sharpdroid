@@ -27,10 +27,19 @@ object FexPreset {
     const val COMPATIBILITY = "compatibility"
     const val INTERMEDIATE = "intermediate"
     const val PERFORMANCE = "performance"
-    const val EXTREME = "extreme"
 
-    /** the order the slider runs in, and the values the store holds. */
-    val ALL = arrayOf(STABILITY, COMPATIBILITY, INTERMEDIATE, PERFORMANCE, EXTREME)
+    /**
+     * the order the slider runs in, and the values the store holds.
+     *
+     * **nothing sits above [PERFORMANCE], and a rung that bundled the block-lookup knobs with the
+     * unaligned repair would be three unrelated things under one word**: a speed setting, a memory
+     * purchase, and a repair that can corrupt data. the speed in that combination is the lookup
+     * knobs alone -- about 4.6% of the load interval, eight runs each -- and the repair does not
+     * fire once at [PERFORMANCE] on these titles, so such a rung would be fast for a reason nobody
+     * was warned about and dangerous for one that buys nothing here. every one of those knobs is a
+     * row of its own, which is what leaves the ladder nothing to add.
+     */
+    val ALL = arrayOf(STABILITY, COMPATIBILITY, INTERMEDIATE, PERFORMANCE)
 
     /**
      * what the row shows before it has been touched -- and, uniquely, a rung that produces exactly
@@ -99,29 +108,24 @@ object FexPreset {
      * preset came back 51.45 against 51.41 fps on `Dreaming Sarah`. that title saturates nothing and
      * may barely reach x87 at all, so the figure bounds this rung rather than the knob.
      *
-     * **Extreme is the only rung that changes how an unaligned access is repaired**, and that is the
-     * whole of what separates it from [PERFORMANCE]. x86 permits an unaligned access anywhere,
-     * including on the atomics FEX compiles guest memory accesses into, and arm64's atomics require
-     * natural alignment -- so the JIT emits the aligned form and the host layer backpatches the first
-     * time one faults. `HalfBarrierTSOEnabled` chooses what it is backpatched *to*: a half-barrier
-     * atomic, which keeps the ordering the guest expects, or a plain load or store, which does not.
+     * **no rung turns `HalfBarrierTSOEnabled` off, and every rung asks for it.** x86 permits an
+     * unaligned access anywhere, including on the atomics FEX compiles guest memory accesses into,
+     * and arm64's atomics require natural alignment -- so the JIT emits the aligned form and the
+     * host layer backpatches the first time one faults. that option chooses what it is backpatched
+     * *to*: a half-barrier atomic, which keeps the ordering the guest expects, or a plain load or
+     * store, which does not.
      *
-     * **Extreme is the plain one, and it is the only rung on this ladder that can corrupt data
-     * rather than merely run slowly.** a torn read needs another thread to be touching the same
-     * misaligned address at the same moment, so it is a race and not a certainty -- which is exactly
-     * why it belongs on the rung named for it rather than one below.
+     * **the plain form is the one thing here that can corrupt data rather than merely run slowly**,
+     * so it is not something a rung named for speed turns off underneath somebody. a torn read
+     * needs another thread touching the same misaligned address at the same moment, so it is a race
+     * and not a certainty, and a rung that quietly dropped atomicity while advertising only a TSO
+     * change would be a rung nobody chose the risk of.
      *
-     * **[PERFORMANCE] therefore asks for the half-barrier, though it turns TSO off.** a rung that
-     * quietly dropped atomicity while advertising only a TSO change would be a rung nobody chose the
-     * risk of.
-     *
-     * **and the knob is subordinate to TSO, which bounds what Extreme buys.** FEX's own text opens
+     * **and the knob is subordinate to TSO, which bounds what it can buy.** FEX's own text opens
      * "when TSO emulation is enabled" for a reason: with TSO off the JIT emits far fewer atomic
      * sequences, so far fewer faults reach the repair at all. measured on this workload the repair
-     * fires at [COMPATIBILITY] and does not fire once at [PERFORMANCE] -- so on a title that behaves
-     * like these two, Extreme's setting of it is honoured and never reached. it is set because the
-     * rung that is allowed to be dangerous should be, and because a title using a locked unaligned
-     * access would reach it; it is not what makes Extreme faster.
+     * fires at [COMPATIBILITY] and does not fire once at [PERFORMANCE] -- so on a title that
+     * behaves like these two, turning it off is honoured and never reached.
      */
     fun options(id: String): Map<String, String> = when (id) {
         // multiblock off: one guest block per translation. the slowest thing here and the one that
@@ -137,17 +141,6 @@ object FexPreset {
         // application. SharpEmu is a .NET process with a JIT, a GC and a render thread of its own.
         PERFORMANCE -> tso(on = false, vector = false, memcpySet = false, halfBarrier = true) +
             mapOf("X87ReducedPrecision" to "1", "Multiblock" to "1")
-        // **the rung that spends memory.** both of these default to the lean side and say so in
-        // FEX's own text -- "saving memory", "can potentially introduce more stutters" -- so turning
-        // them off is asking for the block lookup to be as fast as it can be and paying in
-        // footprint: the L1 stops being resized to fit and sits at its maximum, which is 16 MB per
-        // guest thread rather than 128 KB, and the L2 lookup is consulted instead of skipped.
-        //
-        // **on a handheld that ceiling is the real limit of this rung**, and it is a limit no knob
-        // above announces: nothing refuses, the process simply has more to lose to the low-memory
-        // killer the longer it runs.
-        EXTREME -> options(PERFORMANCE) +
-            mapOf("HalfBarrierTSOEnabled" to "0", "DisableL2Cache" to "0", "DynamicL1Cache" to "0")
         else -> emptyMap()
     }
 

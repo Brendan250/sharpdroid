@@ -87,14 +87,15 @@ def entry():
     parser.add_argument("--smc", choices=("none", "mtrack", "full"), default=None,
                         help="how self-modifying code is tracked.")
     parser.add_argument("--fex-preset",
-                        choices=("stability", "compatibility", "intermediate", "performance",
-                                 "extreme"),
+                        choices=("stability", "compatibility", "intermediate", "performance"),
                         default=None,
-                        help="the JIT preset. omitted leaves whatever the settings scene stored, "
-                             "which on a fresh install is the emulator's own defaults.")
+                        help="the JIT preset. naming one takes the whole configuration with it, so "
+                             "the rows the settings scene overrides on it are dropped. omitted "
+                             "leaves whatever that scene stored, which on a fresh install is the "
+                             "emulator's own defaults.")
     parser.add_argument("--fex", metavar="NAME=VALUE", default=None,
-                        help="extra FEXCore options, comma separated, appended after the preset. "
-                             "an instrument for measuring a knob the preset ladder does not carry; "
+                        help="extra FEXCore options, comma separated, appended after the preset and "
+                             "after any row set in the settings scene, so this wins over both. "
                              "the host layer refuses a name FEXCore does not have.")
     parser.add_argument("--host-features", choices=("probe", "minimal"), default=None,
                         help="how FEXCore is told what this CPU can do. probe reads the ID "
