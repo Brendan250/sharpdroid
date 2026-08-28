@@ -61,6 +61,15 @@ std::shared_mutex MapLock;
 std::atomic<uint64_t> SMCFaults {};
 std::atomic<uint64_t> Invalidations {};
 
+// how deep this thread is inside InvalidateAndRestore's locked section. read from a signal
+// handler, so it is thread-local and touched only by the thread it belongs to.
+thread_local int InvalidationDepth {};
+
+// signal deliveries, and the ones that landed inside that section. the total is the denominator:
+// a zero in the second column is a measurement only when the first is large.
+std::atomic<uint64_t> SignalsSeen {};
+std::atomic<uint64_t> SignalsInsideInvalidation {};
+
 // a new mapping laid over guest memory the map already holds, which is what MAP_FIXED does: the
 // kernel replaces the mapping and no munmap is issued, so nothing here is told the old bytes are
 // gone. Record does not invalidate, so any translation FEXCore holds for that range outlives the
@@ -207,6 +216,22 @@ bool InvalidateAndRestore(FEXCore::Core::InternalThreadState* Thread, uint64_t B
   } R {Base, Length};
 
   std::lock_guard InvalidationLock {CTX->GetCodeInvalidationMutex()};
+
+  // the walk below is not atomic against a signal. FEX's own frontend wraps this whole section in
+  // a deferred-signal guard, on the grounds its header states: a handler that longjmps out of a
+  // scope owning a mutex leaves it locked, and a handler that re-enters a path taking the same
+  // mutex re-locks one it already holds. neither is hypothetical here -- the SIGSEGV handler
+  // reaches this function through HandleWriteFault, and a thread redirected out of the loop leaves
+  // every thread after it in the walk holding translations this call was supposed to drop.
+  //
+  // whether a signal ever arrives inside this section is a question rather than a claim, so it is
+  // counted rather than guarded. InvalidationDepth is what the signal handlers ask.
+  ++InvalidationDepth;
+  struct DepthGuard {
+    ~DepthGuard() {
+      --InvalidationDepth;
+    }
+  } Depth;
 
   CTX->InvalidateCodeBuffersCodeRange(Base, Length);
   // and every thread's own lookup cache: a block lives in the shared code buffers *and* in the
@@ -449,6 +474,31 @@ uint64_t SMCFaultCount() {
 
 uint64_t InvalidationCount() {
   return Invalidations.load(std::memory_order_relaxed);
+}
+
+void NoteSignal(int Signal) {
+  const uint64_t Seen = SignalsSeen.fetch_add(1, std::memory_order_relaxed) + 1;
+  if (InvalidationDepth <= 0) {
+    // the denominator has to reach the log too, since a run cut off at a fixed number of seconds
+    // never reaches the exit summary and a zero above is unreadable without it.
+    if (IsFirstOrPowerOfTen(Seen)) {
+      std::printf("[vma] %llu signal(s) delivered, %llu inside a code invalidation\n", static_cast<unsigned long long>(Seen),
+                  static_cast<unsigned long long>(SignalsInsideInvalidation.load(std::memory_order_relaxed)));
+      std::fflush(stdout);
+    }
+    return;
+  }
+  const uint64_t Count = SignalsInsideInvalidation.fetch_add(1, std::memory_order_relaxed) + 1;
+  if (Count == 1) {
+    // async-signal-safety is not what this is: it is a diagnostic, and the first one is the whole
+    // result. every later one is counted silently.
+    std::printf("[vma] signal %d delivered inside a code invalidation (depth %d)\n", Signal, InvalidationDepth);
+    std::fflush(stdout);
+  }
+}
+
+SignalReport SignalsDuringInvalidation() {
+  return {SignalsSeen.load(std::memory_order_relaxed), SignalsInsideInvalidation.load(std::memory_order_relaxed)};
 }
 
 MappingReport MappingsRecorded() {

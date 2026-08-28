@@ -34,6 +34,14 @@ void Start();
 void Enable();
 bool Enabled();
 
+///< also stamp the host thread that wrote the line. off by default, because every scanner and the
+///< boot checkpoints match on a line's own text and the wider prefix is only wanted when a guest
+///< thread has to be tied to a tid an in-process counter reports.
+void EnableThreadIds();
+
+///< whether it is on, so the run says so once at the top the way --timestamps does.
+bool ThreadIdsEnabled();
+
 /**
  * @brief write(2) for a guest writing to stdout or stderr, with line stamps inserted.
  *

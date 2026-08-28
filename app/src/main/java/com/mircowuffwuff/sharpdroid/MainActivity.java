@@ -153,6 +153,9 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * log, so a buzz can never be mistaken for the game's own.
      */
     private boolean padSelfTest;
+    // widen the guest's log stamps to name the host thread that wrote each line. off unless a run
+    // asks, since every scanner outside the app matches a guest line by its text.
+    private boolean logTids;
     /** the host layer's SMC tracking mode. mtrack is the default every measurement was taken on. */
     private String smcMode = "mtrack";
     private String[] guestEnv = {};
@@ -356,6 +359,7 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // which is what separates "the pad does nothing" from "the payload never asked".
         tracePad = getIntent().getBooleanExtra("tracepad", false);
         padSelfTest = getIntent().getBooleanExtra("padselftest", false);
+        logTids = getIntent().getBooleanExtra("logtids", false);
         // --es smc full, because chasing the audio stall needs the two SMC modes compared on the
         // same build. this
         // is a *launch* extra and still not a build one: the comment below about a payload that can
@@ -1273,6 +1277,13 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
 
         List<String> args = new ArrayList<>();
         args.add("--timestamps");
+        if (logTids) {
+            // the stamp gains the writing thread's id. what it is for: logcat stamps every line
+            // with the log pump's thread rather than its author's, so a guest thread named in the
+            // emulator's own output cannot otherwise be matched against a counter that names a
+            // thread id.
+            args.add("--log-tids");
+        }
         // where the boot has got to, which only something with a screen in front of a booting guest
         // has any use for. always, rather than behind a setting: a run that turned it off would be a
         // run whose loading screen could not say anything, and it costs a substring search over the

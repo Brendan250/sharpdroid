@@ -40,8 +40,18 @@ StreamIdentity Console[2] {};
 // threads' output behind a mutex to prevent it.
 std::atomic<bool> AtLineStart[2] {true, true};
 
-// `[+   3.502] ` -- wide enough for a run of nearly three hours before it grows.
-constexpr size_t StampLength = 12;
+// `[+   3.502] ` -- wide enough for a run of nearly three hours before it grows, and
+// `[+   3.502 t1234567] ` with --log-tids on. one constant sizes the buffer for both, so the
+// widest form is what it names; FormatStamp reports what it actually wrote.
+constexpr size_t StampLength = 22;
+
+// which host thread wrote the line, appended to the stamp. off by default and deliberately not
+// the default form: logcat stamps every line with the log pump's tid rather than its author's, so
+// a report that names a guest thread and a counter that names a tid cannot otherwise be compared
+// -- but the boot checkpoints and every scanner outside this tree match on the line's own text,
+// and a prefix that changes under them for a run nobody is measuring is a trap rather than a
+// feature.
+std::atomic<bool> WithTid {false};
 
 // anything longer goes out unstamped rather than allocating on a path the guest calls thousands of
 // times. log lines are tens of bytes; this is three orders of magnitude of headroom.
@@ -58,11 +68,16 @@ size_t FormatStamp(char* Out) {
     --Seconds;
   }
 
-  const int Written = std::snprintf(Out, StampLength + 1, "[+%4lld.%03lld] ", static_cast<long long>(Seconds),
-                                    static_cast<long long>(Nanoseconds / 1000000));
-  // snprintf truncates rather than overflowing, so a run long enough to widen the seconds field
-  // loses a digit instead of corrupting the buffer. it also stops being StampLength, hence the
-  // clamp: the caller sized its buffer on that constant.
+  const int Written =
+    WithTid.load(std::memory_order_relaxed) ?
+      std::snprintf(Out, StampLength + 1, "[+%4lld.%03lld t%d] ", static_cast<long long>(Seconds),
+                    static_cast<long long>(Nanoseconds / 1000000), static_cast<int>(::gettid())) :
+      std::snprintf(Out, StampLength + 1, "[+%4lld.%03lld] ", static_cast<long long>(Seconds),
+                    static_cast<long long>(Nanoseconds / 1000000));
+  // snprintf truncates rather than overflowing, so nothing here can corrupt the buffer. the width
+  // is not fixed: a run long enough to widen the seconds field, and the thread id, both take more
+  // than the short form's twelve characters -- so what is written is returned and StampLength is
+  // only the ceiling the caller sized its buffer on.
   return Written > 0 && static_cast<size_t>(Written) <= StampLength ? static_cast<size_t>(Written) : StampLength;
 }
 
@@ -168,6 +183,14 @@ void Start() {
   if (Console[0].Valid && Console[1].Valid && Console[0].Device == Console[1].Device && Console[0].Inode == Console[1].Inode) {
     Console[1].Valid = false;
   }
+}
+
+void EnableThreadIds() {
+  WithTid.store(true, std::memory_order_relaxed);
+}
+
+bool ThreadIdsEnabled() {
+  return WithTid.load(std::memory_order_relaxed);
 }
 
 void Enable() {
