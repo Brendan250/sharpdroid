@@ -313,6 +313,37 @@
     <string name="setting_fex_preset_low">Faithful</string>
     <string name="setting_fex_preset_high">Fast</string>
 
+    <string name="settings_group_memory_ordering">Memory ordering</string>
+    <string name="setting_fex_tso">x86 memory ordering</string>
+    <string name="setting_fex_tso_summary">Reproduce the guarantees x86 makes about the order memory is written in. Off is much faster and highly likely to break a game that uses several threads.</string>
+    <string name="setting_fex_vector_tso">Atomic vector loads and stores</string>
+    <string name="setting_fex_vector_tso_summary">Extend memory ordering to vector loads and stores. Stricter than most code needs, and noticeably slower.</string>
+    <string name="setting_fex_memcpy_tso">Atomic string operations</string>
+    <string name="setting_fex_memcpy_tso_summary">Extend memory ordering to the repeated copy and fill instructions. Slower.</string>
+    <string name="setting_fex_half_barrier">Atomic unaligned repair</string>
+    <string name="setting_fex_half_barrier_summary">Repair an unaligned access with an instruction that keeps memory ordering, rather than a plain load or store. Off is faster and can tear a value another thread is writing.</string>
+
+    <string name="settings_group_code_generation">Code generation</string>
+    <string name="setting_fex_multiblock">Multiblock translation</string>
+    <string name="setting_fex_multiblock_summary">Translate several blocks of guest code at once. Off is slower and makes it easier to say where a crash happened.</string>
+    <string name="setting_fex_x87">Reduced x87 precision</string>
+    <string name="setting_fex_x87_summary">Emulate x87 floating point at 64-bit rather than 80-bit precision. Faster, and may cause rendering bugs.</string>
+
+    <!-- the block lookup. every preset names these three the same way: the first two govern a
+         cache whose shrinking is what strands a translation, and a preset offering the shrink from
+         a control that reads like a speed setting would put a fixed bug back. the adaptive row
+         leads because the one under it does nothing while it is off. -->
+    <string name="settings_group_block_lookup">Block lookup</string>
+    <string name="setting_fex_l1_dynamic">Adaptive block cache</string>
+    <string name="setting_fex_l1_dynamic_summary">Size the cache of translated blocks to what each thread is using. Off holds every thread\'s at the maximum, which costs around 150 MB.</string>
+    <string name="setting_fex_l1_shrink">Shrink the block cache</string>
+    <string name="setting_fex_l1_shrink_summary">Let the adaptive cache give memory back when a thread goes quiet. It strands translations made while the cache was larger, which stops the sound permanently and can freeze the picture.</string>
+    <string name="setting_fex_l2">Second-level block lookup</string>
+    <string name="setting_fex_l2_summary">Search a second, larger table before translating a block again. Costs memory and can avoid a stutter.</string>
+
+
+
+
     <!-- ==========================================================================================
          the build manager.
 
