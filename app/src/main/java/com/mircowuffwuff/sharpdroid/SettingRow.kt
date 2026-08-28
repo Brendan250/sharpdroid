@@ -82,39 +82,6 @@ sealed class SettingRow {
     }
 
     /**
-     * a choice from an **ordered** list, drawn as a row that opens a dialog holding a slider.
-     *
-     * the same shape as [Dropdown] and a different claim about the values: a dropdown's entries are
-     * alternatives, and these are a ladder, where one end trades away what the other end keeps. a
-     * slider says that in the control itself, and it makes "the middle" a place a user can aim for
-     * rather than a position they have to count out.
-     *
-     * [entries] is what is shown at each detent and [values] is what is stored, one to one. [detail]
-     * is a line per position describing what that rung costs or buys, shown under the slider as it
-     * moves -- a name alone does not tell anyone what Extreme is extreme about.
-     *
-     * **[low] and [high] name the axis, not the rungs at either end of it.** the chosen rung is
-     * already named above the slider, so ends labelled with their own entries showed one of those
-     * names twice over as soon as the slider reached them. what a scale has to say that the name
-     * cannot is which direction is which and what is given up going that way.
-     */
-    data class Slider(
-        override val key: String,
-        val title: Int,
-        val summary: Int,
-        val entries: Array<String>,
-        val detail: Array<String>,
-        val values: Array<String>,
-        val default: String,
-        val low: Int,
-        val high: Int,
-    ) : SettingRow() {
-        // as Dropdown: arrays in a data class give identity equals, and nothing compares rows.
-        override fun equals(other: Any?) = this === other
-        override fun hashCode() = System.identityHashCode(this)
-    }
-
-    /**
      * a row that opens a screen of its own, showing what is currently chosen underneath it.
      *
      * **[value] is a string rather than a resource**, which is the difference between this and

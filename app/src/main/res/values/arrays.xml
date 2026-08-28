@@ -42,14 +42,5 @@
         <item>Performance</item>
     </string-array>
 
-    <!-- one line per rung, shown under the slider as it moves. they say what a position costs or
-         buys rather than restating its name, because a name on its own does not tell anyone what
-         the rung trades. two lines is what the longest needs and the dialog reserves exactly that. -->
-    <string-array name="fex_preset_details">
-        <item>Most faithful and slowest. Translates one block at a time and keeps every memory-ordering guarantee.</item>
-        <item>Stricter than the default: vector and string operations are made atomic too. Noticeably slower.</item>
-        <item>The FEXCore default. Resembles a good balance between accuracy and speed.</item>
-        <item>Drops x86 memory ordering and full x87 precision. Faster, but some games will misbehave or crash.</item>
-    </string-array>
 
 </resources>

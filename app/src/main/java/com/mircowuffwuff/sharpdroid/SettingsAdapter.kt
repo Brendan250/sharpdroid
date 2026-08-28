@@ -12,7 +12,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 // non-transitive R class holds what the module itself declares and nothing a library does.
 import com.google.android.material.R as MaterialR
 import com.mircowuffwuff.sharpdroid.databinding.DialogMessageBinding
-import com.mircowuffwuff.sharpdroid.databinding.DialogSliderChoiceBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingColourBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingHeaderBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingSwitchBinding
@@ -135,7 +134,6 @@ class SettingsAdapter(
         is SettingRow.Header -> TYPE_HEADER
         is SettingRow.Switch -> TYPE_SWITCH
         is SettingRow.Dropdown -> TYPE_VALUE
-        is SettingRow.Slider -> TYPE_SLIDER
         is SettingRow.Colour -> TYPE_COLOUR
         is SettingRow.External -> TYPE_EXTERNAL
         is SettingRow.Screen -> TYPE_SCREEN
@@ -148,9 +146,6 @@ class SettingsAdapter(
             TYPE_SWITCH -> SwitchHolder(ItemSettingSwitchBinding.inflate(inflater, parent, false))
             TYPE_VALUE -> ValueHolder(ItemSettingValueBinding.inflate(inflater, parent, false))
             TYPE_COLOUR -> ColourHolder(ItemSettingColourBinding.inflate(inflater, parent, false))
-            // the dropdown's layout again: the row is a title, an explanation and the chosen rung.
-            // that the dialog behind it holds a slider is not something the row shows.
-            TYPE_SLIDER -> SliderHolder(ItemSettingValueBinding.inflate(inflater, parent, false))
             // the same layout a dropdown uses: a title, an explanation and the chosen thing under
             // it. what differs is where the tap goes, which is not something a layout knows.
             TYPE_SCREEN -> ScreenHolder(ItemSettingValueBinding.inflate(inflater, parent, false))
@@ -206,7 +201,6 @@ class SettingsAdapter(
             is SettingRow.Header -> (holder as HeaderHolder).bind(row)
             is SettingRow.Switch -> (holder as SwitchHolder).bind(row)
             is SettingRow.Dropdown -> (holder as ValueHolder).bind(row)
-            is SettingRow.Slider -> (holder as SliderHolder).bind(row)
             is SettingRow.Colour -> (holder as ColourHolder).bind(row)
             is SettingRow.External -> (holder as ExternalHolder).bind(row)
             is SettingRow.Screen -> (holder as ScreenHolder).bind(row)
@@ -370,112 +364,6 @@ class SettingsAdapter(
         private fun write(key: String, value: String) = when (key) {
             Settings.KEY_THEME -> settings.theme = value
             Settings.KEY_RENDER_SCALE -> settings.renderScale = value
-            Settings.KEY_FEX_PRESET -> settings.fexPreset = value
-            else -> Unit
-        }
-    }
-
-    /**
-     * a row whose dialog is a slider along a ladder.
-     *
-     * **the dialog commits on a button rather than on a detent**, unlike [ValueHolder]'s
-     * single-choice list -- which chooses and dismisses on one tap because a tap there *is* the
-     * choice. a slider is dragged across every position between where it started and where it is
-     * going, so writing as it moves would store four rungs nobody asked for on the way to the fifth,
-     * and each of them would be a value the precedence rule then treats as chosen. Cancel has to be
-     * a real answer here for the same reason.
-     */
-    private inner class SliderHolder(val binding: ItemSettingValueBinding) :
-        RecyclerView.ViewHolder(binding.root) {
-        fun bind(row: SettingRow.Slider) {
-            binding.title.setText(row.title)
-            binding.summary.setText(row.summary)
-
-            val current = stored(row.key) ?: row.default
-            // an unknown stored value opens at the default rather than at position zero. a store
-            // written by a later build naming a rung this one does not have would otherwise land the
-            // user on the most conservative setting and call it their choice.
-            val index = row.values.indexOf(current).let { if (it < 0) row.values.indexOf(row.default) else it }
-                .coerceIn(0, row.entries.size - 1)
-            binding.value.text = row.entries[index]
-
-            binding.root.setOnClickListener {
-                val view = DialogSliderChoiceBinding.inflate(LayoutInflater.from(binding.root.context))
-                // **the axis rather than the two end rungs.** naming the ends with their own entries
-                // put the same word on screen twice whenever the slider was at one of them -- large
-                // and accented above, small and grey below -- while what the scale is missing is not
-                // the names, which the line above always gives, but which way the ladder runs and
-                // what it costs to go that way.
-                view.lowLabel.setText(row.low)
-                view.highLabel.setText(row.high)
-
-                // **the track is widened to the text column rather than the scale being pulled in to
-                // meet it.** a slider reserves room at both ends for the thumb to sit at an extreme,
-                // so out of the box its track starts inset from the widget's own edge -- which leaves
-                // it narrower than every other line in this dialog and leaves the two ends of the
-                // scale with nothing to line up against.
-                //
-                // **most of it is taken back and three eighths is left**, because the reservation is
-                // not only for the thumb: the halo drawn around it as it is dragged is wider than the
-                // bar, and cancelling the whole inset clipped that halo flat against the dialog at
-                // both extremes. what is left is the margin that reaches the text column closely
-                // enough to read as one edge while the halo is still round at either end.
-                //
-                // **a fraction of what the widget reports rather than a measured dp**, so it stays
-                // the same share of the thumb's own room at every density -- a literal number tuned
-                // against one panel is a different amount of space on every other one.
-                //
-                // **the scale is not moved with it.** it sits on the dialog's own text column, which
-                // is where the widened track now very nearly begins -- near enough that pulling the
-                // labels the last few dp to meet it reads as further in rather than as aligned.
-                //
-                // the inset itself is not in Material's public resource set and is free to move in a
-                // version bump, which is the other reason it is asked for rather than repeated.
-                //
-                // **the right end is held further in than the left, and that is not a symmetry
-                // mistake.** the dialog's own buttons sit below it, and a text button's label is
-                // inset inside its bounds -- so a track running to the content column ends level with
-                // nothing, while one held off by slider_scale_end ends level with OK. the high label
-                // is moved by the same amount in the layout, so the two stay flush with each other.
-                val rest = view.slider.trackSidePadding * 3 / 8
-                val pull = view.slider.trackSidePadding - rest
-                (view.slider.layoutParams as ViewGroup.MarginLayoutParams).apply {
-                    marginStart = -pull
-                    marginEnd = -pull +
-                        view.slider.resources.getDimensionPixelSize(R.dimen.slider_scale_end)
-                }
-                view.slider.valueFrom = 0f
-                view.slider.valueTo = (row.entries.size - 1).toFloat()
-                view.slider.stepSize = 1f
-
-                fun show(at: Int) {
-                    view.name.text = row.entries[at]
-                    view.detail.text = row.detail[at]
-                }
-                view.slider.value = index.toFloat()
-                show(index)
-                view.slider.addOnChangeListener { _, value, _ -> show(value.toInt()) }
-
-                MaterialAlertDialogBuilder(binding.root.context)
-                    .setTitle(row.title)
-                    .setView(view.root)
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .setPositiveButton(android.R.string.ok) { _, _ ->
-                        write(row.key, row.values[view.slider.value.toInt()])
-                        onChanged(row)
-                    }
-                    .show()
-            }
-            binding.root.setOnLongClickListener { offerDefault(row.key, row) }
-            useGlobal(binding.useGlobal, row.key, row)
-        }
-
-        private fun stored(key: String): String? = when (key) {
-            Settings.KEY_FEX_PRESET -> settings.fexPreset
-            else -> null
-        }
-
-        private fun write(key: String, value: String) = when (key) {
             Settings.KEY_FEX_PRESET -> settings.fexPreset = value
             else -> Unit
         }
@@ -670,6 +558,5 @@ class SettingsAdapter(
         const val TYPE_EXTERNAL = 3
         const val TYPE_COLOUR = 4
         const val TYPE_SCREEN = 5
-        const val TYPE_SLIDER = 6
     }
 }
