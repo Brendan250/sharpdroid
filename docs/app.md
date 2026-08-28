@@ -139,7 +139,7 @@ a subsection is a label above a run of rows rather than another button press. a 
 | section | rows |
 | --- | --- |
 | App | Theme, Theme color while Custom is chosen, Fullscreen mode |
-| Emulation | under a SharpEmu label, SharpEmu build; under a FEXCore label, FEXCore preset |
+| Emulation | under a SharpEmu label, SharpEmu build; under a FEXCore label, JIT accuracy and Probe host instructions |
 | Graphics | Internal resolution, and under a Vulkan label, Custom driver and Disk shader cache |
 | Controls | Automatic controller mapping, Vibrate handheld motor |
 | Game files | Game folders, and All files access where the platform has it |
@@ -270,7 +270,7 @@ what does not work is a surface that comes back a *different size*, and that is 
 
 ## the launch extras
 
-all of them are read in `onCreate`, because the intent is not readable from a worker thread. **an extra that is absent means the stored setting if the user chose one, and the compiled-in default otherwise** — the precedence is below, and the half worth reading first is that a setting nobody has touched contributes nothing at all, so a launch that names no extras produces a vector nothing on a settings screen can move.
+all of them are read in `onCreate`, because the intent is not readable from a worker thread. **an extra that is absent means the stored setting if the user chose one, and the compiled-in default otherwise** — the precedence is below, and the half worth reading first is that a setting nobody has touched contributes nothing at all. the JIT preset is the one exception and is described under *JIT accuracy*.
 
 | extra | | default |
 | --- | --- | --- |
@@ -280,7 +280,7 @@ all of them are read in `onCreate`, because the intent is not readable from a wo
 | `--es driverenv A=1,B=2` | comma-separated, one `--vulkan-driver-env` each. mesa's knobs, which reach the *host* process | none |
 | `--es guestenv A=1,B=2` | comma-separated, merged into the guest environment. these reach SharpEmu | none |
 | `--es smc none\|mtrack\|full` | the host layer's SMC tracking mode, validated against those three | `mtrack` |
-| `--es fexpreset <name>` | the FEXCore JIT preset, validated against the ladder this build knows. it becomes one `--fex` per knob on the host layer's command line | the stored setting, or absent |
+| `--es fexpreset <name>` | the FEXCore JIT preset, validated against the ladder this build knows. it becomes one `--fex` per knob on the host layer's command line, and takes the whole configuration with it: the knob rows stored on top of a rung are dropped rather than carried | the stored setting and the rows overriding it, or absent |
 | `--ez profile true` | the vulkan thunk's profiling | off |
 | `--ez turbo true` | pins the GPU clocks. a thermal and battery trade rather than a free win, which is why it is opt-in | off |
 | `--ez audiowatchdog true` | the audio thunk's periodic stream report | off |
@@ -307,7 +307,9 @@ which is the same order [`build-format.md`](build-format.md) states for the envi
 
 **the game's identity is resolved before the merge and read once.** the title id names the store, and the same read names the per-title pipeline cache further down — for a granted game that is one content provider open rather than two. all three ways a game can be named answer through `GameSource`, including the granted one, which needs no mount of its own: a child document's id is its parent's plus `/name`. what stays where it is is the driver check, which is still the first thing a launch does. **the read is not measurable in the tap-to-guest interval**: three launches of a granted game with it and three without span 202-209 ms and 206-217 ms, and the arms overlap.
 
-**"unset" is a stored state distinct from "set to the default", and that distinction is the whole design.** a row that has never been touched contributes nothing to the argument vector — not its default, nothing — so a launch naming no extras produces a vector the settings scene had no hand in, byte for byte. if an untouched row reported its default as a *choice*, the app would start passing that value on every launch and omitting the extra would no longer reach the default; a default that cannot be reached by saying nothing is not a default, and the scripts launch by saying nothing.
+**"unset" is a stored state distinct from "set to the default", and that distinction is the whole design.** a row that has never been touched contributes nothing to the argument vector — not its default, nothing. if an untouched row reported its default as a *choice*, the app would start passing that value on every launch and omitting the extra would no longer reach the default; a default that cannot be reached by saying nothing is not a default, and the scripts launch by saying nothing.
+
+**the JIT preset is the one row that contributes while untouched**, and the trade is deliberate: every rung names every knob it covers so that two installs reading the same word run the same translation, which means a launch spells the configuration out rather than leaving any of it to whatever FEXCore defaults to. an untouched row resolves to the default rung, so the *run* is what an install got by silence and the *vector* is not. `--es fexpreset none` names no configuration at all and is how a run is still made comparable with figures recorded before the rungs were complete.
 
 the store is a `SharedPreferences` line and the state is `contains(key)`. nothing on screen marks a row as set, and a long press on one that is offers to clear it. **the gesture does nothing at all on an untouched row**, which is the cost of not marking one: there is no way to tell by looking which rows answer a long press, and a screen where none of them has been set reads as a screen where the gesture is missing.
 
@@ -323,29 +325,62 @@ the store is a `SharedPreferences` line and the state is `contains(key)`. nothin
 | SharpEmu build | which build a launch that named none runs — a folder name, which is a concrete build identity |
 | Internal resolution | `SHARPEMU_RENDER_SCALE` in the guest environment |
 | Custom driver | `--vulkan-driver` and `--vulkan-hooks`, or neither — a folder name, or the reserved word for the system driver |
-| FEXCore preset | one `--fex Name=Value` per knob, on the **host layer's** command line |
+| JIT accuracy | one `--fex Name=Value` per knob the chosen rung names, then one per knob overridden on it, on the **host layer's** command line |
 
-### the FEXCore preset
+### JIT accuracy
+
+**a screen of its own, behind one row that reads out what is chosen inside it.** ten rows about how guest code is translated would be most of the Emulation section and would bury the build above them; behind one row they are a page somebody opens when that is the question they arrived with. Probe host instructions deliberately stays outside it — a switch worth reaching in one press buys nothing by being buried.
+
+the screen is the preset, then the nine knobs it names, grouped by what they trade:
+
+| | |
+| --- | --- |
+| Preset | the four rungs |
+| **Memory ordering** | x86 memory ordering, Atomic vector loads and stores, Atomic string operations, Atomic unaligned repair |
+| **Code generation** | Multiblock translation, Reduced x87 precision |
+| **Block lookup** | Adaptive block cache, Shrink the block cache, Second-level block lookup |
+
+#### the ladder
 
 four rungs from most faithful to fastest — Stability, Compatibility, Intermediate, Performance — named as other FEX frontends name them, so the setting means the same thing to someone arriving from one. each names every knob it sets rather than inheriting from the rung below, because the question a reader has is what one setting does and not what it does differently.
 
-**the row opens a slider rather than a list, because these are a ladder and not alternatives.** every other choice in this scene is a set of options where no one of them is between two others; this one is ordered, each rung trading faithfulness for speed against the one before it, and a control with an order in it says so without the row having to. it also makes the middle somewhere a user can aim rather than a position they have to count out. the rung's name and a line saying what it costs sit above the slider and track the thumb, and the two ends are labelled — a slider with no scale is a control whose direction has to be guessed.
+**the row opens a single-choice list, and the ordering the rungs have is not what the control has to express.** what it does have to express is that the configuration may be *none* of them, which is the state it is in the moment any row below it is overridden — and a list says that by checking nothing, which is a thing it can already do. a control with a position for every rung and none for that state is the one shape this row cannot take.
 
-**it commits on a button, unlike the single-choice dialogs.** those choose and dismiss on one tap because a tap there *is* the choice; a slider is dragged across every position between where it started and where it is going, so writing as it moves would store four rungs nobody asked for on the way to the fifth — and each would be a value the precedence rule then treats as deliberately chosen.
+**nothing sits above Performance.** a rung there would bundle three unrelated things under one word: a speed setting, a memory purchase, and a repair that can corrupt data. the speed in that combination is the block-lookup knobs alone — about 4.6% of the load interval, eight runs each — and the repair does not fire once at Performance on the titles measured here, so such a rung would be fast for a reason nobody was warned about and dangerous for one that buys nothing. every one of those knobs is a row, which is what leaves the ladder nothing to add.
 
 **the id is matched case-insensitively wherever it arrives from outside**, because it is typed by hand into `am start` and into a script's own parameter. matching exactly would drop `Intermediate`, fall back to the stored setting, and produce a run that silently was not the one asked for.
 
 **it is a host-layer argument and deliberately not a guest environment variable**, which is the one thing about this row worth stating twice. other FEX frontends express these as `FEX_TSOENABLED` and friends in the environment of a FEX process they launch; here the core is a library and those variables are read by machinery this project does not build, so that spelling reaches nothing while looking like it worked. beyond that, the environment map has a build's own `env` merged underneath it — and how guest code is translated is not a payload's to choose, the same rule `--smc` and the `--vulkan-*` family follow.
 
-**Intermediate is FEXCore's own defaults and sets nothing to get there.** that is what makes the row honest rather than merely plausible: choosing the middle of the ladder and never opening the screen produce the same argument vector, byte for byte, so the row cannot name one thing while the launch does another. it is also the only way to ask for the defaults deliberately, which matters more the further this row moves from a list towards a slider.
+**every rung names every knob, as this app's own constants, and none of them is read from FEXCore.** that is what makes a preset a promise rather than a description: two installs reading the same word run the same translation, whatever FEX defaults to that year. a table here mirroring those defaults would be wrong the day upstream moved one, and wrong in the worst way — the row would draw one state while the launch passed nothing and the JIT did another.
+
+**Intermediate's nine are what an untouched install already gets**: FEXCore's own defaults for the first eight and the host layer's `DynamicL1CacheDecreaseCountHeuristic=0` for the ninth. so choosing the middle of the ladder and never opening the screen are the same translation, and the row cannot name one thing while the launch does another. **the argument vectors differ and the run does not** — a launch that names a rung spells out all nine, and one that names none spells out none — which is why `--es fexpreset none` exists below.
 
 **Compatibility is the rung whose name most misleads.** `VectorTSOEnabled` and `MemcpySetTSOEnabled` both default to off and it turns both on, asking for atomic vector loadstores and atomic `REP MOVS`/`REP STOS` that a default run does not emit — so it is more faithful than the defaults and measurably slower than every rung except Stability.
 
-**nothing sits above Performance.** a rung there would bundle three unrelated things under one word: a speed setting, a memory purchase, and a repair that can corrupt data. the speed in that combination is the block-lookup knobs alone — about 4.6% of the load interval, eight runs each — and the repair does not fire once at Performance on the titles measured here, so such a rung would be fast for a reason nobody was warned about and dangerous for one that buys nothing.
+#### a rung and the knobs overridden on it
 
-`HalfBarrierTSOEnabled` is what that repair is: it chooses whether an unaligned access is backpatched to a half-barrier atomic, which keeps the ordering the guest expects, or to a plain load or store, which does not. **the plain form is the only setting here that can corrupt data rather than merely run slowly**, and it is bounded by TSO — with TSO off the JIT emits few atomics to fault, so on a title that behaves like the ones measured here turning it off is honoured and never reached. no rung turns it off.
+**what is stored is the rung plus a sparse map of explicit overrides, and the alternative that looks simpler is the one that fails.** storing the knob values alone and working the rung out by comparing them would mean this app could never correct a preset: somebody who chose a rung would be frozen at whatever it meant the day they chose it, so a rung later found to reintroduce a fault would reach nobody ever — and an install would flip to reading *Custom* through no action of its own the first time a rung moved. under the shape that ships, a knob row is unset, meaning take the rung's value, or explicitly set, and an updated rung reaches every row that was left alone.
 
-**Probe host features is a switch under the ladder rather than a rung on it.** on, which is the default and contributes no argument, the host layer reads this processor's own ID registers and describes what it finds to FEXCore; off travels as `--host-features minimal` and asks for the conservative set instead. it is not a rung because every rung above the middle spends faithfulness for speed and this spends nothing — understating the host's instruction set changes how many instructions a translation takes and never what it computes, so a rung that turned it off would be slower and no more faithful. what the switch is for is the case the ladder cannot express: a device this probe reads wrongly, on hardware nobody here has. [`host-layer.md`](host-layer.md) is what it reads and which errata it honours.
+**it is the per-game mechanic one storey up.** a per-game row is *unset → take the app's value* or *explicitly set*, and it keeps *Use global value* even where the explicit value equals the global one. same predicate, same reason — so a row put back on the value it already had is still an override, still reaches a launch, and is still what the way back takes away.
+
+**one rule joins the levels: a level that sets a preset owns the whole configuration, while a level that sets only knobs modifies what it inherited.** so a game picking a rung starts from that rung and drops the app's overrides; a game setting only a knob inherits the app's rung and its overrides and changes that one knob. without it a game that chose its own rung would still be carrying the app's overrides, and its own screen would name one rung while its launch ran another. `--es fexpreset` is a level too, and naming it drops the stored overrides for the same reason — a script asking for one rung and silently getting it plus whatever rows are set would be measuring something nobody wrote down.
+
+**the reading is *Custom*, and nothing on the screen explains it.** once a knob some rung sets is overridden, the configuration is not one of the rungs, and a row naming the rung somebody started from would describe what they have now by what they had then — which for anybody who has moved several may be nearer a different rung altogether. naming a nearer one is not the repair either: resemblance cannot be computed, exact equality is vanishingly rare, and a label that occasionally snapped elsewhere would surprise more than one that declines to guess. so the value column does not attempt to describe a modified configuration at all.
+
+**nothing on the screen marks which rows were changed** — no per-row marker, no count and no summary line — because a mark has to hold its width on every row to annotate one. **picking a rung from the list is the way back**, in one tap: it applies that rung and drops every override, which is what every rung naming every knob buys. a row at a time still works, through the long press.
+
+#### every rung names the block lookup, and they all name it the same way
+
+**the deciding case is Shrink the block cache.** a rung leaving it at FEXCore's own value would reintroduce a diagnosed fault — the block lookup's L1 strands translations when it shrinks, and a guest thread resumed through the emulator's continuation trampoline runs the previous translation of it — from a control that reads like a speed preference. so all four rungs hold it at 0, and the row is where somebody asks for FEXCore's value deliberately, which reads *Custom* like any other override. [`host-layer.md`](host-layer.md) has the mechanism and the default the host layer sets under it.
+
+**the group exists because these three trade memory rather than faithfulness**, which is not the axis the ladder runs along — not because a preset stays out of them. this is the ordinary shape of a graphics preset, where a preset covers every quality knob and the groups are how they are read rather than what a preset reaches.
+
+**Atomic unaligned repair is a row and no rung turns it off.** it chooses what an unaligned access is backpatched *to*: an instruction that keeps the ordering the guest expects, or a plain load or store, which does not. **the plain form is the one setting here that can corrupt data rather than merely run slowly**, so it is set deliberately rather than by a rung named for speed. it is bounded by TSO — with TSO off the JIT emits few atomics to fault, so on a title that behaves like the ones measured here turning it off is honoured and never reached.
+
+**Adaptive block cache leads the group because the row under it does nothing while it is off**: nothing is resized, so nothing shrinks. off, it holds every guest thread's L1 at its maximum of 16 MB rather than sizing it to fit, which costs around 150 MB. **the limit that reaches is memory and nothing announces it**: no knob refuses, and the process simply has more to lose the longer it runs.
+
+**Probe host instructions is a switch beside the ladder rather than a rung on it.** on, which is the default and contributes no argument, the host layer reads this processor's own ID registers and describes what it finds to FEXCore; off travels as `--host-features minimal` and asks for the conservative set instead. it is not a rung because every rung above the middle spends faithfulness for speed and this spends nothing — understating the host's instruction set changes how many instructions a translation takes and never what it computes, so a rung that turned it off would be slower and no more faithful. what the switch is for is the case the ladder cannot express: a device this probe reads wrongly, on hardware nobody here has. [`host-layer.md`](host-layer.md) is what it reads and which errata it honours.
 
 **an option being in FEXCore's table does not mean anything reads it.** `VolatileMetadata`, `MonoHacks`, `KernelUnalignedAtomicBackpatching` and `HostFeatures` are consumed only by FEX's frontend or its Windows sources, none of which a library host builds, so they would be accepted and echoed and reach nothing. the ladder names them and refuses to emit them, for the same reason it refuses the `FEX_` environment spelling.
 

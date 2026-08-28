@@ -27,6 +27,11 @@ import java.io.File
  *
  * **a subsection is a label above a run of rows, not another button press.** Eden's *Advanced
  * settings → Graphics* is the shape.
+ *
+ * **a section reached from a row rather than from the grid is not an exception to that**, and
+ * [SettingsActivity.Section.JIT_ACCURACY] is the one: what the rule forbids is a run of two or
+ * three rows put behind a press, and what that row opens is a page of ten with subsections of its
+ * own, reading out what is chosen inside it the way the build and driver rows read out theirs.
  */
 class SettingsSectionActivity : AppCompatActivity() {
 
@@ -158,11 +163,26 @@ class SettingsSectionActivity : AppCompatActivity() {
         if (row.key == Settings.KEY_FULLSCREEN) {
             SystemBars.apply(this, binding.root)
         }
+        // **the ladder is the one row here that changes every row under it**, because a knob row's
+        // default is the rung's own value and choosing a rung also drops every override on it. so
+        // this is a write that is not a change to one row, and the narrow notification below would
+        // leave nine switches drawn against the rung before it.
+        if (row.key == Settings.KEY_FEX_PRESET) {
+            adapter.submit(rows())
+            return
+        }
         // **the row that changed is named, so the rows under it slide rather than jump.** on a
         // per-game list a write can add or take away the Use global value button, which changes how
         // tall that row is; telling the adapter only that something changed is what makes the rest
         // of the list snap into its new place.
         adapter.submit(rows(), row)
+        // **and the ladder reads out what the rows under it say**, so overriding one of them is a
+        // second row to redraw. it is named rather than folded into the call above because it did
+        // not move: the list is the same length and the same shape, and a full redraw would throw
+        // away the movement that call exists to produce.
+        if (section == SettingsActivity.Section.JIT_ACCURACY) {
+            adapter.rebind(Settings.KEY_FEX_PRESET)
+        }
     }
 
     override fun onResume() {
@@ -203,6 +223,7 @@ class SettingsSectionActivity : AppCompatActivity() {
     ): List<SettingRow> = when (section) {
         SettingsActivity.Section.APP -> if (game == null) appRows(colourRow) else emptyList()
         SettingsActivity.Section.EMULATION -> emulationRows()
+        SettingsActivity.Section.JIT_ACCURACY -> jitAccuracyRows()
         SettingsActivity.Section.GRAPHICS -> graphicsRows()
         SettingsActivity.Section.CONTROLS -> controlsRows()
         SettingsActivity.Section.GAME_FILES -> if (game == null) gameFilesRows() else emptyList()
@@ -275,6 +296,18 @@ class SettingsSectionActivity : AppCompatActivity() {
     private fun manager(screen: Class<out AppCompatActivity>): Intent =
         Intent(this, screen).putExtra(EXTRA_GAME, game)
 
+    /**
+     * another section of rows, told the same store this one is writing.
+     *
+     * **it is this activity again**, which is what makes a section reached from a row cost nothing
+     * over one reached from the grid: the toolbar, the list, the long press and the per-game
+     * behaviour are already here, and the section decides only which rows are built.
+     */
+    private fun section(to: SettingsActivity.Section): Intent =
+        Intent(this, SettingsSectionActivity::class.java)
+            .putExtra(EXTRA_SECTION, to.name)
+            .putExtra(EXTRA_GAME, game)
+
     /** a colour out of the theme this screen was inflated with. */
     private fun themeColour(attr: Int): Int {
         val typed = android.util.TypedValue()
@@ -311,21 +344,23 @@ class SettingsSectionActivity : AppCompatActivity() {
         // and there is nothing for a choice to select between, so a dropdown with one entry would
         // offer a capability the app does not have.
         SettingRow.Header(R.string.settings_group_fexcore),
-        // **a slider rather than a list, because these are a ladder and not alternatives.** each rung
-        // trades faithfulness for speed against the one before it, and a control with an order in it
-        // says so without the row having to. it also makes the middle -- which is FEXCore's own
-        // defaults -- somewhere a user can aim rather than a position they have to count out.
-        SettingRow.Slider(
-            key = Settings.KEY_FEX_PRESET,
-            title = R.string.setting_fex_preset,
-            summary = R.string.setting_fex_preset_summary,
-            entries = resources.getStringArray(R.array.fex_preset_entries),
-            detail = resources.getStringArray(R.array.fex_preset_details),
-            values = FexPreset.ALL,
-            default = FexPreset.DEFAULT,
-            low = R.string.setting_fex_preset_low,
-            high = R.string.setting_fex_preset_high,
-        ),
+        // **the ladder and the knobs it sets are one screen, and this row is the way in.** ten rows
+        // about how guest code is translated would be most of this section and would bury the build
+        // above them; behind one row that reads out what is chosen, they are a page somebody opens
+        // when that is the question they came with.
+        //
+        // **it stores nothing itself, so it takes no long press and draws no Use global value.**
+        // what it summarises is a rung and a sparse map of overrides on it, and there is no single
+        // value for either gesture to put back -- each row behind it carries its own way back, which
+        // is the more precise answer anyway.
+        SettingRow.Screen(
+            key = null,
+            title = R.string.setting_jit_accuracy,
+            summary = R.string.setting_jit_accuracy_summary,
+            value = jitAccuracyLabel(),
+        ) {
+            startActivity(section(SettingsActivity.Section.JIT_ACCURACY))
+        },
         // **below the ladder rather than a rung on it.** every rung above the middle spends
         // faithfulness for speed, and describing the host truthfully spends nothing -- so a rung that
         // turned this off would be one that ran slower and translated no more faithfully. it is a
@@ -378,6 +413,79 @@ class SettingsSectionActivity : AppCompatActivity() {
             ?: return getString(R.string.setting_build_missing, folder)
         return build.name
     }
+
+    /**
+     * what the JIT accuracy row shows underneath itself.
+     *
+     * **it names the rung, or it names none.** once any setting below it is overridden the
+     * configuration is no longer one of the rungs, and a row that went on naming the rung somebody
+     * started from would describe what they have now by what they had then -- which for anybody who
+     * has moved several may be nearer a different rung altogether.
+     *
+     * **every knob counts, because every rung names every knob.** there is no group a preset stays
+     * out of, so there is none whose override a rung could still honestly describe.
+     *
+     * it reads what a launch would resolve rather than this store alone, so a game inheriting an
+     * override from the app says Custom on the game's own screen.
+     */
+    private fun jitAccuracyLabel(): String {
+        if (settings.fexOverrides().isNotEmpty()) {
+            return getString(R.string.setting_fex_custom)
+        }
+        val entries = resources.getStringArray(R.array.fex_preset_entries)
+        // a store naming a rung this build does not have reads as the default, which is the same
+        // answer the list opens on and the same one a launch runs.
+        val at = FexPreset.ALL.indexOf(settings.fexPreset ?: FexPreset.DEFAULT)
+        return entries[if (at < 0) FexPreset.ALL.indexOf(FexPreset.DEFAULT) else at]
+    }
+
+    /**
+     * the JIT accuracy screen: the ladder, then every knob a rung sets, then the ones no rung does.
+     *
+     * **the list is written out rather than generated from FEXCore's option table**, and that is not
+     * laziness in the other direction: several options in that table are read only by machinery a
+     * library host does not build, and the host layer refuses three more outright. generating rows
+     * would ship seven controls that change nothing, which is the exact failure `--fex` refusing an
+     * unknown name exists to prevent.
+     *
+     * **each knob row's default is the chosen rung's own value**, so moving the ladder moves every
+     * row nobody has touched -- and a long press on one of them puts it back to the rung rather than
+     * to a constant. see [Settings.fexKnobDefault].
+     */
+    private fun jitAccuracyRows(): List<SettingRow> {
+        val rows = mutableListOf<SettingRow>(
+            // **a list and not a ladder control, because the configuration can be none of them.**
+            // the rungs are ordered and a slider says so, but a slider has a position for every rung
+            // and none for a configuration that is not one -- which is the state this row is in the
+            // moment any row below it is overridden. a single-choice list says that by checking
+            // nothing, which is a thing it can already do.
+            SettingRow.Dropdown(
+                key = Settings.KEY_FEX_PRESET,
+                title = R.string.setting_fex_preset,
+                summary = R.string.setting_fex_preset_summary,
+                entries = resources.getStringArray(R.array.fex_preset_entries),
+                values = FexPreset.ALL,
+                default = FexPreset.DEFAULT,
+                reading = getString(R.string.setting_fex_custom)
+                    .takeIf { settings.fexOverrides().isNotEmpty() },
+            ),
+        )
+        rows += SettingRow.Header(R.string.settings_group_memory_ordering)
+        rows += FexPreset.ORDERING.map(::knobRow)
+        rows += SettingRow.Header(R.string.settings_group_code_generation)
+        rows += FexPreset.CODEGEN.map(::knobRow)
+        rows += SettingRow.Header(R.string.settings_group_block_lookup)
+        rows += FexPreset.LOOKUP.map(::knobRow)
+        return rows
+    }
+
+    /** one FEXCore knob, drawn against whatever the rung above it settles that knob on. */
+    private fun knobRow(knob: FexPreset.Knob): SettingRow = SettingRow.Switch(
+        key = Settings.fexKnobKey(knob.option),
+        title = knob.title,
+        summary = knob.summary,
+        default = knob.checked(settings.fexKnobDefault(knob.option)),
+    )
 
     private fun graphicsRows(): List<SettingRow> = listOf(
         SettingRow.Dropdown(
@@ -460,8 +568,8 @@ class SettingsSectionActivity : AppCompatActivity() {
      * **both rows are on by default, and both are read by the process that runs the guest rather than
      * turned into a launch argument.** that is the difference between these and every row in Emulation:
      * a build, a preset or a resolution has to reach the payload's command line, while these two govern
-     * what this app does with events it receives and with a request it is handed -- so nothing is passed,
-     * and a launch that names no extras is the argument vector it has always been.
+     * what this app does with events it receives and with a request it is handed -- so nothing is
+     * passed, and neither of them can move the vector a launch is made with.
      *
      * **there are no port rows under the mapping switch yet**, which is why that switch is currently
      * the whole of controller input rather than a choice between mappings. the row's own summary says

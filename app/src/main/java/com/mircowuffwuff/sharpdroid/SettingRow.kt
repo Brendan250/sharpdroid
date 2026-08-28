@@ -30,6 +30,11 @@ sealed class SettingRow {
      *
      * **a label above a run of rows, never another button press.** a subsection is a grouping and
      * not a destination, so hiding one behind a tap adds a screen without adding a choice.
+     *
+     * **a page of its own is a different thing and this rule does not forbid it.** what it forbids
+     * is a run of two or three rows put behind a press for tidiness; a page long enough to want
+     * headers of its own, reached from a [Screen] row that reads out what is chosen inside it, is a
+     * destination that answers a question rather than a grouping that hides one.
      */
     data class Header(val title: Int) : SettingRow()
 
@@ -54,6 +59,20 @@ sealed class SettingRow {
         val entries: Array<String>,
         val values: Array<String>,
         val default: String,
+        /**
+         * what the row reads instead of the chosen entry, or null to read that entry.
+         *
+         * **a fixed list can stop describing a configuration, and a row that went on naming an
+         * entry then says something untrue.** the JIT preset is the case: somebody who has changed
+         * several of the settings a rung covers may sit nearer a different rung than the one they
+         * chose, so the honest reading names none of them. naming a nearer one is not the repair
+         * either, since resemblance cannot be computed and a label that occasionally snapped
+         * elsewhere would surprise more than one that declines to guess.
+         *
+         * **the dialog says the same thing by checking nothing**, which is the one state a
+         * single-choice list has that means exactly this.
+         */
+        val reading: String? = null,
     ) : SettingRow() {
         // an Array in a data class gives identity equals/hashCode, which would make two rows built
         // from the same arrays unequal. nothing here compares rows, and saying so is cheaper than an

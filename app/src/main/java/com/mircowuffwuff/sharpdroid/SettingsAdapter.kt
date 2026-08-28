@@ -97,6 +97,19 @@ class SettingsAdapter(
     }
 
     /**
+     * one row bound again where it stands, for a row that reads out something another row changed.
+     *
+     * **the list is already correct when this is called** -- [submit] replaced it -- so this only
+     * says that a second row's holder is now describing an older answer than the one it is showing.
+     * the payload is the same one [submit] sends, and for the same reason: without it the holder is
+     * cross-faded against a second copy of itself.
+     */
+    fun rebind(key: String) {
+        val index = rows.indexOfFirst { it.key == key }
+        if (index >= 0) notifyItemChanged(index, CHANGED)
+    }
+
+    /**
      * the whole list again, one row longer or one shorter, saying which row arrived or left.
      *
      * **this is the only path that animates a row into or out of the list**, and it exists because a
@@ -256,7 +269,26 @@ class SettingsAdapter(
             useGlobal(binding.useGlobal, row.key, row)
         }
 
-        private fun stored(key: String, default: Boolean): Boolean = when (key) {
+        /**
+         * a FEXCore knob's row, or null for one of the named rows below.
+         *
+         * **the knobs are looked up rather than listed here**, because every one of them is stored,
+         * read and emitted the same way -- an option name and a value -- so a `when` naming them
+         * would be a second list to keep in step with [FexPreset.KNOBS] for no answer it does not
+         * already give.
+         */
+        private fun knob(key: String): FexPreset.Knob? =
+            FexPreset.KNOBS.firstOrNull { Settings.fexKnobKey(it.option) == key }
+
+        private fun stored(key: String, default: Boolean): Boolean {
+            val knob = knob(key)
+            // **[default] is the rung's own value here rather than a constant**, which is why an
+            // untouched knob row follows the ladder. see Settings.fexKnobDefault.
+            if (knob != null) return settings.fexKnob(knob.option)?.let(knob::checked) ?: default
+            return named(key, default)
+        }
+
+        private fun named(key: String, default: Boolean): Boolean = when (key) {
             Settings.KEY_FULLSCREEN -> settings.fullscreen ?: default
             Settings.KEY_LOADING_ESTIMATE -> settings.loadingEstimate ?: default
             Settings.KEY_STRICT -> settings.strictDynlib ?: default
@@ -267,7 +299,16 @@ class SettingsAdapter(
             else -> default
         }
 
-        private fun write(key: String, value: Boolean) = when (key) {
+        private fun write(key: String, value: Boolean) {
+            val knob = knob(key)
+            if (knob != null) {
+                settings.setFexKnob(knob.option, knob.value(value))
+                return
+            }
+            writeNamed(key, value)
+        }
+
+        private fun writeNamed(key: String, value: Boolean) = when (key) {
             Settings.KEY_FULLSCREEN -> settings.fullscreen = value
             Settings.KEY_LOADING_ESTIMATE -> settings.loadingEstimate = value
             Settings.KEY_STRICT -> settings.strictDynlib = value
@@ -285,10 +326,12 @@ class SettingsAdapter(
             binding.title.setText(row.title)
 
             val current = stored(row.key) ?: row.default
-            val index = row.values.indexOf(current).coerceAtLeast(0)
+            // **-1 where the row reads something no entry names**, which is a single-choice list's
+            // own way of saying that nothing on it is what you have. see SettingRow.Dropdown.reading.
+            val index = if (row.reading != null) -1 else row.values.indexOf(current).coerceAtLeast(0)
             // the chosen entry, not the explanation. the explanation is what a row says when it has
             // nothing else to say, and a value the user picked is the thing they came back to check.
-            binding.value.text = row.entries[index]
+            binding.value.text = row.reading ?: row.entries[index]
             binding.summary.setText(row.summary)
 
             binding.root.setOnClickListener {
@@ -302,6 +345,12 @@ class SettingsAdapter(
                     .setTitle(row.title)
                     .setSingleChoiceItems(row.entries, index) { dialog, which ->
                         write(row.key, row.values[which])
+                        // **a rung chosen here is the whole configuration again**, so the overrides
+                        // on it go with it. that is what makes this the way back out of a
+                        // configuration the list cannot name, in one tap rather than a row at a
+                        // time -- and it is why every rung names every knob, so that one tap settles
+                        // all of them.
+                        if (row.key == Settings.KEY_FEX_PRESET) settings.clearFexOverrides()
                         dialog.dismiss()
                         onChanged(row)
                     }
@@ -314,12 +363,14 @@ class SettingsAdapter(
         private fun stored(key: String): String? = when (key) {
             Settings.KEY_THEME -> settings.theme
             Settings.KEY_RENDER_SCALE -> settings.renderScale
+            Settings.KEY_FEX_PRESET -> settings.fexPreset
             else -> null
         }
 
         private fun write(key: String, value: String) = when (key) {
             Settings.KEY_THEME -> settings.theme = value
             Settings.KEY_RENDER_SCALE -> settings.renderScale = value
+            Settings.KEY_FEX_PRESET -> settings.fexPreset = value
             else -> Unit
         }
     }

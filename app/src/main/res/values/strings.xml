@@ -306,8 +306,18 @@
     <string name="setting_strict_summary">Fail the launch when an imported symbol cannot be resolved, instead of continuing without it.</string>
 
     <string name="settings_group_fexcore">FEXCore</string>
-    <string name="setting_fex_preset">FEXCore preset</string>
-    <string name="setting_fex_preset_summary">How faithfully guest code is translated. Some games may only work at certain presets.</string>
+    <string name="setting_jit_accuracy">JIT accuracy</string>
+    <string name="setting_jit_accuracy_summary">How faithfully guest code is translated. Some games may only work at certain settings.</string>
+    <!-- what the row above reads once a setting a preset covers has been changed. it names no
+         preset on purpose: somebody who has moved several may now sit nearer a different rung than
+         the one they started from, and a label naming that rung would describe their configuration
+         wrongly. -->
+    <string name="setting_fex_custom">Custom</string>
+
+    <!-- the JIT accuracy screen. the preset is a row on it rather than the whole of it, so its title
+         is the word alone: what it is a preset of is the screen's own title, one line above. -->
+    <string name="setting_fex_preset">Preset</string>
+    <string name="setting_fex_preset_summary">A ready-made set of the settings below.</string>
     <!-- the ends of the scale name what it trades rather than the rungs sitting there, which the line
          above the slider already names. -->
     <string name="setting_fex_preset_low">Faithful</string>
@@ -340,7 +350,6 @@
     <string name="setting_fex_l1_shrink_summary">Let the adaptive cache give memory back when a thread goes quiet. It strands translations made while the cache was larger, which stops the sound permanently and can freeze the picture.</string>
     <string name="setting_fex_l2">Second-level block lookup</string>
     <string name="setting_fex_l2_summary">Search a second, larger table before translating a block again. Costs memory and can avoid a stutter.</string>
-
 
 
 
