@@ -29,6 +29,24 @@ object FexPreset {
     const val PERFORMANCE = "performance"
 
     /**
+     * not a rung: the launch that carries no JIT configuration at all.
+     *
+     * **it is the argument vector this project measured on before a preset named every knob**, kept
+     * reachable so that a run can still be compared against every figure recorded under it. with it,
+     * no `--fex` leaves the app, and the translation is whatever FEXCore and the host layer default
+     * to between them -- which is the one thing the ladder can no longer express, since every rung
+     * now states its nine values outright.
+     *
+     * **it is a launch extra and never a stored setting.** a settings row for it would be a row
+     * promising a configuration nobody can see, and the whole reason every rung names every knob is
+     * that a person reading the screen should be able to tell what a run got.
+     *
+     * the word is the one this project's scripts already use for naming nothing, beside
+     * `--sharpemu none`, `--driver none` and `--game none`.
+     */
+    const val NONE = "none"
+
+    /**
      * the order the control lists them in, and the values the store holds.
      *
      * **nothing sits above [PERFORMANCE], and a rung that bundled the block-lookup knobs with the
@@ -337,6 +355,11 @@ object FexPreset {
      * setting, and produce a run that silently was not the one asked for. every rung is lowercase ASCII, so the root locale is the right one and the
      * turkish dotless i cannot reach this.
      */
+    /** whether an id asks for [NONE], matched as loosely as [normalise] matches a rung. */
+    @JvmStatic
+    fun isNone(id: String?): Boolean =
+        id?.lowercase(java.util.Locale.ROOT) == NONE
+
     @JvmStatic
     fun normalise(id: String?): String? {
         val lower = id?.lowercase(java.util.Locale.ROOT) ?: return null

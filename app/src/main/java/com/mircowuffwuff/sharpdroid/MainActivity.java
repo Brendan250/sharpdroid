@@ -205,6 +205,19 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      */
     private Map<String, String> fexOverrides = new LinkedHashMap<>();
 
+    /**
+     * whether this launch carries no JIT configuration at all.
+     *
+     * <p><b>{@code --es fexpreset none}, and it is not a rung.</b> every rung names every knob, so a
+     * launch normally spells out the whole configuration; this is the one way back to the argument
+     * vector that names none of it and lets FEXCore and the host layer decide between them. it is
+     * what every figure recorded before the rungs were complete was taken on, so a run comparable
+     * with those has to still be expressible.
+     *
+     * <p>{@code --es fex} is unaffected: a knob named on the command line was asked for by name.
+     */
+    private boolean noJitConfiguration;
+
     private boolean hostFeatureProbe;
 
     /**
@@ -462,13 +475,22 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // an unknown name is dropped and the settings row answers instead, which is what --es smc
         // does with a mode it does not recognise. a name that survives here is one the host layer
         // will also accept, since both sides read the same table.
-        String preset = FexPreset.normalise(getIntent().getStringExtra("fexpreset"));
-        fexPreset = preset != null ? preset : settings.getFexPreset();
+        String asked = getIntent().getStringExtra("fexpreset");
+        // "none" is not a rung and does not fall back to the store: it is the launch that names no
+        // JIT configuration at all. see FexPreset.NONE.
+        noJitConfiguration = FexPreset.isNone(asked);
+        String preset = FexPreset.normalise(asked);
+        // **a run naming nothing is recorded under the same key an untouched install is**, which is
+        // right because it is the same translation: BootRecord.DEFAULT_PRESET is what a null means
+        // where the boot is stamped.
+        fexPreset = noJitConfiguration ? null : (preset != null ? preset : settings.getFexPreset());
         // **the rung named by an extra takes its own overrides with it, which is to say none.** the
         // rule the store already carries is that a level naming a preset owns the whole
         // configuration, and a launch is a level: a script asking for one rung and silently getting
         // it plus whatever rows are set would be a measurement of something nobody wrote down.
-        fexOverrides = preset != null ? new LinkedHashMap<>() : settings.fexOverrides();
+        fexOverrides = (preset != null || noJitConfiguration)
+                ? new LinkedHashMap<>()
+                : settings.fexOverrides();
         // --es fex "DisableL2Cache=0,MaxInst=20000", comma-separated and appended after the preset,
         // so a knob that is not on the ladder can be measured without an APK of its own. there is no
         // settings row and there is not meant to be: the ladder is what a user chooses from, and a
@@ -1366,12 +1388,16 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             args.add("--host-features");
             args.add("minimal");
         }
-        // **a rung names every knob this app draws**, so what a row shows is what the run got.
-        args.addAll(FexPreset.arguments(fexPreset));
-        // the rows the user set on top of that rung, after it for the same reason --es fex is after
-        // both: the host layer applies these in order and keeps the last assignment to a name, so a
-        // knob emitted after a rung replaces what the rung said about it.
-        args.addAll(FexPreset.overrideArguments(fexOverrides));
+        // **the whole configuration, or none of it.** a rung names every knob this app draws, so
+        // what a row shows is what the run got -- and the one launch that names nothing is the
+        // measurement vector, which has to stay expressible rather than merely unreachable.
+        if (!noJitConfiguration) {
+            args.addAll(FexPreset.arguments(fexPreset));
+            // the rows the user set on top of that rung, after it for the same reason --es fex is
+            // after both: the host layer applies these in order and keeps the last assignment to a
+            // name, so a knob emitted after a rung replaces what the rung said about it.
+            args.addAll(FexPreset.overrideArguments(fexOverrides));
+        }
         // after the preset and after the rows, so a launch measuring one knob overrides both the
         // rung it is measured against and anything stored, rather than fighting either: the host
         // layer applies these in order and the last assignment to a name is the one FEXCore keeps.
