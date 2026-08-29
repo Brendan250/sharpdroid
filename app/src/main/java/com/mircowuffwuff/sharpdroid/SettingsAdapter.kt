@@ -56,6 +56,33 @@ class SettingsAdapter(
     }
 
     /**
+     * the whole list again, coming back to a section that may have changed while it was away.
+     *
+     * **[submit] would be wrong here now, and it was not always.** it says "assume nothing about
+     * what moved", which RecyclerView answers by laying out again with no animation at all -- fine
+     * when nothing on the list could have changed behind the user's back, and no longer true: a row
+     * that opens a screen of its own reports what was done on that screen, so returning is exactly
+     * when its answer moves. under [submit] the button that appears under it snaps in.
+     *
+     * **so every row is notified with a payload, and the ones that did not move say so themselves.**
+     * [useGlobal] already asks whether a row's answer differs from what is drawn and returns early
+     * when it does not, so naming them all animates precisely the one that changed. the payload is
+     * also what keeps the holders from being cross-faded against fresh ones, which is what would
+     * blink every switch on the list.
+     *
+     * a rebuild that changed the list's length is not this -- it falls back to [submit], since a row
+     * arriving or leaving is [replaceRow]'s to describe.
+     */
+    fun refresh(newRows: List<SettingRow>) {
+        if (newRows.size != rows.size) {
+            submit(newRows)
+            return
+        }
+        rows = newRows
+        notifyItemRangeChanged(0, rows.size, CHANGED)
+    }
+
+    /**
      * the whole list again, but saying which row the user just changed -- so that row alone redraws
      * and the ones below it **slide** to their new places instead of jumping there.
      *

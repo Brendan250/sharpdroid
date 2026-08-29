@@ -197,7 +197,7 @@ class SettingsSectionActivity : AppCompatActivity() {
         // so redrawing here would put the list straight into its final shape and leave the animation
         // describing a change that had already happened -- which RecyclerView reports as an
         // inconsistency rather than ignoring.
-        if (colourRowArrival == COLOUR_ROW_STILL) adapter.submit(rows())
+        if (colourRowArrival == COLOUR_ROW_STILL) adapter.refresh(rows())
     }
 
     // ----------------------------------------------------------------------------------------------
