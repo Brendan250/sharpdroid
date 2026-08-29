@@ -338,13 +338,11 @@ class SettingsAdapter(
                 MaterialAlertDialogBuilder(binding.root.context)
                     .setTitle(row.title)
                     .setSingleChoiceItems(row.entries, index) { dialog, which ->
+                        // **a rung chosen here is the whole configuration again**, and the store is
+                        // what settles the rows under it rather than this dialog remembering to --
+                        // the way back out of a configuration the list cannot name, in one tap
+                        // rather than a row at a time. see Settings.fexPreset.
                         write(row.key, row.values[which])
-                        // **a rung chosen here is the whole configuration again**, so the overrides
-                        // on it go with it. that is what makes this the way back out of a
-                        // configuration the list cannot name, in one tap rather than a row at a
-                        // time -- and it is why every rung names every knob, so that one tap settles
-                        // all of them.
-                        if (row.key == Settings.KEY_FEX_PRESET) settings.clearFexOverrides()
                         dialog.dismiss()
                         onChanged(row)
                     }

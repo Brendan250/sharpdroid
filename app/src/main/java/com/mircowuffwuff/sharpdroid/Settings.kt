@@ -91,8 +91,38 @@ class Settings private constructor(
     /** whether this store answers for one game rather than for the app. */
     val perGame: Boolean get() = fallback != null
 
-    /** back to "the app decides", which is not the same as writing the default in. */
-    fun clear(key: String) = prefs.edit().remove(key).apply()
+    /**
+     * back to "the app decides", which is not the same as writing the default in.
+     *
+     * **the JIT preset takes the rows it governs with it**, and that is the same rule that makes
+     * choosing a rung settle all of them: a level setting a preset owns the whole configuration, so
+     * a level that stops setting one stops owning it. an override left behind would not merely be
+     * untidy -- it would **change what it modifies**, having been a change to the rung that was
+     * chosen and becoming a change to whatever answers next, which is a configuration nobody asked
+     * for. see [fexPreset].
+     */
+    fun clear(key: String) {
+        val edit = prefs.edit().remove(key)
+        if (key == KEY_FEX_PRESET) edit.withoutFexKnobs()
+        edit.apply()
+    }
+
+    /**
+     * every FEXCore knob this store overrides, removed from an edit already in progress.
+     *
+     * **it takes the edit rather than making one**, so that a preset and the rows it settles are
+     * written in a single commit: a store part way through, holding a new rung and the previous
+     * one's overrides, is a configuration nobody asked for and every listener on the way would see
+     * it.
+     *
+     * **the offered knobs rather than a scan for the prefix**, matching [fexOverrides] -- a key
+     * written by a later version of this app is not one this build can reason about, and removing
+     * it here would quietly discard a setting on the way past.
+     */
+    private fun SharedPreferences.Editor.withoutFexKnobs(): SharedPreferences.Editor {
+        for (knob in FexPreset.KNOBS) remove(fexKnobKey(knob.option))
+        return this
+    }
 
     /**
      * every row back to untouched, at once.
@@ -262,7 +292,10 @@ class Settings private constructor(
      */
     var fexPreset: String?
         get() = prefs.getString(KEY_FEX_PRESET, null) ?: fallback?.fexPreset
-        set(value) = prefs.edit().putString(KEY_FEX_PRESET, value).apply()
+        // **writing a rung settles every row it names, in the same edit.** every rung names every
+        // knob, so a rung chosen here is a complete answer and an override surviving it would be a
+        // row the word on screen does not describe. [clear] is the same rule going the other way.
+        set(value) = prefs.edit().putString(KEY_FEX_PRESET, value).withoutFexKnobs().apply()
 
     /**
      * the individual FEXCore knobs a launch overrides on top of [fexPreset], as option name to
@@ -320,28 +353,6 @@ class Settings private constructor(
 
     fun setFexKnob(option: String, value: String) =
         prefs.edit().putString(fexKnobKey(option), value).apply()
-
-    /**
-     * every knob override **this** store holds, dropped at once, so that a rung is the whole answer
-     * again.
-     *
-     * **every rung names every knob, so choosing one settles every row** -- there is no group a
-     * preset stays out of, and a row left overridden after a rung was picked would be a
-     * configuration the word on screen does not describe.
-     *
-     * **one edit rather than a [clear] per row**, because this is one gesture: a store part way
-     * through being emptied is a configuration nobody asked for, and every listener on the way would
-     * see each of them.
-     *
-     * **this store only, and nothing behind it.** on a game's store the level behind it is dropped
-     * by a different mechanism and a better one -- naming a rung is what does it, since a level that
-     * sets a preset owns the whole configuration. see [fexOverrides].
-     */
-    fun clearFexOverrides() {
-        val edit = prefs.edit()
-        for (knob in FexPreset.KNOBS) edit.remove(fexKnobKey(knob.option))
-        edit.apply()
-    }
 
     /**
      * what a knob settles on when this store does not override it.
