@@ -68,6 +68,26 @@ class Settings private constructor(
      */
     fun isSet(key: String): Boolean = prefs.contains(key)
 
+    /**
+     * whether this row shadows a value the store **behind** this one answers for.
+     *
+     * **[isSet] is not the same question, and the difference is one group of rows.** a row that is
+     * set on a per-game store is usually shadowing the app's answer, which is what *Use global
+     * value* offers to hand back -- but a FEXCore knob on a game that names its own rung is
+     * shadowing that rung instead, because a level setting a preset owns the whole configuration
+     * and drops what the level behind it said. see [fexOverrides].
+     *
+     * so on such a game there is no global value for a knob row to go back to, and a button
+     * offering one would name a store that has been taken out of the answer. the row is left with
+     * the rung above it as the only way back, which is a gesture the whole screen shares rather
+     * than one that row carries.
+     */
+    fun overridesGlobal(key: String): Boolean {
+        if (!perGame || !isSet(key)) return false
+        if (key.startsWith(KEY_FEX_KNOB_PREFIX)) return !isSet(KEY_FEX_PRESET)
+        return true
+    }
+
     /** whether this store answers for one game rather than for the app. */
     val perGame: Boolean get() = fallback != null
 

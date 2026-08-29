@@ -415,7 +415,10 @@ class SettingsAdapter(
      * own -- and neither can any row on the global list, where the store has nothing behind it.
      */
     private fun useGlobal(button: MaterialButton, key: String?, row: SettingRow) {
-        val overridden = settings.perGame && key != null && settings.isSet(key)
+        // **asked of the store rather than worked out here**, because whether a row shadows the
+        // level behind it is a question about the merge and one group of rows answers it
+        // differently -- see Settings.overridesGlobal.
+        val overridden = key != null && settings.overridesGlobal(key)
         if (overridden) {
             button.setOnClickListener {
                 settings.clear(key!!)
@@ -481,6 +484,11 @@ class SettingsAdapter(
      * does the same thing. the wording could not be shared either: on the global list the way back is
      * to the app's own default, and on a per-game one it is to whatever the global list currently
      * says, which is a different sentence about a different value.
+     *
+     * **a FEXCore knob on a game that names its own rung has neither, and that is a gap.** the button
+     * is absent because there is no global value behind such a row -- see [Settings.overridesGlobal]
+     * -- and this gesture is absent because the whole list is per-game, so the only way back is to
+     * choose the rung again, which settles every row at once rather than the one asked about.
      */
     private fun offerDefault(key: String, row: SettingRow): Boolean {
         if (settings.perGame) return false
