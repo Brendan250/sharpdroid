@@ -163,12 +163,17 @@ class SettingsSectionActivity : AppCompatActivity() {
         if (row.key == Settings.KEY_FULLSCREEN) {
             SystemBars.apply(this, binding.root)
         }
-        // **the ladder is the one row here that changes every row under it**, because a knob row's
-        // default is the rung's own value and choosing a rung also drops every override on it. so
-        // this is a write that is not a change to one row, and the narrow notification below would
-        // leave nine switches drawn against the rung before it.
+        // **the preset is the one write here that changes every row under it**, because a knob
+        // row's default is the rung's own value and choosing a rung also drops every override on
+        // it. so the narrow notification below would leave nine switches drawn against the rung
+        // before this one.
+        //
+        // **it redraws every row and says so, rather than saying nothing about what moved.** the
+        // same key names the row that opens this screen from the section above, where the only
+        // thing that moves is the button under it -- and a redraw that assumes nothing takes that
+        // button away in one frame instead of fading it.
         if (row.key == Settings.KEY_FEX_PRESET) {
-            adapter.submit(rows())
+            adapter.refresh(rows())
             return
         }
         // **the row that changed is named, so the rows under it slide rather than jump.** on a
