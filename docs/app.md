@@ -208,7 +208,7 @@ holding a cover on the game list opens `GameSettingsActivity`: the dump's artwor
 
 **a row overriding the app's value draws a *Use global value* button under it**, and tapping it drops the override rather than asking first — the long press it replaces opens a dialog because that gesture is invisible and could have been an accident. an untouched row draws nothing, so the list annotates only what actually differs.
 
-**the button asks whether the row shadows the level behind it, which is not the same as whether it is set.** one group answers differently: a FEXCore knob on a game that names its own rung is shadowing that rung rather than the app, because a level setting a preset owns the whole configuration — so there is no global value for it to hand back, and it draws no button. **that leaves those rows with no per-row way back**, the long press being absent from every per-game list; choosing the rung again is the way, and it settles the whole screen at once.
+**the button asks whether the row shadows the level behind it, which is not the same as whether it is set.** one group answers differently: a FEXCore knob on a game that names its own rung is shadowing that rung rather than the app, because a level setting a preset owns the whole configuration — so there is no global value for it to hand back, and it draws no button. **that leaves those rows with no per-row way back**, the long press being absent from every per-game list. what answers for them is one storey up: the row that opens that screen resets the rung and every knob together, and it offers to whenever either is set.
 
 **it is a filled button rather than a text one**, which is the shape the game list's empty state uses for the one thing worth doing there: a row is already three lines of text with one of them accented, so a fourth accented line reads as more of the row instead of as a control. **on a switch row it hangs below the whole row rather than inside the text column**, and that is not a cosmetic choice — a switch is centred against its cell, so a button appearing beside it slides the switch down, and on a list of switches that reads as the row moving rather than as the row gaining something.
 
@@ -337,7 +337,7 @@ the screen is the preset, then the nine knobs it names, grouped by what they tra
 
 | | |
 | --- | --- |
-| Preset | the four rungs |
+| the preset | four cards across the top, one of them chosen or none of them |
 | **Memory ordering** | x86 memory ordering, Atomic vector loads and stores, Atomic string operations, Atomic unaligned repair |
 | **Code generation** | Multiblock translation, Reduced x87 precision |
 | **Block lookup** | Adaptive block cache, Shrink the block cache, Second-level block lookup |
@@ -346,7 +346,11 @@ the screen is the preset, then the nine knobs it names, grouped by what they tra
 
 four rungs from most faithful to fastest — Stability, Compatibility, Intermediate, Performance — named as other FEX frontends name them, so the setting means the same thing to someone arriving from one. each names every knob it sets rather than inheriting from the rung below, because the question a reader has is what one setting does and not what it does differently.
 
-**the row opens a single-choice list, and the ordering the rungs have is not what the control has to express.** what it does have to express is that the configuration may be *none* of them, which is the state it is in the moment any row below it is overridden — and a list says that by checking nothing, which is a thing it can already do. a control with a position for every rung and none for that state is the one shape this row cannot take.
+**the four rungs are cards across the top of the screen rather than a control with a position for each**, and the reason is that the configuration may be *none* of them — the state it is in the moment any row below is overridden. a slider or a segmented control has a position for every rung and none for that, so it cannot say it; four cards with none of them chosen can, and it is the same shape the settings grid and the managers already use, one size down and without the icon.
+
+**they fill the width, four across on a wide screen and two by two upright**, from `preset_columns`. **the chosen card is a wash of the accent over its own surface, outlined and lettered in the accent** — not filled with it. the accent at full strength is a switch track's colour, and the same value over a card ten times that area stops reading as a state and starts reading as an alarm, which is the reason Material keeps its base roles for small controls and its container roles for large ones.
+
+**the control carries no header and neither way back.** it is the first thing under a toolbar that already names the screen, and both gestures live on the row that opens it, since what either of them resets is the whole configuration rather than this one choice.
 
 **nothing sits above Performance.** a rung there would bundle three unrelated things under one word: a speed setting, a memory purchase, and a repair that can corrupt data. the speed in that combination is the block-lookup knobs alone — about 4.6% of the load interval, eight runs each — and the repair does not fire once at Performance on the titles measured here, so such a rung would be fast for a reason nobody was warned about and dangerous for one that buys nothing. every one of those knobs is a row, which is what leaves the ladder nothing to add.
 
@@ -372,7 +376,9 @@ four rungs from most faithful to fastest — Stability, Compatibility, Intermedi
 
 **the reading is *Custom*, and nothing on the screen explains it.** once a knob some rung sets is overridden, the configuration is not one of the rungs, and a row naming the rung somebody started from would describe what they have now by what they had then — which for anybody who has moved several may be nearer a different rung altogether. naming a nearer one is not the repair either: resemblance cannot be computed, exact equality is vanishingly rare, and a label that occasionally snapped elsewhere would surprise more than one that declines to guess. so the value column does not attempt to describe a modified configuration at all.
 
-**nothing on the screen marks which rows were changed** — no per-row marker, no count and no summary line — because a mark has to hold its width on every row to annotate one. **picking a rung from the list is the way back**, in one tap: it applies that rung and drops every override, which is what every rung naming every knob buys. a row at a time still works, through the long press.
+**nothing on the screen marks which rows were changed** — no per-row marker, no count and no summary line — because a mark has to hold its width on every row to annotate one. **picking a rung is the way back**, in one tap: it applies that rung and drops every override, which is what every rung naming every knob buys.
+
+**and the row that opens the screen resets the whole of it** — a long press on the app's own list, the *Use global value* button on a game's. that row reads out the rung and the overrides together, so it is the one control whose value is the configuration, and it counts as answered when **either** the rung or any knob is set. a game overriding two knobs and no rung is overriding the JIT configuration as surely as one that named a rung, and a button that stayed away would leave it with no way out from the screen that reports it.
 
 **unsetting the preset row settles those rows too, and by the same rule.** a level that sets a preset owns the whole configuration, so a level that stops setting one stops owning it: clearing the row — through *Use global value* on a game's screen, or the long press on the app's — takes the overrides with it. an override left behind would not merely be untidy, it would **change what it modifies**: a knob that was a change to the rung somebody chose becomes a change to whatever answers next, which is a configuration nobody asked for. the store is what maintains this rather than each control remembering to, since there are three ways in and they must agree.
 

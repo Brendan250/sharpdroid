@@ -314,10 +314,6 @@
          wrongly. -->
     <string name="setting_fex_custom">Custom</string>
 
-    <!-- the JIT accuracy screen. the preset is a row on it rather than the whole of it, so its title
-         is the word alone: what it is a preset of is the screen's own title, one line above. -->
-    <string name="setting_fex_preset">Preset</string>
-    <string name="setting_fex_preset_summary">A ready-made set of the settings below.</string>
     <string name="settings_group_memory_ordering">Memory ordering</string>
     <string name="setting_fex_tso">x86 memory ordering</string>
     <string name="setting_fex_tso_summary">Reproduce the guarantees x86 makes about the order memory is written in. Off is much faster and highly likely to break a game that uses several threads.</string>

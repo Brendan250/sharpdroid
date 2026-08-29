@@ -83,10 +83,25 @@ class Settings private constructor(
      * than one that row carries.
      */
     fun overridesGlobal(key: String): Boolean {
-        if (!perGame || !isSet(key)) return false
-        if (key.startsWith(KEY_FEX_KNOB_PREFIX)) return !isSet(KEY_FEX_PRESET)
-        return true
+        if (!perGame) return false
+        if (key.startsWith(KEY_FEX_KNOB_PREFIX)) return isSet(key) && !isSet(KEY_FEX_PRESET)
+        return answers(key)
     }
+
+    /**
+     * whether this store holds an answer for the row named by [key] -- which for one row is not the
+     * same as holding that key.
+     *
+     * **[KEY_FEX_PRESET] names a screen rather than a value.** the row carrying it reads out the
+     * whole JIT configuration and both ways back reset the whole of it, so a store that overrides
+     * only a knob and no rung is still answering that row: a button or a long press that stayed
+     * away would leave a configuration nobody can get out of from the screen that reports it.
+     * [clear] settles the same set, which is what keeps the offer and what it does in step.
+     *
+     * every other row answers exactly when it is set.
+     */
+    fun answers(key: String): Boolean =
+        if (key == KEY_FEX_PRESET) isSet(key) || ownFexOverrides().isNotEmpty() else isSet(key)
 
     /** whether this store answers for one game rather than for the app. */
     val perGame: Boolean get() = fallback != null

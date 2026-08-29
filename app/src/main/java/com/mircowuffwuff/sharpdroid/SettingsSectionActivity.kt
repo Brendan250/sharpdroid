@@ -349,12 +349,13 @@ class SettingsSectionActivity : AppCompatActivity() {
         // above them; behind one row that reads out what is chosen, they are a page somebody opens
         // when that is the question they came with.
         //
-        // **it stores nothing itself, so it takes no long press and draws no Use global value.**
-        // what it summarises is a rung and a sparse map of overrides on it, and there is no single
-        // value for either gesture to put back -- each row behind it carries its own way back, which
-        // is the more precise answer anyway.
+        // **both ways back live here rather than on the screen behind it**, because what either of
+        // them puts back is the whole configuration: a rung and every knob overriding it, which is
+        // the one thing this row reads out. the key it carries is the rung's, and the store reads
+        // that key as standing for all of it -- see Settings.answers, and Settings.clear, which
+        // settles the same set.
         SettingRow.Screen(
-            key = null,
+            key = Settings.KEY_FEX_PRESET,
             title = R.string.setting_jit_accuracy,
             summary = R.string.setting_jit_accuracy_summary,
             value = jitAccuracyLabel(),
@@ -454,20 +455,16 @@ class SettingsSectionActivity : AppCompatActivity() {
      */
     private fun jitAccuracyRows(): List<SettingRow> {
         val rows = mutableListOf<SettingRow>(
-            // **a list and not a ladder control, because the configuration can be none of them.**
-            // the rungs are ordered and a slider says so, but a slider has a position for every rung
-            // and none for a configuration that is not one -- which is the state this row is in the
-            // moment any row below it is overridden. a single-choice list says that by checking
-            // nothing, which is a thing it can already do.
-            SettingRow.Dropdown(
+            // **cards rather than a control with a position per rung**, because the configuration
+            // can be none of them: the moment a knob below is overridden, no rung describes what is
+            // set, and a control that must land on one of its positions cannot say so. nothing
+            // chosen is that state, drawn.
+            SettingRow.Cards(
                 key = Settings.KEY_FEX_PRESET,
-                title = R.string.setting_fex_preset,
-                summary = R.string.setting_fex_preset_summary,
                 entries = resources.getStringArray(R.array.fex_preset_entries),
                 values = FexPreset.ALL,
-                default = FexPreset.DEFAULT,
-                reading = getString(R.string.setting_fex_custom)
-                    .takeIf { settings.fexOverrides().isNotEmpty() },
+                chosen = (settings.fexPreset ?: FexPreset.DEFAULT)
+                    .takeIf { settings.fexOverrides().isEmpty() },
             ),
         )
         rows += SettingRow.Header(R.string.settings_group_memory_ordering)

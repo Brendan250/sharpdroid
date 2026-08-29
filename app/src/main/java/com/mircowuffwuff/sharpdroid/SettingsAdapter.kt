@@ -1,9 +1,11 @@
 package com.mircowuffwuff.sharpdroid
 
+import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.color.MaterialColors
@@ -14,6 +16,7 @@ import com.google.android.material.R as MaterialR
 import com.mircowuffwuff.sharpdroid.databinding.DialogMessageBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingColourBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingHeaderBinding
+import com.mircowuffwuff.sharpdroid.databinding.ItemSettingPresetBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingSwitchBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingValueBinding
 
@@ -134,6 +137,7 @@ class SettingsAdapter(
         is SettingRow.Header -> TYPE_HEADER
         is SettingRow.Switch -> TYPE_SWITCH
         is SettingRow.Dropdown -> TYPE_VALUE
+        is SettingRow.Cards -> TYPE_CARDS
         is SettingRow.Colour -> TYPE_COLOUR
         is SettingRow.External -> TYPE_EXTERNAL
         is SettingRow.Screen -> TYPE_SCREEN
@@ -145,6 +149,7 @@ class SettingsAdapter(
             TYPE_HEADER -> HeaderHolder(ItemSettingHeaderBinding.inflate(inflater, parent, false))
             TYPE_SWITCH -> SwitchHolder(ItemSettingSwitchBinding.inflate(inflater, parent, false))
             TYPE_VALUE -> ValueHolder(ItemSettingValueBinding.inflate(inflater, parent, false))
+            TYPE_CARDS -> CardsHolder(ItemSettingPresetBinding.inflate(inflater, parent, false))
             TYPE_COLOUR -> ColourHolder(ItemSettingColourBinding.inflate(inflater, parent, false))
             // the same layout a dropdown uses: a title, an explanation and the chosen thing under
             // it. what differs is where the tap goes, which is not something a layout knows.
@@ -201,6 +206,7 @@ class SettingsAdapter(
             is SettingRow.Header -> (holder as HeaderHolder).bind(row)
             is SettingRow.Switch -> (holder as SwitchHolder).bind(row)
             is SettingRow.Dropdown -> (holder as ValueHolder).bind(row)
+            is SettingRow.Cards -> (holder as CardsHolder).bind(row)
             is SettingRow.Colour -> (holder as ColourHolder).bind(row)
             is SettingRow.External -> (holder as ExternalHolder).bind(row)
             is SettingRow.Screen -> (holder as ScreenHolder).bind(row)
@@ -314,18 +320,71 @@ class SettingsAdapter(
         }
     }
 
+    /**
+     * a fixed set of alternatives as cards, one of which may be chosen.
+     *
+     * **the cards are laid out by a grid whose column count is a resource**, so the same four sit
+     * in a row on a wide screen and two by two upright, and this code never asks which it is in.
+     *
+     * **the chosen card is a wash of the accent over its own surface, outlined and lettered in the
+     * accent.** the accent at full strength belongs to a switch track and not to a card ten times
+     * its area, where the same colour stops reading as chosen and starts reading as a warning --
+     * which is the rule Material itself follows in reserving its container roles for large
+     * surfaces. this is that rule one step further, these cards being larger still.
+     */
+    private inner class CardsHolder(val binding: ItemSettingPresetBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+        fun bind(row: SettingRow.Cards) {
+            val cards = listOf(binding.rung0, binding.rung1, binding.rung2, binding.rung3)
+            val labels = listOf(binding.label0, binding.label1, binding.label2, binding.label3)
+            val chosen = row.chosen?.let { row.values.indexOf(it) } ?: -1
+
+            val quiet = MaterialColors.getColor(binding.root, MaterialR.attr.colorOutlineVariant)
+            val ink = MaterialColors.getColor(binding.root, MaterialR.attr.colorOnSurface)
+            val accent = MaterialColors.getColor(binding.root, MaterialR.attr.colorPrimary)
+            val plain = MaterialColors.getColor(binding.root, MaterialR.attr.colorSurfaceContainer)
+            val fill = MaterialColors.layer(plain, accent, CARD_WASH)
+            val density = binding.root.resources.displayMetrics.density
+
+            cards.forEachIndexed { at, card ->
+                val selected = at == chosen
+                val present = at < row.entries.size
+                card.isVisible = present
+                if (!present) return@forEachIndexed
+                card.strokeWidth = (1f * density).toInt()
+                card.setStrokeColor(ColorStateList.valueOf(if (selected) accent else quiet))
+                card.setCardBackgroundColor(if (selected) fill else plain)
+                // **the state as the widget's own and not only as colours**, so that what is read
+                // out matches what is drawn. the tick it would otherwise draw is off: the wash and
+                // the outline already say it, and a glyph would push the label off centre.
+                card.isCheckable = true
+                card.checkedIcon = null
+                card.isChecked = selected
+                labels[at].text = row.entries[at]
+                labels[at].setTextColor(if (selected) accent else ink)
+                card.setOnClickListener {
+                    write(row.key, row.values[at])
+                    onChanged(row)
+                }
+            }
+        }
+
+        private fun write(key: String, value: String) = when (key) {
+            Settings.KEY_FEX_PRESET -> settings.fexPreset = value
+            else -> Unit
+        }
+    }
+
     private inner class ValueHolder(val binding: ItemSettingValueBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(row: SettingRow.Dropdown) {
             binding.title.setText(row.title)
 
             val current = stored(row.key) ?: row.default
-            // **-1 where the row reads something no entry names**, which is a single-choice list's
-            // own way of saying that nothing on it is what you have. see SettingRow.Dropdown.reading.
-            val index = if (row.reading != null) -1 else row.values.indexOf(current).coerceAtLeast(0)
+            val index = row.values.indexOf(current).coerceAtLeast(0)
             // the chosen entry, not the explanation. the explanation is what a row says when it has
             // nothing else to say, and a value the user picked is the thing they came back to check.
-            binding.value.text = row.reading ?: row.entries[index]
+            binding.value.text = row.entries[index]
             binding.summary.setText(row.summary)
 
             binding.root.setOnClickListener {
@@ -338,10 +397,6 @@ class SettingsAdapter(
                 MaterialAlertDialogBuilder(binding.root.context)
                     .setTitle(row.title)
                     .setSingleChoiceItems(row.entries, index) { dialog, which ->
-                        // **a rung chosen here is the whole configuration again**, and the store is
-                        // what settles the rows under it rather than this dialog remembering to --
-                        // the way back out of a configuration the list cannot name, in one tap
-                        // rather than a row at a time. see Settings.fexPreset.
                         write(row.key, row.values[which])
                         dialog.dismiss()
                         onChanged(row)
@@ -355,14 +410,12 @@ class SettingsAdapter(
         private fun stored(key: String): String? = when (key) {
             Settings.KEY_THEME -> settings.theme
             Settings.KEY_RENDER_SCALE -> settings.renderScale
-            Settings.KEY_FEX_PRESET -> settings.fexPreset
             else -> null
         }
 
         private fun write(key: String, value: String) = when (key) {
             Settings.KEY_THEME -> settings.theme = value
             Settings.KEY_RENDER_SCALE -> settings.renderScale = value
-            Settings.KEY_FEX_PRESET -> settings.fexPreset = value
             else -> Unit
         }
     }
@@ -490,7 +543,7 @@ class SettingsAdapter(
      */
     private fun offerDefault(key: String, row: SettingRow): Boolean {
         if (settings.perGame) return false
-        if (!settings.isSet(key)) return false
+        if (!settings.answers(key)) return false
         // any bound holder's context is the activity; the list is what we have a handle on.
         val context = recycler?.context ?: return false
         // **the message is a view of ours rather than setMessage**, and only so that the space below
@@ -564,5 +617,16 @@ class SettingsAdapter(
         const val TYPE_EXTERNAL = 3
         const val TYPE_COLOUR = 4
         const val TYPE_SCREEN = 5
+        const val TYPE_CARDS = 6
+
+        /**
+         * how much of the accent is laid over a chosen card's own surface.
+         *
+         * **the accent at full strength is a switch track's colour and not a card's.** the same
+         * value over ten times the area stops reading as a state and starts reading as an alarm,
+         * which is why Material keeps its base roles for small controls and its container roles for
+         * large ones. this is a shade under the lightest container that scheme would generate.
+         */
+        const val CARD_WASH = 0.14f
     }
 }

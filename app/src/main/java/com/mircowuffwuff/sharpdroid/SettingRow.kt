@@ -59,24 +59,44 @@ sealed class SettingRow {
         val entries: Array<String>,
         val values: Array<String>,
         val default: String,
-        /**
-         * what the row reads instead of the chosen entry, or null to read that entry.
-         *
-         * **a fixed list can stop describing a configuration, and a row that went on naming an
-         * entry then says something untrue.** the JIT preset is the case: somebody who has changed
-         * several of the settings a rung covers may sit nearer a different rung than the one they
-         * chose, so the honest reading names none of them. naming a nearer one is not the repair
-         * either, since resemblance cannot be computed and a label that occasionally snapped
-         * elsewhere would surprise more than one that declines to guess.
-         *
-         * **the dialog says the same thing by checking nothing**, which is the one state a
-         * single-choice list has that means exactly this.
-         */
-        val reading: String? = null,
     ) : SettingRow() {
         // an Array in a data class gives identity equals/hashCode, which would make two rows built
         // from the same arrays unequal. nothing here compares rows, and saying so is cheaper than an
         // override nothing calls.
+        override fun equals(other: Any?) = this === other
+        override fun hashCode() = System.identityHashCode(this)
+    }
+
+    /**
+     * a fixed set of named alternatives, drawn as cards laid out across the row and picked by
+     * tapping one.
+     *
+     * **it is not a [Dropdown] and the difference is that the value may be none of them.** a
+     * dropdown answers with the entry that is chosen; this answers with the entry that is chosen
+     * *or with nothing at all*, which is the state a configuration is in once something below it
+     * has been changed away from what the choice here implies. a control with a position for every
+     * alternative and none for that state cannot say it.
+     *
+     * **[chosen] is therefore nullable and is the whole of that.** null draws every card
+     * unselected, which reads as a control whose value is not on the list rather than as one
+     * nothing has been done to yet -- the rows underneath say what the configuration actually is.
+     *
+     * **it carries no title and no summary.** it is the first thing on the screen it belongs to,
+     * under a toolbar that already names it, and a label repeating that name would be the screen's
+     * title written twice.
+     *
+     * **and it carries neither way back.** the row that opens that screen is where both live, since
+     * what they put back is the whole configuration rather than this one choice -- see
+     * [Settings.answers].
+     */
+    data class Cards(
+        override val key: String,
+        val entries: Array<String>,
+        val values: Array<String>,
+        /** the value whose card is drawn as chosen, or null where none of them is what is set. */
+        val chosen: String?,
+    ) : SettingRow() {
+        // as Dropdown: arrays in a data class give identity equals, and nothing compares rows.
         override fun equals(other: Any?) = this === other
         override fun hashCode() = System.identityHashCode(this)
     }

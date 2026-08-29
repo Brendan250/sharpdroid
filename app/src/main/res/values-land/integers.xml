@@ -2,4 +2,5 @@
 <resources>
     <integer name="settings_section_columns">2</integer>
     <integer name="game_columns">4</integer>
+    <integer name="preset_columns">4</integer>
 </resources>

@@ -36,4 +36,12 @@
 
     <integer name="settings_section_columns">1</integer>
     <integer name="game_columns">2</integer>
+
+    <!-- how many preset cards sit in a row on the JIT accuracy screen: four across a wide screen and
+         two by two upright, which is the same four either way rather than a different control.
+
+         it is a resource and not a measurement because android already resolves it, and because the
+         screen is rebuilt across a rotation - so the grid reads the new count without anything here
+         watching for one. the code that draws the cards never asks which layout it is in. -->
+    <integer name="preset_columns">2</integer>
 </resources>
