@@ -491,10 +491,11 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         fexOverrides = (preset != null || noJitConfiguration)
                 ? new LinkedHashMap<>()
                 : settings.fexOverrides();
-        // --es fex "DisableL2Cache=0,MaxInst=20000", comma-separated and appended after the preset,
-        // so a knob that is not on the ladder can be measured without an APK of its own. there is no
-        // settings row and there is not meant to be: the ladder is what a user chooses from, and a
-        // launch that names nothing here contributes nothing.
+        // --es fex "MaxInst=20000", comma-separated and appended after the preset and the rows
+        // overriding it, so a knob the screen does not draw can be measured without an APK of its
+        // own. the nine it does draw are reachable from the settings scene instead; what this is
+        // for is the rest of FEXCore's option table, which is most of it. a launch that names
+        // nothing here contributes nothing.
         // --ez hostprobe true, hasExtra for the reason --ez strict is: absent and false are
         // different answers. on is the default and says nothing on the command line, so this row
         // adds to the vector only when it is turned off.
