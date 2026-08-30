@@ -79,7 +79,7 @@ Settings → Controls, both on by default.
 
 **they are independent, and that is the point of there being two.** somebody playing by touch on a device with a pad in it should still feel a game's haptics, and a controller that misbehaves is a different complaint from a motor that is distracting. turning the mapping off leaves rumble working; turning rumble off leaves the pad working.
 
-**neither becomes a launch argument.** they are read once by the process that runs the guest — which is given to one run and ended with it — and applied to what the app does with events it receives and with a request it is handed. so a launch that names no extras is the argument vector it has always been, and nothing about the host layer's flags changes.
+**neither becomes a launch argument.** they are read once by the process that runs the guest — which is given to one run and ended with it — and applied to what the app does with events it receives and with a request it is handed. so neither of them can move the vector a launch is made with, and nothing about the host layer's flags changes.
 
 **turning the mapping off releases everything first**, rather than simply going quiet: a button held at that moment would otherwise stay held for the rest of the run, since nothing afterwards processes its release. it also stops *consuming* events, so a pad still reaches the app's own screens and the panel over a running guest stays reachable with a d-pad.
 

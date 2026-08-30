@@ -25,6 +25,15 @@ import java.io.File
  * nullable, and why there is a [clear] rather than only a setter: "use the default" has to be
  * reachable from the UI, or a row is a one-way door.
  *
+ * **[fexPreset] is the one row that contributes while untouched, and it is an exception on purpose.**
+ * every rung of that ladder names every knob it covers, so that two installs reading the same word
+ * run the same translation whatever FEXCore defaults to -- and a launch therefore spells the whole
+ * JIT configuration out rather than leaving any of it unsaid. an untouched row resolves to the
+ * default rung, which is what an install used to get by silence, so the run is the same and the
+ * vector is not. `--es fexpreset none` is the way back to a launch that names none of it, and it is
+ * a launch extra rather than a row for exactly the reason above: a stored value that meant "say
+ * nothing" would be a configuration nobody can read off the screen.
+ *
  * **a `SharedPreferences` line, like [GameLibrary]'s folder list.** nothing here is big enough to
  * want a file of its own, and the platform's own store is what survives an app update without a
  * migration of ours.
@@ -37,7 +46,9 @@ import java.io.File
  * ```
  *
  * every property a per-game scene offers asks its own store first and the one behind it second, so a
- * game that overrides nothing is the global configuration exactly. what does **not** fall back is the
+ * game that overrides nothing is the global configuration exactly. **the FEXCore configuration is
+ * the one that is more than a per-key answer** -- a rung and the knobs overriding it are one thing
+ * between them, and [fexOverrides] carries the rule that joins the two levels. what does **not** fall back is the
  * App section -- a theme or a fullscreen mode is the app's rather than a title's, and a property that
  * fell back would imply a per-game one exists.
  *
@@ -57,11 +68,76 @@ class Settings private constructor(
      */
     fun isSet(key: String): Boolean = prefs.contains(key)
 
+    /**
+     * whether this row shadows a value the store **behind** this one answers for.
+     *
+     * **[isSet] is not the same question, and the difference is one group of rows.** a row that is
+     * set on a per-game store is usually shadowing the app's answer, which is what *Use global
+     * value* offers to hand back -- but a FEXCore knob on a game that names its own rung is
+     * shadowing that rung instead, because a level setting a preset owns the whole configuration
+     * and drops what the level behind it said. see [fexOverrides].
+     *
+     * so on such a game there is no global value for a knob row to go back to, and a button
+     * offering one would name a store that has been taken out of the answer. the row is left with
+     * the rung above it as the only way back, which is a gesture the whole screen shares rather
+     * than one that row carries.
+     */
+    fun overridesGlobal(key: String): Boolean {
+        if (!perGame) return false
+        if (key.startsWith(KEY_FEX_KNOB_PREFIX)) return isSet(key) && !isSet(KEY_FEX_PRESET)
+        return answers(key)
+    }
+
+    /**
+     * whether this store holds an answer for the row named by [key] -- which for one row is not the
+     * same as holding that key.
+     *
+     * **[KEY_FEX_PRESET] names a screen rather than a value.** the row carrying it reads out the
+     * whole JIT configuration and both ways back reset the whole of it, so a store that overrides
+     * only a knob and no rung is still answering that row: a button or a long press that stayed
+     * away would leave a configuration nobody can get out of from the screen that reports it.
+     * [clear] settles the same set, which is what keeps the offer and what it does in step.
+     *
+     * every other row answers exactly when it is set.
+     */
+    fun answers(key: String): Boolean =
+        if (key == KEY_FEX_PRESET) isSet(key) || ownFexOverrides().isNotEmpty() else isSet(key)
+
     /** whether this store answers for one game rather than for the app. */
     val perGame: Boolean get() = fallback != null
 
-    /** back to "the app decides", which is not the same as writing the default in. */
-    fun clear(key: String) = prefs.edit().remove(key).apply()
+    /**
+     * back to "the app decides", which is not the same as writing the default in.
+     *
+     * **the JIT preset takes the rows it governs with it**, and that is the same rule that makes
+     * choosing a rung settle all of them: a level setting a preset owns the whole configuration, so
+     * a level that stops setting one stops owning it. an override left behind would not merely be
+     * untidy -- it would **change what it modifies**, having been a change to the rung that was
+     * chosen and becoming a change to whatever answers next, which is a configuration nobody asked
+     * for. see [fexPreset].
+     */
+    fun clear(key: String) {
+        val edit = prefs.edit().remove(key)
+        if (key == KEY_FEX_PRESET) edit.withoutFexKnobs()
+        edit.apply()
+    }
+
+    /**
+     * every FEXCore knob this store overrides, removed from an edit already in progress.
+     *
+     * **it takes the edit rather than making one**, so that a preset and the rows it settles are
+     * written in a single commit: a store part way through, holding a new rung and the previous
+     * one's overrides, is a configuration nobody asked for and every listener on the way would see
+     * it.
+     *
+     * **the offered knobs rather than a scan for the prefix**, matching [fexOverrides] -- a key
+     * written by a later version of this app is not one this build can reason about, and removing
+     * it here would quietly discard a setting on the way past.
+     */
+    private fun SharedPreferences.Editor.withoutFexKnobs(): SharedPreferences.Editor {
+        for (knob in FexPreset.KNOBS) remove(fexKnobKey(knob.option))
+        return this
+    }
 
     /**
      * every row back to untouched, at once.
@@ -105,6 +181,14 @@ class Settings private constructor(
         if (loadingEstimate == false) count++
         if (strictDynlib == true) count++
         if (fexPreset?.let { it != FexPreset.DEFAULT } == true) count++
+        // **each knob moved off what the rung settles on, rather than each knob that is set.** a row
+        // opened and put back on the value it already had is an override -- it reaches a launch and
+        // Reset clears it -- and is not a change from the default, which is the distinction this
+        // whole method draws.
+        for (knob in FexPreset.KNOBS) {
+            val override = fexKnob(knob.option) ?: continue
+            if (override != fexKnobDefault(knob.option)) count++
+        }
         // compared against on rather than counted as set, for the reason the loading estimate is.
         if (hostFeatureProbe == false) count++
         if (renderScale?.let { it != RENDER_SCALES[0] } == true) count++
@@ -218,10 +302,82 @@ class Settings private constructor(
      *
      * stored as the id rather than as an index, so a store survives a rung being inserted into the
      * ladder.
+     *
+     * **it is a rung and not the whole configuration**, which is what [fexOverrides] is beside it.
      */
     var fexPreset: String?
         get() = prefs.getString(KEY_FEX_PRESET, null) ?: fallback?.fexPreset
-        set(value) = prefs.edit().putString(KEY_FEX_PRESET, value).apply()
+        // **writing a rung settles every row it names, in the same edit.** every rung names every
+        // knob, so a rung chosen here is a complete answer and an override surviving it would be a
+        // row the word on screen does not describe. [clear] is the same rule going the other way.
+        set(value) = prefs.edit().putString(KEY_FEX_PRESET, value).withoutFexKnobs().apply()
+
+    /**
+     * the individual FEXCore knobs a launch overrides on top of [fexPreset], as option name to
+     * value, and empty where nobody has opened one.
+     *
+     * **a rung plus a sparse map, rather than either alone**, and the alternative that is wrong is
+     * worth stating: storing the knob values and working the rung out by comparing them would mean
+     * this app could **never correct a preset**. somebody who chose a rung would be frozen at
+     * whatever it meant the day they chose it, so a rung later found to reintroduce a fault would
+     * reach nobody, ever -- and an install would flip to reading Custom through no action of its
+     * own the first time a rung moved. under this shape an updated rung reaches every row that was
+     * left alone.
+     *
+     * **this is [forGame]'s own mechanic one storey up**: a row is unset, meaning take what is
+     * behind it, or explicitly set. same predicate, same reason.
+     *
+     * **and one rule joins the two levels: a level that sets a preset owns the whole configuration,
+     * while a level that sets only knobs modifies what it inherited.** without it a game that chose
+     * a rung of its own would still be carrying the app's overrides, and its own screen would name
+     * one rung while its launch ran another -- which is the failure the whole precedence design
+     * exists to avoid.
+     */
+    fun fexOverrides(): Map<String, String> = inheritedFexOverrides() + ownFexOverrides()
+
+    /**
+     * the overrides in force **behind** this store, which is what a row this store leaves alone
+     * falls back to. empty on the global store, and empty on a game that names its own rung.
+     */
+    private fun inheritedFexOverrides(): Map<String, String> =
+        if (fallback == null || prefs.contains(KEY_FEX_PRESET)) {
+            emptyMap()
+        } else {
+            fallback.fexOverrides()
+        }
+
+    /**
+     * this store's own overrides.
+     *
+     * **read through the offered knobs rather than by scanning the store for the prefix**, so that
+     * a key written by a later version of this app and restored into this one contributes nothing
+     * rather than reaching a launch. the host layer refuses a FEXCore option it cannot resolve and
+     * ends the run saying so, which as a way to find out that a settings import came from a newer
+     * build is a game that no longer starts.
+     */
+    private fun ownFexOverrides(): Map<String, String> {
+        val out = LinkedHashMap<String, String>()
+        for (knob in FexPreset.KNOBS) {
+            prefs.getString(fexKnobKey(knob.option), null)?.let { out[knob.option] = it }
+        }
+        return out
+    }
+
+    /** one knob as **this** store overrides it, or null where this store leaves it alone. */
+    fun fexKnob(option: String): String? = prefs.getString(fexKnobKey(option), null)
+
+    fun setFexKnob(option: String, value: String) =
+        prefs.edit().putString(fexKnobKey(option), value).apply()
+
+    /**
+     * what a knob settles on when this store does not override it.
+     *
+     * **it is what the row draws as its own default, and what the long press puts it back to** --
+     * so it is a function of the stored rung rather than a constant, which is the one place this
+     * shape costs anything. an updated rung moves every row nobody has touched, on the next draw.
+     */
+    fun fexKnobDefault(option: String): String =
+        FexPreset.resolve(option, fexPreset, inheritedFexOverrides())
 
     // ------------------------------------------------------------------------------------------
     // Graphics
@@ -300,7 +456,7 @@ class Settings private constructor(
      *
      * **neither of these becomes a launch argument.** they are read by the process that runs the
      * guest and applied to what this app does with events it receives and with a request it is
-     * handed, so a launch naming no extras is the argument vector it has always been.
+     * handed, so neither of them can move the vector a launch is made with.
      */
     var automaticControllerMapping: Boolean?
         get() = if (prefs.contains(KEY_AUTOMATIC_CONTROLLER_MAPPING)) {
@@ -332,8 +488,8 @@ class Settings private constructor(
      * who does not want an estimate does not want one per game. so it is not offered per game and does
      * not fall back -- see [forGame].
      *
-     * gated where the screen is drawn and not in the argument vector, so a launch naming no extras is
-     * the one every measurement in this project was taken on.
+     * gated where the screen is drawn and not in the argument vector, so this row cannot move what a
+     * launch is made with.
      */
     var loadingEstimate: Boolean?
         get() = if (prefs.contains(KEY_LOADING_ESTIMATE)) {
@@ -356,8 +512,8 @@ class Settings private constructor(
      * speed, and describing the host truthfully is not a trade -- a rung that turned this off would
      * be a rung that was slower for no fidelity.
      *
-     * it is a launch argument: off travels as `--host-features minimal`, and on says nothing, so a
-     * launch naming no extras is the argument vector every measurement here was taken on.
+     * it is a launch argument: off travels as `--host-features minimal` and on says nothing, so this
+     * row adds to the vector only when it is turned off.
      */
     var hostFeatureProbe: Boolean?
         get() = if (prefs.contains(KEY_HOST_FEATURE_PROBE)) {
@@ -416,6 +572,21 @@ class Settings private constructor(
         const val KEY_BUILD = "build"
         const val KEY_STRICT = "strict_dynlib"
         const val KEY_FEX_PRESET = "fex_preset"
+
+        /**
+         * the prefix one FEXCore knob's override is stored under, followed by the option's own
+         * FEXCore name.
+         *
+         * **the option's name rather than an index or a short id**, because that is the string the
+         * host layer resolves and the only spelling that cannot drift: a key built from a position
+         * in a list would name a different knob the day the list gains one, and every store already
+         * written would then be describing the wrong row.
+         */
+        private const val KEY_FEX_KNOB_PREFIX = "fex_knob_"
+
+        /** the key one knob's override is stored under. */
+        @JvmStatic
+        fun fexKnobKey(option: String) = KEY_FEX_KNOB_PREFIX + option
         const val KEY_HOST_FEATURE_PROBE = "host_feature_probe"
         const val KEY_RENDER_SCALE = "render_scale"
         const val KEY_DRIVER = "driver"

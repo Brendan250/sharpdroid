@@ -189,6 +189,35 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
      * project does not build, so it would reach nothing here while looking like it had.
      */
     private String fexPreset;
+
+    /**
+     * the FEXCore knobs the settings scene overrides on top of {@link #fexPreset}, and empty where
+     * nobody has opened one.
+     *
+     * <p><b>a rung and a sparse map are one answer between them</b>, so this is read from the same
+     * store and in the same breath -- see {@link Settings#fexOverrides()} for the rule that joins a
+     * game's level to the app's, and for why the pair is stored rather than the values alone.
+     *
+     * <p><b>there is no intent extra for it and there is not meant to be.</b> {@code --es fex}
+     * already names a knob for one run and is emitted after this, so a launch measuring one still
+     * beats a row somebody set -- and a second extra would be two ways to say one thing with an
+     * ordering between them that nobody could see.
+     */
+    private Map<String, String> fexOverrides = new LinkedHashMap<>();
+
+    /**
+     * whether this launch carries no JIT configuration at all.
+     *
+     * <p><b>{@code --es fexpreset none}, and it is not a rung.</b> every rung names every knob, so a
+     * launch normally spells out the whole configuration; this is the one way back to the argument
+     * vector that names none of it and lets FEXCore and the host layer decide between them. it is
+     * what every figure recorded before the rungs were complete was taken on, so a run comparable
+     * with those has to still be expressible.
+     *
+     * <p>{@code --es fex} is unaffected: a knob named on the command line was asked for by name.
+     */
+    private boolean noJitConfiguration;
+
     private boolean hostFeatureProbe;
 
     /**
@@ -446,15 +475,30 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
         // an unknown name is dropped and the settings row answers instead, which is what --es smc
         // does with a mode it does not recognise. a name that survives here is one the host layer
         // will also accept, since both sides read the same table.
-        String preset = FexPreset.normalise(getIntent().getStringExtra("fexpreset"));
-        fexPreset = preset != null ? preset : settings.getFexPreset();
-        // --es fex "DisableL2Cache=0,MaxInst=20000", comma-separated and appended after the preset,
-        // so a knob that is not on the ladder can be measured without an APK of its own. there is no
-        // settings row and there is not meant to be: the ladder is what a user chooses from, and a
-        // launch that names nothing here contributes nothing.
+        String asked = getIntent().getStringExtra("fexpreset");
+        // "none" is not a rung and does not fall back to the store: it is the launch that names no
+        // JIT configuration at all. see FexPreset.NONE.
+        noJitConfiguration = FexPreset.isNone(asked);
+        String preset = FexPreset.normalise(asked);
+        // **a run naming nothing is recorded under the same key an untouched install is**, which is
+        // right because it is the same translation: BootRecord.DEFAULT_PRESET is what a null means
+        // where the boot is stamped.
+        fexPreset = noJitConfiguration ? null : (preset != null ? preset : settings.getFexPreset());
+        // **the rung named by an extra takes its own overrides with it, which is to say none.** the
+        // rule the store already carries is that a level naming a preset owns the whole
+        // configuration, and a launch is a level: a script asking for one rung and silently getting
+        // it plus whatever rows are set would be a measurement of something nobody wrote down.
+        fexOverrides = (preset != null || noJitConfiguration)
+                ? new LinkedHashMap<>()
+                : settings.fexOverrides();
+        // --es fex "MaxInst=20000", comma-separated and appended after the preset and the rows
+        // overriding it, so a knob the screen does not draw can be measured without an APK of its
+        // own. the nine it does draw are reachable from the settings scene instead; what this is
+        // for is the rest of FEXCore's option table, which is most of it. a launch that names
+        // nothing here contributes nothing.
         // --ez hostprobe true, hasExtra for the reason --ez strict is: absent and false are
-        // different answers. on is the default and says nothing on the command line, so a launch
-        // naming no extras is the argument vector every measurement here was taken on.
+        // different answers. on is the default and says nothing on the command line, so this row
+        // adds to the vector only when it is turned off.
         if (getIntent().hasExtra("hostprobe")) {
             hostFeatureProbe = getIntent().getBooleanExtra("hostprobe", true);
         } else {
@@ -1345,10 +1389,19 @@ public final class MainActivity extends Activity implements SurfaceHolder.Callba
             args.add("--host-features");
             args.add("minimal");
         }
-        args.addAll(FexPreset.arguments(fexPreset));
-        // after the preset, so a launch measuring one knob overrides the rung it is measured against
-        // rather than fighting it: the host layer applies these in order and the last assignment to a
-        // name is the one FEXCore keeps.
+        // **the whole configuration, or none of it.** a rung names every knob this app draws, so
+        // what a row shows is what the run got -- and the one launch that names nothing is the
+        // measurement vector, which has to stay expressible rather than merely unreachable.
+        if (!noJitConfiguration) {
+            args.addAll(FexPreset.arguments(fexPreset));
+            // the rows the user set on top of that rung, after it for the same reason --es fex is
+            // after both: the host layer applies these in order and keeps the last assignment to a
+            // name, so a knob emitted after a rung replaces what the rung said about it.
+            args.addAll(FexPreset.overrideArguments(fexOverrides));
+        }
+        // after the preset and after the rows, so a launch measuring one knob overrides both the
+        // rung it is measured against and anything stored, rather than fighting either: the host
+        // layer applies these in order and the last assignment to a name is the one FEXCore keeps.
         for (String option : fexOptions) {
             String trimmed = option.trim();
             if (!trimmed.isEmpty()) {

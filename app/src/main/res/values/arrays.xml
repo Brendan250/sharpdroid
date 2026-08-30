@@ -31,24 +31,16 @@
     </string-array>
 
     <!-- FexPreset.ALL, in order, most faithful first. the names are FEX's own ladder as other
-         frontends label it, so that a setting means the same thing to someone arriving from one. -->
+         frontends label it, so that a setting means the same thing to someone arriving from one.
+         this ladder is shorter than theirs: the rungs a preset covers are the ones that trade
+         faithfulness for speed, and the block lookup is a group of rows beside them instead. see
+         FexPreset for what a rung above Performance would have been bundling. -->
     <string-array name="fex_preset_entries">
         <item>Stability</item>
         <item>Compatibility</item>
         <item>Intermediate</item>
         <item>Performance</item>
-        <item>Extreme</item>
     </string-array>
 
-    <!-- one line per rung, shown under the slider as it moves. they say what a position costs or
-         buys rather than restating its name, because a name alone does not tell anyone what Extreme
-         is extreme about. two lines is what the longest needs and the dialog reserves exactly that. -->
-    <string-array name="fex_preset_details">
-        <item>Most faithful and slowest. Translates one block at a time and keeps every memory-ordering guarantee.</item>
-        <item>Stricter than the default: vector and string operations are made atomic too. Noticeably slower.</item>
-        <item>The FEXCore default. Resembles a good balance between accuracy and speed.</item>
-        <item>Drops x86 memory ordering and full x87 precision. Faster, but some games will misbehave or crash.</item>
-        <item>Fastest. Spends a lot more memory on JIT lookup caches. Unaligned access is repaired without atomicity.</item>
-    </string-array>
 
 </resources>

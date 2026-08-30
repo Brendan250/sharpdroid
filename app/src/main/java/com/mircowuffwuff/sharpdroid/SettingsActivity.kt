@@ -135,6 +135,25 @@ class SettingsActivity : AppCompatActivity() {
             UserDataActivity::class.java,
             GameUserDataActivity::class.java,
             R.string.settings_user_data_game_summary,
+        ),
+
+        /**
+         * the JIT knobs, behind a row in [EMULATION] rather than behind a card of its own.
+         *
+         * **it is a section that no grid draws, and it must stay one.** the settings grid was
+         * already a card too tall at seven, which is what moved About out of it; a screen holding
+         * ten rows about one subject belongs under the row naming that subject, where somebody
+         * looking for it is already standing.
+         *
+         * so [icon] and [summary] are here because every constant carries them rather than because
+         * anything reads them -- this section appears in neither [shown] nor [perGame]. the icon is
+         * the section it is reached from, which is the answer that stays right if a grid ever does
+         * draw it.
+         */
+        JIT_ACCURACY(
+            R.string.setting_jit_accuracy,
+            R.string.setting_jit_accuracy_summary,
+            R.drawable.ic_section_emulation,
         );
 
         companion object {

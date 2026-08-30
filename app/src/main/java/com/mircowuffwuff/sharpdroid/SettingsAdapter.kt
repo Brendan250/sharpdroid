@@ -1,9 +1,11 @@
 package com.mircowuffwuff.sharpdroid
 
+import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.color.MaterialColors
@@ -12,9 +14,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 // non-transitive R class holds what the module itself declares and nothing a library does.
 import com.google.android.material.R as MaterialR
 import com.mircowuffwuff.sharpdroid.databinding.DialogMessageBinding
-import com.mircowuffwuff.sharpdroid.databinding.DialogSliderChoiceBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingColourBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingHeaderBinding
+import com.mircowuffwuff.sharpdroid.databinding.ItemSettingPresetBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingSwitchBinding
 import com.mircowuffwuff.sharpdroid.databinding.ItemSettingValueBinding
 
@@ -51,6 +53,33 @@ class SettingsAdapter(
     fun submit(newRows: List<SettingRow>) {
         rows = newRows
         notifyDataSetChanged()
+    }
+
+    /**
+     * the whole list again, coming back to a section that may have changed while it was away.
+     *
+     * **[submit] would be wrong here now, and it was not always.** it says "assume nothing about
+     * what moved", which RecyclerView answers by laying out again with no animation at all -- fine
+     * when nothing on the list could have changed behind the user's back, and no longer true: a row
+     * that opens a screen of its own reports what was done on that screen, so returning is exactly
+     * when its answer moves. under [submit] the button that appears under it snaps in.
+     *
+     * **so every row is notified with a payload, and the ones that did not move say so themselves.**
+     * [useGlobal] already asks whether a row's answer differs from what is drawn and returns early
+     * when it does not, so naming them all animates precisely the one that changed. the payload is
+     * also what keeps the holders from being cross-faded against fresh ones, which is what would
+     * blink every switch on the list.
+     *
+     * a rebuild that changed the list's length is not this -- it falls back to [submit], since a row
+     * arriving or leaving is [replaceRow]'s to describe.
+     */
+    fun refresh(newRows: List<SettingRow>) {
+        if (newRows.size != rows.size) {
+            submit(newRows)
+            return
+        }
+        rows = newRows
+        notifyItemRangeChanged(0, rows.size, CHANGED)
     }
 
     /**
@@ -97,6 +126,19 @@ class SettingsAdapter(
     }
 
     /**
+     * one row bound again where it stands, for a row that reads out something another row changed.
+     *
+     * **the list is already correct when this is called** -- [submit] replaced it -- so this only
+     * says that a second row's holder is now describing an older answer than the one it is showing.
+     * the payload is the same one [submit] sends, and for the same reason: without it the holder is
+     * cross-faded against a second copy of itself.
+     */
+    fun rebind(key: String) {
+        val index = rows.indexOfFirst { it.key == key }
+        if (index >= 0) notifyItemChanged(index, CHANGED)
+    }
+
+    /**
      * the whole list again, one row longer or one shorter, saying which row arrived or left.
      *
      * **this is the only path that animates a row into or out of the list**, and it exists because a
@@ -122,7 +164,7 @@ class SettingsAdapter(
         is SettingRow.Header -> TYPE_HEADER
         is SettingRow.Switch -> TYPE_SWITCH
         is SettingRow.Dropdown -> TYPE_VALUE
-        is SettingRow.Slider -> TYPE_SLIDER
+        is SettingRow.Cards -> TYPE_CARDS
         is SettingRow.Colour -> TYPE_COLOUR
         is SettingRow.External -> TYPE_EXTERNAL
         is SettingRow.Screen -> TYPE_SCREEN
@@ -134,10 +176,8 @@ class SettingsAdapter(
             TYPE_HEADER -> HeaderHolder(ItemSettingHeaderBinding.inflate(inflater, parent, false))
             TYPE_SWITCH -> SwitchHolder(ItemSettingSwitchBinding.inflate(inflater, parent, false))
             TYPE_VALUE -> ValueHolder(ItemSettingValueBinding.inflate(inflater, parent, false))
+            TYPE_CARDS -> CardsHolder(ItemSettingPresetBinding.inflate(inflater, parent, false))
             TYPE_COLOUR -> ColourHolder(ItemSettingColourBinding.inflate(inflater, parent, false))
-            // the dropdown's layout again: the row is a title, an explanation and the chosen rung.
-            // that the dialog behind it holds a slider is not something the row shows.
-            TYPE_SLIDER -> SliderHolder(ItemSettingValueBinding.inflate(inflater, parent, false))
             // the same layout a dropdown uses: a title, an explanation and the chosen thing under
             // it. what differs is where the tap goes, which is not something a layout knows.
             TYPE_SCREEN -> ScreenHolder(ItemSettingValueBinding.inflate(inflater, parent, false))
@@ -193,7 +233,7 @@ class SettingsAdapter(
             is SettingRow.Header -> (holder as HeaderHolder).bind(row)
             is SettingRow.Switch -> (holder as SwitchHolder).bind(row)
             is SettingRow.Dropdown -> (holder as ValueHolder).bind(row)
-            is SettingRow.Slider -> (holder as SliderHolder).bind(row)
+            is SettingRow.Cards -> (holder as CardsHolder).bind(row)
             is SettingRow.Colour -> (holder as ColourHolder).bind(row)
             is SettingRow.External -> (holder as ExternalHolder).bind(row)
             is SettingRow.Screen -> (holder as ScreenHolder).bind(row)
@@ -256,7 +296,26 @@ class SettingsAdapter(
             useGlobal(binding.useGlobal, row.key, row)
         }
 
-        private fun stored(key: String, default: Boolean): Boolean = when (key) {
+        /**
+         * a FEXCore knob's row, or null for one of the named rows below.
+         *
+         * **the knobs are looked up rather than listed here**, because every one of them is stored,
+         * read and emitted the same way -- an option name and a value -- so a `when` naming them
+         * would be a second list to keep in step with [FexPreset.KNOBS] for no answer it does not
+         * already give.
+         */
+        private fun knob(key: String): FexPreset.Knob? =
+            FexPreset.KNOBS.firstOrNull { Settings.fexKnobKey(it.option) == key }
+
+        private fun stored(key: String, default: Boolean): Boolean {
+            val knob = knob(key)
+            // **[default] is the rung's own value here rather than a constant**, which is why an
+            // untouched knob row follows the ladder. see Settings.fexKnobDefault.
+            if (knob != null) return settings.fexKnob(knob.option)?.let(knob::checked) ?: default
+            return named(key, default)
+        }
+
+        private fun named(key: String, default: Boolean): Boolean = when (key) {
             Settings.KEY_FULLSCREEN -> settings.fullscreen ?: default
             Settings.KEY_LOADING_ESTIMATE -> settings.loadingEstimate ?: default
             Settings.KEY_STRICT -> settings.strictDynlib ?: default
@@ -267,7 +326,16 @@ class SettingsAdapter(
             else -> default
         }
 
-        private fun write(key: String, value: Boolean) = when (key) {
+        private fun write(key: String, value: Boolean) {
+            val knob = knob(key)
+            if (knob != null) {
+                settings.setFexKnob(knob.option, knob.value(value))
+                return
+            }
+            writeNamed(key, value)
+        }
+
+        private fun writeNamed(key: String, value: Boolean) = when (key) {
             Settings.KEY_FULLSCREEN -> settings.fullscreen = value
             Settings.KEY_LOADING_ESTIMATE -> settings.loadingEstimate = value
             Settings.KEY_STRICT -> settings.strictDynlib = value
@@ -275,6 +343,61 @@ class SettingsAdapter(
             Settings.KEY_VIBRATE_HANDHELD -> settings.vibrateHandheld = value
             Settings.KEY_DISK_SHADER_CACHE -> settings.diskShaderCache = value
             Settings.KEY_HOST_FEATURE_PROBE -> settings.hostFeatureProbe = value
+            else -> Unit
+        }
+    }
+
+    /**
+     * a fixed set of alternatives as cards, one of which may be chosen.
+     *
+     * **the cards are laid out by a grid whose column count is a resource**, so the same four sit
+     * in a row on a wide screen and two by two upright, and this code never asks which it is in.
+     *
+     * **the chosen card is a wash of the accent over its own surface, outlined and lettered in the
+     * accent.** the accent at full strength belongs to a switch track and not to a card ten times
+     * its area, where the same colour stops reading as chosen and starts reading as a warning --
+     * which is the rule Material itself follows in reserving its container roles for large
+     * surfaces. this is that rule one step further, these cards being larger still.
+     */
+    private inner class CardsHolder(val binding: ItemSettingPresetBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+        fun bind(row: SettingRow.Cards) {
+            val cards = listOf(binding.rung0, binding.rung1, binding.rung2, binding.rung3)
+            val labels = listOf(binding.label0, binding.label1, binding.label2, binding.label3)
+            val chosen = row.chosen?.let { row.values.indexOf(it) } ?: -1
+
+            val quiet = MaterialColors.getColor(binding.root, MaterialR.attr.colorOutlineVariant)
+            val ink = MaterialColors.getColor(binding.root, MaterialR.attr.colorOnSurface)
+            val accent = MaterialColors.getColor(binding.root, MaterialR.attr.colorPrimary)
+            val plain = MaterialColors.getColor(binding.root, MaterialR.attr.colorSurfaceContainer)
+            val fill = MaterialColors.layer(plain, accent, CARD_WASH)
+            val density = binding.root.resources.displayMetrics.density
+
+            cards.forEachIndexed { at, card ->
+                val selected = at == chosen
+                val present = at < row.entries.size
+                card.isVisible = present
+                if (!present) return@forEachIndexed
+                card.strokeWidth = (1f * density).toInt()
+                card.setStrokeColor(ColorStateList.valueOf(if (selected) accent else quiet))
+                card.setCardBackgroundColor(if (selected) fill else plain)
+                // **the state as the widget's own and not only as colours**, so that what is read
+                // out matches what is drawn. the tick it would otherwise draw is off: the wash and
+                // the outline already say it, and a glyph would push the label off centre.
+                card.isCheckable = true
+                card.checkedIcon = null
+                card.isChecked = selected
+                labels[at].text = row.entries[at]
+                labels[at].setTextColor(if (selected) accent else ink)
+                card.setOnClickListener {
+                    write(row.key, row.values[at])
+                    onChanged(row)
+                }
+            }
+        }
+
+        private fun write(key: String, value: String) = when (key) {
+            Settings.KEY_FEX_PRESET -> settings.fexPreset = value
             else -> Unit
         }
     }
@@ -325,112 +448,6 @@ class SettingsAdapter(
     }
 
     /**
-     * a row whose dialog is a slider along a ladder.
-     *
-     * **the dialog commits on a button rather than on a detent**, unlike [ValueHolder]'s
-     * single-choice list -- which chooses and dismisses on one tap because a tap there *is* the
-     * choice. a slider is dragged across every position between where it started and where it is
-     * going, so writing as it moves would store four rungs nobody asked for on the way to the fifth,
-     * and each of them would be a value the precedence rule then treats as chosen. Cancel has to be
-     * a real answer here for the same reason.
-     */
-    private inner class SliderHolder(val binding: ItemSettingValueBinding) :
-        RecyclerView.ViewHolder(binding.root) {
-        fun bind(row: SettingRow.Slider) {
-            binding.title.setText(row.title)
-            binding.summary.setText(row.summary)
-
-            val current = stored(row.key) ?: row.default
-            // an unknown stored value opens at the default rather than at position zero. a store
-            // written by a later build naming a rung this one does not have would otherwise land the
-            // user on the most conservative setting and call it their choice.
-            val index = row.values.indexOf(current).let { if (it < 0) row.values.indexOf(row.default) else it }
-                .coerceIn(0, row.entries.size - 1)
-            binding.value.text = row.entries[index]
-
-            binding.root.setOnClickListener {
-                val view = DialogSliderChoiceBinding.inflate(LayoutInflater.from(binding.root.context))
-                // **the axis rather than the two end rungs.** naming the ends with their own entries
-                // put the same word on screen twice whenever the slider was at one of them -- large
-                // and accented above, small and grey below -- while what the scale is missing is not
-                // the names, which the line above always gives, but which way the ladder runs and
-                // what it costs to go that way.
-                view.lowLabel.setText(row.low)
-                view.highLabel.setText(row.high)
-
-                // **the track is widened to the text column rather than the scale being pulled in to
-                // meet it.** a slider reserves room at both ends for the thumb to sit at an extreme,
-                // so out of the box its track starts inset from the widget's own edge -- which leaves
-                // it narrower than every other line in this dialog and leaves the two ends of the
-                // scale with nothing to line up against.
-                //
-                // **most of it is taken back and three eighths is left**, because the reservation is
-                // not only for the thumb: the halo drawn around it as it is dragged is wider than the
-                // bar, and cancelling the whole inset clipped that halo flat against the dialog at
-                // both extremes. what is left is the margin that reaches the text column closely
-                // enough to read as one edge while the halo is still round at either end.
-                //
-                // **a fraction of what the widget reports rather than a measured dp**, so it stays
-                // the same share of the thumb's own room at every density -- a literal number tuned
-                // against one panel is a different amount of space on every other one.
-                //
-                // **the scale is not moved with it.** it sits on the dialog's own text column, which
-                // is where the widened track now very nearly begins -- near enough that pulling the
-                // labels the last few dp to meet it reads as further in rather than as aligned.
-                //
-                // the inset itself is not in Material's public resource set and is free to move in a
-                // version bump, which is the other reason it is asked for rather than repeated.
-                //
-                // **the right end is held further in than the left, and that is not a symmetry
-                // mistake.** the dialog's own buttons sit below it, and a text button's label is
-                // inset inside its bounds -- so a track running to the content column ends level with
-                // nothing, while one held off by slider_scale_end ends level with OK. the high label
-                // is moved by the same amount in the layout, so the two stay flush with each other.
-                val rest = view.slider.trackSidePadding * 3 / 8
-                val pull = view.slider.trackSidePadding - rest
-                (view.slider.layoutParams as ViewGroup.MarginLayoutParams).apply {
-                    marginStart = -pull
-                    marginEnd = -pull +
-                        view.slider.resources.getDimensionPixelSize(R.dimen.slider_scale_end)
-                }
-                view.slider.valueFrom = 0f
-                view.slider.valueTo = (row.entries.size - 1).toFloat()
-                view.slider.stepSize = 1f
-
-                fun show(at: Int) {
-                    view.name.text = row.entries[at]
-                    view.detail.text = row.detail[at]
-                }
-                view.slider.value = index.toFloat()
-                show(index)
-                view.slider.addOnChangeListener { _, value, _ -> show(value.toInt()) }
-
-                MaterialAlertDialogBuilder(binding.root.context)
-                    .setTitle(row.title)
-                    .setView(view.root)
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .setPositiveButton(android.R.string.ok) { _, _ ->
-                        write(row.key, row.values[view.slider.value.toInt()])
-                        onChanged(row)
-                    }
-                    .show()
-            }
-            binding.root.setOnLongClickListener { offerDefault(row.key, row) }
-            useGlobal(binding.useGlobal, row.key, row)
-        }
-
-        private fun stored(key: String): String? = when (key) {
-            Settings.KEY_FEX_PRESET -> settings.fexPreset
-            else -> null
-        }
-
-        private fun write(key: String, value: String) = when (key) {
-            Settings.KEY_FEX_PRESET -> settings.fexPreset = value
-            else -> Unit
-        }
-    }
-
-    /**
      * a switch the app cannot flip, over state the platform owns.
      *
      * the switch is not interactive -- the layout already makes it so, since the whole row is what
@@ -476,7 +493,10 @@ class SettingsAdapter(
      * own -- and neither can any row on the global list, where the store has nothing behind it.
      */
     private fun useGlobal(button: MaterialButton, key: String?, row: SettingRow) {
-        val overridden = settings.perGame && key != null && settings.isSet(key)
+        // **asked of the store rather than worked out here**, because whether a row shadows the
+        // level behind it is a question about the merge and one group of rows answers it
+        // differently -- see Settings.overridesGlobal.
+        val overridden = key != null && settings.overridesGlobal(key)
         if (overridden) {
             button.setOnClickListener {
                 settings.clear(key!!)
@@ -542,10 +562,15 @@ class SettingsAdapter(
      * does the same thing. the wording could not be shared either: on the global list the way back is
      * to the app's own default, and on a per-game one it is to whatever the global list currently
      * says, which is a different sentence about a different value.
+     *
+     * **a FEXCore knob on a game that names its own rung has neither, and that is a gap.** the button
+     * is absent because there is no global value behind such a row -- see [Settings.overridesGlobal]
+     * -- and this gesture is absent because the whole list is per-game, so the only way back is to
+     * choose the rung again, which settles every row at once rather than the one asked about.
      */
     private fun offerDefault(key: String, row: SettingRow): Boolean {
         if (settings.perGame) return false
-        if (!settings.isSet(key)) return false
+        if (!settings.answers(key)) return false
         // any bound holder's context is the activity; the list is what we have a handle on.
         val context = recycler?.context ?: return false
         // **the message is a view of ours rather than setMessage**, and only so that the space below
@@ -619,6 +644,16 @@ class SettingsAdapter(
         const val TYPE_EXTERNAL = 3
         const val TYPE_COLOUR = 4
         const val TYPE_SCREEN = 5
-        const val TYPE_SLIDER = 6
+        const val TYPE_CARDS = 6
+
+        /**
+         * how much of the accent is laid over a chosen card's own surface.
+         *
+         * **the accent at full strength is a switch track's colour and not a card's.** the same
+         * value over ten times the area stops reading as a state and starts reading as an alarm,
+         * which is why Material keeps its base roles for small controls and its container roles for
+         * large ones. this is a shade under the lightest container that scheme would generate.
+         */
+        const val CARD_WASH = 0.14f
     }
 }

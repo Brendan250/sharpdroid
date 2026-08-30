@@ -30,6 +30,11 @@ sealed class SettingRow {
      *
      * **a label above a run of rows, never another button press.** a subsection is a grouping and
      * not a destination, so hiding one behind a tap adds a screen without adding a choice.
+     *
+     * **a page of its own is a different thing and this rule does not forbid it.** what it forbids
+     * is a run of two or three rows put behind a press for tidiness; a page long enough to want
+     * headers of its own, reached from a [Screen] row that reads out what is chosen inside it, is a
+     * destination that answers a question rather than a grouping that hides one.
      */
     data class Header(val title: Int) : SettingRow()
 
@@ -63,32 +68,33 @@ sealed class SettingRow {
     }
 
     /**
-     * a choice from an **ordered** list, drawn as a row that opens a dialog holding a slider.
+     * a fixed set of named alternatives, drawn as cards laid out across the row and picked by
+     * tapping one.
      *
-     * the same shape as [Dropdown] and a different claim about the values: a dropdown's entries are
-     * alternatives, and these are a ladder, where one end trades away what the other end keeps. a
-     * slider says that in the control itself, and it makes "the middle" a place a user can aim for
-     * rather than a position they have to count out.
+     * **it is not a [Dropdown] and the difference is that the value may be none of them.** a
+     * dropdown answers with the entry that is chosen; this answers with the entry that is chosen
+     * *or with nothing at all*, which is the state a configuration is in once something below it
+     * has been changed away from what the choice here implies. a control with a position for every
+     * alternative and none for that state cannot say it.
      *
-     * [entries] is what is shown at each detent and [values] is what is stored, one to one. [detail]
-     * is a line per position describing what that rung costs or buys, shown under the slider as it
-     * moves -- a name alone does not tell anyone what Extreme is extreme about.
+     * **[chosen] is therefore nullable and is the whole of that.** null draws every card
+     * unselected, which reads as a control whose value is not on the list rather than as one
+     * nothing has been done to yet -- the rows underneath say what the configuration actually is.
      *
-     * **[low] and [high] name the axis, not the rungs at either end of it.** the chosen rung is
-     * already named above the slider, so ends labelled with their own entries showed one of those
-     * names twice over as soon as the slider reached them. what a scale has to say that the name
-     * cannot is which direction is which and what is given up going that way.
+     * **it carries no title and no summary.** it is the first thing on the screen it belongs to,
+     * under a toolbar that already names it, and a label repeating that name would be the screen's
+     * title written twice.
+     *
+     * **and it carries neither way back.** the row that opens that screen is where both live, since
+     * what they put back is the whole configuration rather than this one choice -- see
+     * [Settings.answers].
      */
-    data class Slider(
+    data class Cards(
         override val key: String,
-        val title: Int,
-        val summary: Int,
         val entries: Array<String>,
-        val detail: Array<String>,
         val values: Array<String>,
-        val default: String,
-        val low: Int,
-        val high: Int,
+        /** the value whose card is drawn as chosen, or null where none of them is what is set. */
+        val chosen: String?,
     ) : SettingRow() {
         // as Dropdown: arrays in a data class give identity equals, and nothing compares rows.
         override fun equals(other: Any?) = this === other

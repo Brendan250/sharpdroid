@@ -800,7 +800,38 @@ int HostLayer::RunMain(int argc, char** argv) {
   }
   FEXCore::Config::Initialize();
 
-  // --fex, applied first so that the three values below always win. those three are not
+  // **the JIT's L1 block lookup is resized to fit a thread's working set, and a shrink strands
+  // every translation cached above the new size.** LookupCache.h's UpdateDynamicL1Stats halves the
+  // entry count and madvises only the region above the new one, so nothing below it is cleared;
+  // invalidation clears the single index an address folds to under the mask in force now; and the
+  // inline lookup returns on a guest-address match with nothing else checked. a mask that widens
+  // again therefore reaches an entry left behind at a narrower one -- and a guest thread resumed
+  // through the emulator's continuation trampoline runs the previous translation of that
+  // trampoline, which bakes all sixteen registers as immediates and so lands the thread on the
+  // right instruction holding the previous resume's operands. the audio stops permanently and
+  // sometimes the picture stops with it:
+  // https://github.com/mircowuffwuff/sharpdroid/issues/1
+  //
+  // **stopping the shrink is the whole of what the fault needs, and the option is a threshold
+  // rather than a switch.** the shrink branch is `AveragePerSecond < ...Heuristic()` over a rate
+  // that cannot fall below zero, so at 0 nothing reaches it. with no shrink an entry is only ever
+  // written below the current mask, the region above it is zero from the initial mapping, and a
+  // mask that widens can only land on an entry nothing has written. the growth heuristic is
+  // untouched, so the L1 still sizes itself upward.
+  //
+  // DynamicL1Cache=0 closes the same fault by pinning the mask, and costs about 150 MB more for
+  // the 128x size change it also makes. that size change is not what the fault needs, so it is not
+  // what is paid for.
+  //
+  // **set before the loop below rather than beside the three values after it**, so that a launch
+  // naming this option gets its own value: the unmodified arm has to stay reachable while the
+  // faults it is measured against are still open.
+  FEXCore::Config::Set(FEXCore::Config::CONFIG_DYNAMICL1CACHEDECREASECOUNTHEURISTIC, "0");
+  // said whether or not a launch overrides it, so that a log read cold answers which lookup this
+  // run used without anybody inferring it from the absence of a line.
+  std::printf("[host-layer] DynamicL1CacheDecreaseCountHeuristic=0 by default, which a --fex naming it replaces\n");
+
+  // --fex, applied ahead of the three values below so that those always win. those three are not
   // preferences: 32-bit mode silently halves the guest register file, the SMC mode has to agree
   // with what the VMA tracker is told, and the interrupt fault page is what makes an asynchronous
   // signal deliverable at all. a launch that names one of them gets the host layer's answer.

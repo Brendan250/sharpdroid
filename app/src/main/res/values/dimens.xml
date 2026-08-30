@@ -17,10 +17,5 @@
          which is why the style carries no width of its own. -->
     <dimen name="game_fact_label">76dp</dimen>
 
-    <!-- how far the right end of a slider dialog's scale is held off the text column, so that the
-         track and the label under it line up with the OK button's own text rather than with the
-         column the content otherwise uses. it applies to the slider and to the high label equally -
-         the two are flush with each other and this moves both. -->
-    <dimen name="slider_scale_end">22dp</dimen>
 
 </resources>
